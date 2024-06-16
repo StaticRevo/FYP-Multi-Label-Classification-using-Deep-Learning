@@ -1,1 +1,1 @@
-# Automed-Land-Classification-System
+# Deep Learning-Based Land Use Classification Using Sentinel-2 Imagery

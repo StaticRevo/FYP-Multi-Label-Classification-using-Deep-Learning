@@ -23,3 +23,5 @@ For my project, I made use of the EuroSAT Sentinel-2 land use dataset. This data
 
 ## Eveluation 
 
+## Conclusion 
+

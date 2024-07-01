@@ -4,3 +4,5 @@ For my project, I made use of the EuroSAT Sentinel-2 land use dataset. This data
 
 ![EUROSAT](https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery/assets/116385849/139d7b76-b898-460e-93c1-13536c6c0726)
 
+## 
+

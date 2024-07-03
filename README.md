@@ -24,6 +24,7 @@ datasets/eurosat-dataset/
 - SeaLake/
 
 **Additional Folders**
+
 datasets/eurosat-dataset/dataset-splits/test
 - AnnulCrop/
 - Forest/

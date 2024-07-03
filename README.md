@@ -62,7 +62,7 @@ The Dataset is organised into 10 main folders which reesent the various land cov
 - SeaLake/
 
 ### Source
-The EuroSAT Sentinel-2 dataset is publicly available and can be accessed by anyone via the following the link: This site was built using [GitHub Pages](https://pages.github.com/).
+The EuroSAT Sentinel-2 dataset is publicly available and can be accessed by anyone via the following the link:[EuroSAT](https://pages.github.com/](https://github.com/phelber/EuroSAT)).
 
 ## Model Architecture
 ### Overview

@@ -11,7 +11,7 @@ The Dataset is organised into 10 main folders which reesent the various land cov
 
 **EuroSAT Dataset**
 
-datasets/eurosat-dataset/
+**datasets/eurosat-dataset/**
 - AnnulCrop/
 - Forest/
 - HerbaceousVegetation/
@@ -25,7 +25,7 @@ datasets/eurosat-dataset/
 
 **Additional Folders**
 
-datasets/eurosat-dataset/dataset-splits/test
+**datasets/eurosat-dataset/dataset-splits/test**
 - AnnulCrop/
 - Forest/
 - HerbaceousVegetation/
@@ -37,7 +37,7 @@ datasets/eurosat-dataset/dataset-splits/test
 - River/
 - SeaLake/
 
-datasets/eurosat-dataset/dataset-splits/train
+**datasets/eurosat-dataset/dataset-splits/train**
 - AnnulCrop/
 - Forest/
 - HerbaceousVegetation/
@@ -49,7 +49,7 @@ datasets/eurosat-dataset/dataset-splits/train
 - River/
 - SeaLake/
 
-datasets/eurosat-dataset/dataset-splits/valid
+**datasets/eurosat-dataset/dataset-splits/valid**
 - AnnulCrop/
 - Forest/
 - HerbaceousVegetation/
@@ -62,6 +62,7 @@ datasets/eurosat-dataset/dataset-splits/valid
 - SeaLake/
 
 ### Source
+The EuroSAT Sentinel-2 dataset is publicly available and can be accessed by anyone via the following the link: [EuroSAT]([https://pages.github.com/](https://github.com/phelber/EuroSAT)).
 
 ## Model Architecture
 ### Overview

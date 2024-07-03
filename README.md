@@ -10,6 +10,7 @@ The EuroSAT Sentinel-2 dataset is a large collection of satellite images that we
 The Dataset is organised into 10 main folders which reesent the various land cover types around the world. Additionaliy for the purpose of crating and training a Convolutional Neural Network (CNN) another folder was created which contains three additional folders where created for **training, testing and validtion** of the CNN. Each of these added folders contain subfolders corresponding to the 10 land cover classes. The structure of my dataset is as follows:
 
 **EuroSAT Dataset**
+
 datasets/eurosat-dataset/
 - AnnulCrop/
 - Forest/
@@ -21,6 +22,44 @@ datasets/eurosat-dataset/
 - Residential/
 - River/
 - SeaLake/
+
+**Additional Folders**
+datasets/eurosat-dataset/dataset-splits/test
+- AnnulCrop/
+- Forest/
+- HerbaceousVegetation/
+- Highway/
+- Industrial/
+- Pasture/
+- PermanentCrop/
+- Residential/
+- River/
+- SeaLake/
+
+datasets/eurosat-dataset/dataset-splits/train
+- AnnulCrop/
+- Forest/
+- HerbaceousVegetation/
+- Highway/
+- Industrial/
+- Pasture/
+- PermanentCrop/
+- Residential/
+- River/
+- SeaLake/
+
+datasets/eurosat-dataset/dataset-splits/valid
+- AnnulCrop/
+- Forest/
+- HerbaceousVegetation/
+- Highway/
+- Industrial/
+- Pasture/
+- PermanentCrop/
+- Residential/
+- River/
+- SeaLake/
+
 ### Source
 
 ## Model Architecture

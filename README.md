@@ -20,7 +20,17 @@ This project aims to address this issue by developing a CNN model capable of cla
 - License
 
 ## Project Goals
+The primary objective of is project is to develop a **robust and accurate** model for classifyig land cover types from satellite imagery. To achieve this the project has been structred around a number of key goals that guide the development process and ensure the model’s practical applicability in various fields. These goals are designed to address the complex challenges associated with satellite imagery analysis and to maximize the utility of the classification model for different stakeholders, such as environmental scientists, urban planners, and agricultural companies. Below, we outline the specific goals that this project aims to accomplish:
+
+1. **Creating a Robust CNN Model** that is capable of accurately classifying land cover types from then dataset provided.
+2. **Achieving high classification accuracy** across different land cover types.
+3. **Visualising Model Performance** to understand the strengths of the model and the areas of imporvement.
+4. **Utilising and Adapting Pr-trained Models** to achieve even better results than training a model from scratch.
+5. **Providing Comprehensive Documentation** by documenting the entire process from data preprocessing and model training to the eveluation stages.
+6. **Developing Usable Tools** by creating scripts and tools to process the satellite images, training the model and also making predictions.
+
 ## Dataset: EuroSAT Sentinel-2
+
 ![EUROSAT](https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery/assets/116385849/139d7b76-b898-460e-93c1-13536c6c0726)
 ### Description
 The EuroSAT Sentinel-2 dataset is a large collection of satellite images that were captured by the Sentinel-2 satellite, which is part of the European Space Agency's Compernicus Program. This dataset was created to facilitate reseach in remote sensing and computer vision especially in the context of land use classification as done in my project. The Sentinel-2 dataset was also created for training machine learning models. The dataset contains **27,000 labeled and geo-refenced images** accross **10 different classes** which cover **13 spectral bands** including Visible (RGB), Infrared (NIR) and shortwave infrared (SWIR) bands among many others. One of the major strengths of such dataset is that the images presented have a spatial resolution of 10 meters per pixel making the images high in resolution and assisting in providing specific and detailed information on Earth's surface. Another ket feature feature of the dataset is that the images have been **pre-processed and augmented** to ensure consistency and quality. Finally as mentioned already, the EuroSAT dataset includes 10 classe which cover multiple land cover types. This diversity was cruicial for training and evaluating land classification models.

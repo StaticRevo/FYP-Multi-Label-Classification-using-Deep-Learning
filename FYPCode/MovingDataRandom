@@ -1,0 +1,71 @@
+import os
+import shutil
+import pandas as pd
+from tqdm import tqdm
+
+# Load the metadata
+metadata_df = pd.read_parquet(r'C:\Users\isaac\datasets\2020 - BigEarthNet-S2\metadata.parquet')
+
+# Base directories
+source_base_dir = r'C:\Users\isaac\datasets\2020-BigEarthNet-S2'
+destination_base_dir = r'C:\Users\isaac\datasets\2020-BigEarthNet-S2\BigEarthNetDataset'
+
+# Function to safely construct destination path
+def get_safe_label_name(label):
+    return label.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+
+# Select a random row for testing
+random_row = metadata_df.sample(n=1).iloc[0]
+
+# Extract relevant information from the random row
+patch_id = random_row['patch_id']
+# Split the string at the underscores
+split_id = patch_id.split('_')
+# Rejoin the parts, excluding the last two
+trimmed_patch_id = '_'.join(split_id[:-2])
+labels = random_row['labels']
+s2v1_name = random_row['s2v1_name']
+
+# Print debug information
+print(f"Original patch_id: {patch_id}")
+print(f"Trimmed patch_id: {trimmed_patch_id}")
+print(f"Labels: {labels}")
+print(f"s2v1_name: {s2v1_name}")
+print()
+
+# Construct source path for the images
+image_folder_path = os.path.join(source_base_dir, trimmed_patch_id, patch_id)
+
+# Print the constructed path
+print(f"Testing path: {image_folder_path}")
+print()
+
+# Check if the source directory exists
+if os.path.exists(image_folder_path):
+    for label in labels:
+        safe_label = get_safe_label_name(label)
+        dest_dir = os.path.join(destination_base_dir, safe_label)
+        
+        # Create destination directory if it does not exist
+        os.makedirs(dest_dir, exist_ok=True)
+        
+        # Construct destination path for each label
+        dest_folder_path = os.path.join(dest_dir, trimmed_patch_id)
+        
+        # Check if the destination folder already exists
+        if not os.path.exists(dest_folder_path):
+            # Copy the entire folder to the destination
+            shutil.copytree(image_folder_path, dest_folder_path)
+            print(f'Copied folder {image_folder_path} to {dest_folder_path}')
+        else:
+            print(f'Destination folder already exists: {dest_folder_path}')
+    
+    # Remove the source directory after copying to all labels
+    shutil.rmtree(image_folder_path)
+    print(f'Removed source folder {image_folder_path}')
+else:
+    # If the source directory does not exist, it may have already been removed
+    print(f"Source directory {image_folder_path} does not exist. It may have already been removed.")
+
+print()
+print("Processing has been completed.")

@@ -29,7 +29,7 @@ The primary objective of is project is to develop a **robust and accurate** mode
 5. **Providing Comprehensive Documentation** by documenting the entire process from data preprocessing and model training to the eveluation stages.
 6. **Developing Usable Tools** by creating scripts and tools to process the satellite images, training the model and also making predictions.
 
-## Dataset: EuroSAT Sentinel-2
+## Dataset
 
 ![EUROSAT](https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery/assets/116385849/139d7b76-b898-460e-93c1-13536c6c0726)
 ### Description

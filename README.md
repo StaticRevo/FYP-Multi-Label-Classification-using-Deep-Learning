@@ -31,7 +31,7 @@ The primary objective of is project is to develop a **robust and accurate** mode
 
 ## Dataset
 
-![EUROSAT](https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery/assets/116385849/139d7b76-b898-460e-93c1-13536c6c0726)
+![dataset-cover](https://github.com/user-attachments/assets/ddae38e3-6fce-475f-8792-5b10250d2d1e)
 ### Description
 
 ### Source

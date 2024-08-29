@@ -31,7 +31,6 @@ The primary objective of is project is to develop a **robust and accurate** mode
 
 ## Dataset
 
-![dataset-cover](https://github.com/user-attachments/assets/ddae38e3-6fce-475f-8792-5b10250d2d1e)
 ### Description
 
 ### Source

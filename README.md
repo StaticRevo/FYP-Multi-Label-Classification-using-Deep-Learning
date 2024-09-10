@@ -20,14 +20,6 @@ This project aims to address this issue by developing a CNN model capable of cla
 - License
 
 ## Project Goals
-The primary objective of is project is to develop a **robust and accurate** model for classifyig land cover types from satellite imagery. To achieve this the project has been structred around a number of key goals that guide the development process and ensure the model’s practical applicability in various fields. These goals are designed to address the complex challenges associated with satellite imagery analysis and to maximize the utility of the classification model for different stakeholders, such as environmental scientists, urban planners, and agricultural companies. Below, we outline the specific goals that this project aims to accomplish:
-
-1. **Creating a Robust CNN Model** that is capable of accurately classifying land cover types from then dataset provided.
-2. **Achieving high classification accuracy** across different land cover types.
-3. **Visualising Model Performance** to understand the strengths of the model and the areas of imporvement.
-4. **Utilising and Adapting Pr-trained Models** to achieve even better results than training a model from scratch.
-5. **Providing Comprehensive Documentation** by documenting the entire process from data preprocessing and model training to the eveluation stages.
-6. **Developing Usable Tools** by creating scripts and tools to process the satellite images, training the model and also making predictions.
 
 ## Dataset
 

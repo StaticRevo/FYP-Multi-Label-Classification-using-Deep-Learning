@@ -8,17 +8,6 @@ Satellite imagery can help us find solutions to the growing number of environmen
 
 This project aims to address this issue by developing a CNN model capable of classifying land cover types in satellite imagery. This capability can benefit a variety of stakeholders, including conservationists, urban planners, and environmental scientists, by helping them survey and identify patterns in land use. This allows for the detection of natural areas under threat or the identification of regions suitable for urban development.
 
-## Table Of Contents
-- Overview
-- Project Goals
-- Dataset
-- Model Architecture
-- Training
-- Eveluation
-- Results
-- Usage and Installation
-- License
-
 ## Project Goals
 
 ## Dataset

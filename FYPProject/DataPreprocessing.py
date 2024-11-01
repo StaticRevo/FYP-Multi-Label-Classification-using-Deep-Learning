@@ -44,7 +44,18 @@ def BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
 
     # Stage 4: Add a binary vector to the metadata files to indicate the presence of a specific land cover class
     unique_labels = metadata_df['labels'].explode().unique()
+    print(unique_labels)
 
+    metadata_df['binary_vector'] = metadata_df['labels'].apply(lambda x: labels_to_binary_vector(x, unique_labels))
+
+    print(metadata_df.columns, "\n")
+
+    # Save the updated DataFrame to a new Parquet file
+    updated_metadata_file = r'C:\Users\isaac\Downloads\updated_metadata.parquet'
+    metadata_df.to_parquet(updated_metadata_file)
+
+    updated_metadata_df = pd.read_parquet(updated_metadata_file)
+    print(updated_metadata_df.columns, "\n")
 
     # Stage 5: Resize the TIFF files to the same resolution (120x120)
 
@@ -193,6 +204,10 @@ def removeUnnecessaryFiles(dataset_dir, unwanted_metadata_file):
     
     print(f"Deleted {deleted_folders} folders")
 
+def labels_to_binary_vector(labels, unique_labels):
+        binary_vector = [1 if label in labels else 0 for label in unique_labels]
+        return binary_vector
+
 ############################################################################################################
 if __name__ == '__main__':
     dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopy'
@@ -203,5 +218,5 @@ if __name__ == '__main__':
     metadata_df = pd.read_parquet(metadata_file)
     snow_cloud_metadata_df = pd.read_parquet(unwanted_metadata_file)
 
-    
+
     #BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)

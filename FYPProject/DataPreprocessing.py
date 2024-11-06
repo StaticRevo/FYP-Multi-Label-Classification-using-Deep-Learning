@@ -34,7 +34,7 @@ def BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
     if os.path.exists(subsets['50%']) and os.path.exists(subsets['10%']) and os.path.exists(subsets['1%']):
         print('Subsets already exist')
     else:
-        createSubsets(dataset_dir, subsets, metadata_df)
+        createSubsets(dataset_dir, subsets, metadata_df, subset_dir)
 
     full_subfolder_count, folder = count_subfolders(dataset_dir, '100%BigEarthNet')
     half_subfolder_count, folder = count_subfolders(subsets['50%'], '50%BigEarthNet' )
@@ -104,9 +104,7 @@ def BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
             combineTiffs(subfolder_path, dest_subfolder_path)
 
     # Stage 7: Split the dataset into training, validation and testing sets
-
     # Stage 8: Apply normalisation and data augmentation techniques
-
     # Stage 9: Save the preprocessed dataset to a specified location
     
 
@@ -320,12 +318,24 @@ if __name__ == '__main__':
     metadata_df = pd.read_parquet(metadata_file)
     snow_cloud_metadata_df = pd.read_parquet(unwanted_metadata_file)
 
-    bands_of_interest = ['B01', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']
-
-
-
-
     #BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)
 
-
+    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\1%Copy'
+    combined_destination_dir = os.path.join(dataset_dir, 'CombinedImages')
     
+    if not os.path.exists(combined_destination_dir):
+        os.makedirs(combined_destination_dir)
+
+    folders = [folder for folder in os.listdir(dataset_dir) if folder != "CombinedImages"]
+
+    for folder in tqdm(folders, desc="Processing folders"):
+        folder_path = os.path.join(dataset_dir, folder)
+        dest_folder_path = os.path.join(combined_destination_dir, folder)
+        if not os.path.exists(dest_folder_path):
+            os.makedirs(dest_folder_path)
+
+        subfolders = os.listdir(folder_path)
+        for subfolder in tqdm(subfolders, desc=f"Processing subfolders in {folder}", leave=False):
+            subfolder_path = os.path.join(folder_path, subfolder, subfolder)
+            dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
+            combineTiffs(subfolder_path, dest_subfolder_path)

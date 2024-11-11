@@ -320,9 +320,31 @@ if __name__ == '__main__':
 
     #BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)
 
-    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\1%Copy'
+    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%'
+    # Stage 5: Resize the TIFF files to the same resolution (120x120)
+    bands_of_interest = ['B01', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']
+
+    # Use tqdm in the first loop
+    for folder in tqdm(os.listdir(dataset_dir), desc='Processing folders'):
+        folder_path = os.path.join(dataset_dir, folder)
+        if os.path.isdir(folder_path):
+            for subfolder in os.listdir(folder_path):
+                subfolder_path = os.path.join(folder_path, subfolder)
+                if os.path.isdir(subfolder_path):
+                    for band in bands_of_interest:
+                        band_source = subfolder_path + "/" + subfolder + "_" + band + ".tif"
+                        temp_tif = subfolder_path + "/" + subfolder + "_" + band + "_resized.tif"
+                        new_width = 120
+                        new_height = 120
+
+                        resizeTiffFiles(band_source, temp_tif, new_width, new_height)
+
+                        os.remove(band_source)  # Delete the original
+                        os.rename(temp_tif, band_source)  # Rename the temporary file
+
+    # Stage 6: Combine TIFF files into a single image
     combined_destination_dir = os.path.join(dataset_dir, 'CombinedImages')
-    
+
     if not os.path.exists(combined_destination_dir):
         os.makedirs(combined_destination_dir)
 
@@ -339,3 +361,5 @@ if __name__ == '__main__':
             subfolder_path = os.path.join(folder_path, subfolder, subfolder)
             dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
             combineTiffs(subfolder_path, dest_subfolder_path)
+
+

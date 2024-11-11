@@ -8,8 +8,10 @@ import shutil
 import rasterio
 from rasterio.warp import calculate_default_transform
 from rasterio.warp import reproject, Resampling
+from rasterio.enums import ColorInterp
 import numpy as np
 from PIL import Image
+
 
 # Function to preprocess the BigEarthNet dataset
 def BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_cloud_metadata_df):
@@ -83,25 +85,8 @@ def BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
                         os.rename(temp_tif, band_source)  # Rename the temporary file
 
     # Stage 6: Combine TIFF files into a single image
-    combined_destination_dir = os.path.join(dataset_dir, 'CombinedImages')
-    combined_rgb_destination_dir = os.path.join(dataset_dir, 'CombinedRGBImages')
-
-    if not os.path.exists(combined_destination_dir):
-        os.makedirs(combined_destination_dir)
-
-    folders = [folder for folder in os.listdir(dataset_dir) if folder != "CombinedImages"]
-
-    for folder in tqdm(folders, desc="Processing folders"):
-        folder_path = os.path.join(dataset_dir, folder)
-        dest_folder_path = os.path.join(combined_destination_dir, folder)
-        if not os.path.exists(dest_folder_path):
-            os.makedirs(dest_folder_path)
-
-        subfolders = os.listdir(folder_path)
-        for subfolder in tqdm(subfolders, desc=f"Processing subfolders in {folder}", leave=False):
-            subfolder_path = os.path.join(folder_path, subfolder, subfolder)
-            dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
-            combineTiffs(subfolder_path, dest_subfolder_path)
+    process_folders(dataset_dir, 'CombinedImages', combineTiffs, exclude_dirs=["CombinedImages"])
+    process_folders(dataset_dir, 'CombinedRGBImages', combineRGBTiffs, exclude_dirs=["CombinedImages", "CombinedRGBImages"])
 
     # Stage 7: Split the dataset into training, validation and testing sets
     # Stage 8: Apply normalisation and data augmentation techniques
@@ -270,6 +255,26 @@ def resizeTiffFiles(input_tiff, output_tiff, new_width, new_height):
                     resampling=Resampling.nearest
                 )
 
+def process_folders(dataset_dir, combined_dir_name, combine_function, exclude_dirs=[]):
+    combined_destination_dir = os.path.join(dataset_dir, combined_dir_name)
+
+    if not os.path.exists(combined_destination_dir):
+        os.makedirs(combined_destination_dir)
+
+    folders = [folder for folder in os.listdir(dataset_dir) if folder not in exclude_dirs]
+
+    for folder in tqdm(folders, desc="Processing folders"):
+        folder_path = os.path.join(dataset_dir, folder)
+        dest_folder_path = os.path.join(combined_destination_dir, folder)
+        if not os.path.exists(dest_folder_path):
+            os.makedirs(dest_folder_path)
+
+        subfolders = os.listdir(folder_path)
+        for subfolder in tqdm(subfolders, desc=f"Processing subfolders in {folder}", leave=False):
+            subfolder_path = os.path.join(folder_path, subfolder, subfolder)
+            dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
+            combine_function(subfolder_path, dest_subfolder_path)
+
 def generatePaths(base_path):
     bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
     return [f"{base_path}_{band}.tif" for band in bands]
@@ -284,29 +289,42 @@ def combineTiffs(base_path, output_path):
     # Read the first image to get metadata
     with rasterio.open(band_paths[0]) as src:
         meta = src.meta.copy()
-        meta.update(count=len(band_paths))  # Update the count to the number of bands
+        meta.update(count=len(band_paths), dtype='uint8')  # Update the count to the number of bands and set dtype to uint8
 
     # Create a new multi-band TIFF file
     with rasterio.open(output_path, 'w', **meta) as dst:
         for idx, path in enumerate(band_paths, start=1):
             with rasterio.open(path) as src:
-                # Read each band and write it to the new file
-                dst.write(src.read(1), idx)
+                band_data = src.read(1)
+                # Normalize each band data using predefined min and max
+                normalized_band = normalize_band(band_data)
+                # Write each band's data to the corresponding index in the new file
+                dst.write(normalized_band, idx)
+
+def normalize_band(band_data, band_min=0, band_max=3000):
+    band_data = np.clip(band_data, band_min, band_max)
+    normalized_data = ((band_data - band_min) / (band_max - band_min) * 255).astype(np.uint8)
+    return normalized_data
 
 def combineRGBTiffs(base_path, output_path):
     band_paths = generateRGBPaths(base_path)
 
-    # Read the first image to get metadata
     with rasterio.open(band_paths[0]) as src:
         meta = src.meta.copy()
-        meta.update(count=len(band_paths))  # Update the count to the number of bands
+        meta.update(count=3, dtype='uint8') 
 
-    # Create a new multi-band TIFF file
+    # Create a new multi-band TIFF file with the correct number of bands
     with rasterio.open(output_path, 'w', **meta) as dst:
         for idx, path in enumerate(band_paths, start=1):
             with rasterio.open(path) as src:
-                # Read each band and write it to the new file
-                dst.write(src.read(1), idx)
+                band_data = src.read(1)
+                # Normalize each band data using predefined min and max
+                normalized_band = normalize_band(band_data)
+                # Write each band's data to the corresponding index in the new file
+                dst.write(normalized_band, idx)
+
+        # Set the color interpretation for each band
+        dst.colorinterp = [ColorInterp.red, ColorInterp.green, ColorInterp.blue]
 
 ############################################################################################################
 if __name__ == '__main__':
@@ -321,45 +339,5 @@ if __name__ == '__main__':
     #BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)
 
     dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%'
-    # Stage 5: Resize the TIFF files to the same resolution (120x120)
-    bands_of_interest = ['B01', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']
 
-    # Use tqdm in the first loop
-    for folder in tqdm(os.listdir(dataset_dir), desc='Processing folders'):
-        folder_path = os.path.join(dataset_dir, folder)
-        if os.path.isdir(folder_path):
-            for subfolder in os.listdir(folder_path):
-                subfolder_path = os.path.join(folder_path, subfolder)
-                if os.path.isdir(subfolder_path):
-                    for band in bands_of_interest:
-                        band_source = subfolder_path + "/" + subfolder + "_" + band + ".tif"
-                        temp_tif = subfolder_path + "/" + subfolder + "_" + band + "_resized.tif"
-                        new_width = 120
-                        new_height = 120
-
-                        resizeTiffFiles(band_source, temp_tif, new_width, new_height)
-
-                        os.remove(band_source)  # Delete the original
-                        os.rename(temp_tif, band_source)  # Rename the temporary file
-
-    # Stage 6: Combine TIFF files into a single image
-    combined_destination_dir = os.path.join(dataset_dir, 'CombinedImages')
-
-    if not os.path.exists(combined_destination_dir):
-        os.makedirs(combined_destination_dir)
-
-    folders = [folder for folder in os.listdir(dataset_dir) if folder != "CombinedImages"]
-
-    for folder in tqdm(folders, desc="Processing folders"):
-        folder_path = os.path.join(dataset_dir, folder)
-        dest_folder_path = os.path.join(combined_destination_dir, folder)
-        if not os.path.exists(dest_folder_path):
-            os.makedirs(dest_folder_path)
-
-        subfolders = os.listdir(folder_path)
-        for subfolder in tqdm(subfolders, desc=f"Processing subfolders in {folder}", leave=False):
-            subfolder_path = os.path.join(folder_path, subfolder, subfolder)
-            dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
-            combineTiffs(subfolder_path, dest_subfolder_path)
-
-
+   

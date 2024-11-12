@@ -11,6 +11,7 @@ from rasterio.warp import reproject, Resampling
 from rasterio.enums import ColorInterp
 import numpy as np
 from PIL import Image
+import sys
 
 
 # Function to preprocess the BigEarthNet dataset
@@ -338,6 +339,6 @@ if __name__ == '__main__':
 
     #BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)
 
-    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%'
+    sys.path.append(os.getcwd())
 
    

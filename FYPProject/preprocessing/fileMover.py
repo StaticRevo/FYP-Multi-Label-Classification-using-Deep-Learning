@@ -1,6 +1,7 @@
 import os
 import shutil
 from tqdm import tqdm
+import pandas as pd
 
 def move_images_to_single_folder(source_root_dir, target_dir):
     if not os.path.exists(target_dir):
@@ -35,7 +36,37 @@ def move_images_to_single_folder(source_root_dir, target_dir):
             except OSError:
                 pass 
 
+def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
+    if not os.path.exists(target_root_dir):
+        os.makedirs(target_root_dir)
+    
+    splits = ['train', 'test', 'validation']
+    for split in splits:
+        split_dir = os.path.join(target_root_dir, split)
+        if not os.path.exists(split_dir):
+            os.makedirs(split_dir)
+    
+    metadata_csv = pd.read_csv(csv_file_path)
+    print(metadata_csv.columns)  # Print the columns to debug
+    total_files = len(metadata_csv)
+    
+    with tqdm(total=total_files, desc="Moving images based on split", unit="file") as pbar:
+        for _, row in metadata_csv.iterrows():
+            patch_id = row['patch_id']
+            split = row['split']
+            if split in splits:
+                source_file_path = os.path.join(source_root_dir, f"{patch_id}.jpg")
+                target_file_path = os.path.join(target_root_dir, split, f"{patch_id}.jpg")
+                
+                if os.path.exists(source_file_path):
+                    shutil.move(source_file_path, target_file_path)
+                    pbar.update(1)
+        
+
 if __name__ == "__main__":
-    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedImages'
-    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedImagesTIF'
-    move_images_to_single_folder(source_root_directory, target_directory)
+    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedRGBImagesJPG'
+    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedImagesJPG'
+    csv_file_path = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
+    #move_images_to_single_folder(source_root_directory, target_directory)
+
+    move_images_based_on_split(csv_file_path, source_root_directory, target_directory)

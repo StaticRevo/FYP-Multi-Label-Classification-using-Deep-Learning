@@ -1,72 +1,25 @@
 # Core Library modules
 import os  # Operating system interactions, such as reading and writing files.
-from dataclasses import dataclass  # Class decorator for adding special methods to classes.
 
-# PyTorch and Deep Learning Libaries
+# PyTorch and Deep Learning Libraries
 import torch  # Core PyTorch library for tensor computations.
 import torch.nn as nn  # Neural network module for defining layers and architectures.
 from torch.nn import functional as F  # Functional module for defining functions and loss functions.
 import torch.optim as optim  # Optimizer module for training models (SGD, Adam, etc.).
-from torch.utils.data import Dataset, DataLoader, Subset, random_split  # Data handling and batching
 from torch.utils.tensorboard import SummaryWriter  # TensorBoard for PyTorch.
-import torchvision  # PyTorch's computer vision library.
-from torchvision import datasets, transforms  # Image datasets and transformations.
-import torchvision.datasets as datasets  # Specific datasets for vision tasks.
-import torchvision.transforms as transforms  # Transformations for image preprocessing.
-from torchvision.utils import make_grid  # Grid for displaying images.
 import torchvision.models as models  # Pretrained models for transfer learning.
-from torchvision.datasets import MNIST, EuroSAT  # Standard datasets.
-import torchvision.transforms.functional as TF  # Functional transformations.
-from torchvision.models import ResNet18_Weights  # ResNet-18 model with pretrained weights.
 from torchsummary import summary  # Model summary.
-import torchmetrics  # Model evaluation metrics.
-from torchmetrics import MeanMetric, Accuracy  # Accuracy metrics.
 from torchmetrics.classification import (
     MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy
 )  # Classification metrics.
 from torchviz import make_dot  # Model visualization.
-from torchvision.ops import sigmoid_focal_loss  # Focal loss for class imbalance.
-from torchcam.methods import GradCAM  # Grad-CAM for model interpretability.
-from torchcam.utils import overlay_mask  # Overlay mask for visualizations.
 import pytorch_lightning as pl  # Training management.
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, EarlyStopping, Callback  # Callbacks.
-from pytorch_lightning.loggers import TensorBoardLogger  # Logger for TensorBoard.
-
-# Geospatial Data Processing Libraries
-import rasterio  # Reading and writing geospatial raster data.
-from rasterio.warp import calculate_default_transform, reproject  # Reprojection and transformation.
-from rasterio.enums import Resampling  # Resampling for raster resizing.
-from rasterio.plot import show  # Visualization of raster data.
 
 # Data Manipulation, Analysis and Visualization Libraries
-import pandas as pd  # Data analysis and manipulation.
 import numpy as np  # Array operations and computations.
-from sklearn.metrics import confusion_matrix, accuracy_score  # Evaluation metrics.
-import matplotlib.pyplot as plt  # Static and interactive plotting.
-import seaborn as sns  # High-level interface for statistical graphics.
 
-# Utility Libraries
-from tqdm import tqdm  # Progress bar for loops.
-from PIL import Image  # Image handling and manipulation.
-import zstandard as zstd  # Compression and decompression.
-from collections import Counter  # Counting hashable objects.
-from IPython.display import Image  # Display images in notebooks.
-from pathlib import Path # File system path handling.
-from typing import Dict, List, Tuple  # Type hints.
-
+from config import DatasetConfig  # Import the dataclasses
 # Custom Libraries
-
-@dataclass
-class DatasetConfig:
-    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%'
-    combined_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedRGBImages'
-    metadata_path: str =r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
-    metadata_csv = pd.read_csv(metadata_path)
-    img_size: int = 120
-    img_mean, img_std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    num_classes: int = 19
-    band_channels: int = 3 #13
-    valid_pct: float = 0.1
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -175,12 +128,8 @@ sample_input = torch.randn(1, DatasetConfig.band_channels, DatasetConfig.img_siz
 output = model(sample_input) # Pass the sample input through the model
 
 dot = make_dot(output, params=dict(model.named_parameters()))  # Visualize the computational graph
-
 output_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProject\my_models\resnet18'
-
-# Ensure the directory exists
 os.makedirs(output_dir, exist_ok=True)
-
 output_path = os.path.join(output_dir, 'model_architecture')
 dot.format = 'png'
 dot.render(output_path)

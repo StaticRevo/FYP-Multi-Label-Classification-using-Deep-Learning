@@ -1,6 +1,15 @@
 from dataclasses import dataclass
 import pandas as pd
 from torchvision import transforms
+import ast
+
+metadata_path: str =r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
+metadata_csv = pd.read_csv(metadata_path)
+
+if isinstance(metadata_csv['labels'].iloc[0], str):
+    metadata_csv['labels'] = metadata_csv['labels'].apply(ast.literal_eval)
+
+class_labels = metadata_csv['labels'].explode().unique()
 
 # Description: Configuration file for the project
 @dataclass
@@ -14,6 +23,8 @@ class DatasetConfig:
     num_classes: int = 19
     band_channels: int = 3 #13
     valid_pct: float = 0.1
+    class_labels_dict = {label: idx for idx, label in enumerate(class_labels)}
+    reversed_class_labels_dict = {idx: label for label, idx in class_labels_dict.items()}
 
 @dataclass
 class ModelConfig:

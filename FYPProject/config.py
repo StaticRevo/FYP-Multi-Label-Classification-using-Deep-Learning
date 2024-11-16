@@ -24,7 +24,9 @@ class DatasetConfig:
     dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%'
     combined_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedRGBImagesJPG'
     metadata_path: str =r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
+    unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     metadata_csv = pd.read_csv(metadata_path)
+    unwanted_metadata = pd.read_parquet(unwanted_metadata_file)
     img_size: int = 120
     img_mean, img_std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     num_classes: int = 19

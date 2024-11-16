@@ -25,13 +25,13 @@ def choose_and_run_model():
         # Prompt for weights option
         print("Please choose the weights option:")
         print("1: None")
-        print(f"2: {model_name}_weights.DEFAULT")
+        print(f"2: {model_name}_Weights.DEFAULT")
         weights_choice = input("Enter the number corresponding to the weights option: ")
 
         if weights_choice == '1':
             weights = 'None'
         elif weights_choice == '2':
-            weights = f'{model_name}_weights.DEFAULT'
+            weights = f'{model_name}_Weights.DEFAULT'
         else:
             print("Invalid choice. Please try again.")
             return

@@ -1,6 +1,8 @@
 import sys
 from pytorch_lightning.loggers import TensorBoardLogger
 from models.resnet18.resnet18 import BigEarthNetResNet18Model
+from models.resnet50.resnet50 import BigEarthNetResNet50Model
+from models.vgg16.vgg16 import BigEarthNetVGG16Model
 from dataloader import BigEarthNetSubsetDataModule
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -20,6 +22,16 @@ def main(model_name, weights):
             model = BigEarthNetResNet18Model(weights=None)
         else:
             model = BigEarthNetResNet18Model(weights=weights)
+    elif model_name == 'ResNet50':
+        if weights == 'None':
+            model = BigEarthNetResNet50Model(weights=None)
+        else:
+            model = BigEarthNetResNet50Model(weights=weights)
+    elif model_name == 'VGG16':
+        if weights == 'None':
+            model = BigEarthNetVGG16Model(weights=None)
+        else:
+            model = BigEarthNetVGG16Model(weights=weights)
 
     # Initialize the logger
     log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProject\experiments\logs'

@@ -17,7 +17,7 @@ def main():
     data_module.setup()
 
     # Load the trained model manually
-    checkpoint_path = os.path.join(current_dir, 'FYPProject', 'experiments', 'checkpoints', 'ResNet18-none-epoch=09-val_loss=0.69.ckpt')
+    checkpoint_path = os.path.join(current_dir, 'FYPProject', 'experiments', 'checkpoints', 'ResNet50-none-epoch=00-val_loss=0.69.ckpt')
 
     # Load the model
     model = BigEarthNetResNet18Model.load_from_checkpoint(checkpoint_path)

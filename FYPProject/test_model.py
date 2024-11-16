@@ -1,4 +1,4 @@
-from models.resnet18.resnet18 import BigEarthNetSubsetModel
+from models.resnet18.resnet18 import BigEarthNetResNet18Model
 from dataloader import BigEarthNetSubsetDataModule
 import pytorch_lightning as pl
 from config import ModelConfig
@@ -17,10 +17,10 @@ def main():
     data_module.setup()
 
     # Load the trained model manually
-    checkpoint_path = os.path.join(current_dir, 'FYPProject', 'experiments', 'checkpoints', 'resnet18_epoch=3.ckpt')
+    checkpoint_path = os.path.join(current_dir, 'FYPProject', 'experiments', 'checkpoints', 'ResNet18-none-epoch=09-val_loss=0.69.ckpt')
 
     # Load the model
-    model = BigEarthNetSubsetModel.load_from_checkpoint(checkpoint_path)
+    model = BigEarthNetResNet18Model.load_from_checkpoint(checkpoint_path)
 
     trainer = pl.Trainer(
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
@@ -30,13 +30,14 @@ def main():
     )
 
     test_loader = data_module.test_dataloader()
-
     trainer.test(model, test_loader)
+
+    subprocess.run(['tensorboard', '--logdir', log_dir])
 
 if __name__ == "__main__":
     main()
 
-#subprocess.run(['tensorboard', '--logdir', log_dir])
+
 
 
 

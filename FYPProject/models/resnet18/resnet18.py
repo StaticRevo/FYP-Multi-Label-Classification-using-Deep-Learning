@@ -1,13 +1,14 @@
 # Core Library modules
 import os  # Operating system interactions, such as reading and writing files.
+import numpy as np  # Array operations and computations.
 
-# PyTorch and Deep Learning Libraries
 import torch  # Core PyTorch library for tensor computations.
 import torch.nn as nn  # Neural network module for defining layers and architectures.
 from torch.nn import functional as F  # Functional module for defining functions and loss functions.
 import torch.optim as optim  # Optimizer module for training models (SGD, Adam, etc.).
 from torch.utils.tensorboard import SummaryWriter  # TensorBoard for PyTorch.
 import torchvision.models as models  # Pretrained models for transfer learning.
+from torchvision.models import ResNet18_Weights  # Import ResNet18_Weights for pretrained weights.
 from torchsummary import summary  # Model summary.
 from torchmetrics.classification import (
     MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy
@@ -15,19 +16,16 @@ from torchmetrics.classification import (
 from torchviz import make_dot  # Model visualization.
 import pytorch_lightning as pl  # Training management.
 
-# Data Manipulation, Analysis and Visualization Libraries
-import numpy as np  # Array operations and computations.
-
+# Custom modules
 from config import DatasetConfig  # Import the dataclasses
-# Custom Libraries
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-class BigEarthNetSubsetModel(pl.LightningModule):
-    def __init__(self):
-        super(BigEarthNetSubsetModel, self).__init__()
+class BigEarthNetResNet18Model(pl.LightningModule):
+    def __init__(self, weights=None):
+        super(BigEarthNetResNet18Model, self).__init__()
         # Load the ResNet-18 model
-        self.model = models.resnet18(weights=None)
+        self.model = models.resnet18(weights=weights)
         # Modify the final layer to output 19 classes
         self.model.fc = nn.Linear(self.model.fc.in_features, DatasetConfig.num_classes)
         # Addition of a sigmoid activation function for muylti-label classification
@@ -63,6 +61,10 @@ class BigEarthNetSubsetModel(pl.LightningModule):
     
     def cross_entropy_loss(self, logits, labels):
         return F.binary_cross_entropy_with_logits(logits, labels)
+    
+    # def cross_entropy_loss(self, logits, labels):
+    #     weights = torch.tensor(DatasetConfig.class_weights).to(device)
+    #     return F.binary_cross_entropy_with_logits(logits, labels, weight=weights)
     
     def configure_optimizers(self):
         optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -120,15 +122,14 @@ class BigEarthNetSubsetModel(pl.LightningModule):
         return loss
     
 
-model = BigEarthNetSubsetModel()
+model = BigEarthNetResNet18Model()
 summary(model.model, input_size=(DatasetConfig.band_channels, DatasetConfig.img_size, DatasetConfig.img_size))
 
-# Create a sample input tensor
+# Visualize the model architecture
 sample_input = torch.randn(1, DatasetConfig.band_channels, DatasetConfig.img_size, DatasetConfig.img_size).to(device)
 output = model(sample_input) # Pass the sample input through the model
-
 dot = make_dot(output, params=dict(model.named_parameters()))  # Visualize the computational graph
-output_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProject\my_models\resnet18'
+output_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProject\models\resnet18'
 os.makedirs(output_dir, exist_ok=True)
 output_path = os.path.join(output_dir, 'model_architecture')
 dot.format = 'png'

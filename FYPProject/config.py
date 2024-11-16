@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import pandas as pd
 from torchvision import transforms
 import ast
+import numpy as np  
 
 metadata_path: str =r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
@@ -10,6 +11,12 @@ if isinstance(metadata_csv['labels'].iloc[0], str):
     metadata_csv['labels'] = metadata_csv['labels'].apply(ast.literal_eval)
 
 class_labels = metadata_csv['labels'].explode().unique()
+
+# Calculate class weights
+label_counts = metadata_csv['labels'].explode().value_counts()
+total_counts = label_counts.sum()
+class_weights = {label: total_counts / count for label, count in label_counts.items()}
+class_weights_array = np.array([class_weights[label] for label in class_labels])
 
 # Description: Configuration file for the project
 @dataclass
@@ -25,6 +32,7 @@ class DatasetConfig:
     valid_pct: float = 0.1
     class_labels_dict = {label: idx for idx, label in enumerate(class_labels)}
     reversed_class_labels_dict = {idx: label for label, idx in class_labels_dict.items()}
+    class_weights = class_weights_array
 
 @dataclass
 class ModelConfig:
@@ -53,3 +61,4 @@ class ModelConfig:
         transforms.ToTensor(),
         transforms.Normalize(mean=DatasetConfig.img_mean, std=DatasetConfig.img_std)
     ])
+

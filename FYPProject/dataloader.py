@@ -21,10 +21,10 @@ class BigEarthNetSubsetDataModule(pl.LightningDataModule):
         print(f"Number of samples in train set: {len(self.train_dataset)}, val set: {len(self.val_dataset)}, test set: {len(self.test_dataset)}")
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=0, pin_memory=True, shuffle=True, persistent_workers=False)
+        return DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=ModelConfig.num_workers, pin_memory=True, shuffle=True, persistent_workers=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=ModelConfig.batch_size,  num_workers=0, pin_memory=True,  persistent_workers=False)
+        return DataLoader(self.val_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=0, pin_memory=True,  persistent_workers=False)
+        return DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)

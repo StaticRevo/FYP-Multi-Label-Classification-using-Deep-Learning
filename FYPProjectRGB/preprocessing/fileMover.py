@@ -36,6 +36,25 @@ def move_images_to_single_folder(source_root_dir, target_dir):
             except OSError:
                 pass 
 
+def move_all_subfolders_to_main_directory(source_root_dir, target_dir):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)  # Create destination directory if it doesn't exist
+    
+    for root_folder in os.listdir(source_root_dir):
+        root_folder_path = os.path.join(source_root_dir, root_folder)
+        
+        if os.path.isdir(root_folder_path):  # Ensure it's a directory
+            for subfolder in os.listdir(root_folder_path):
+                subfolder_path = os.path.join(root_folder_path, subfolder)
+                
+                if os.path.isdir(subfolder_path):  # Ensure it's a directory
+                    # Define the new destination path for the subfolder
+                    dest_path = os.path.join(target_dir, subfolder)
+                    
+                    # Move the folder
+                    shutil.move(subfolder_path, dest_path)
+                    print(f"Moved: {subfolder_path} -> {dest_path}")
+
 def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
     if not os.path.exists(target_root_dir):
         os.makedirs(target_root_dir)
@@ -64,9 +83,9 @@ def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
         
 
 if __name__ == "__main__":
-    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedRGBImagesJPG'
-    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedImagesJPG'
+    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets\50_percent'
+    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets'
     csv_file_path = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
     #move_images_to_single_folder(source_root_directory, target_directory)
 
-    move_images_based_on_split(csv_file_path, source_root_directory, target_directory)
+    move_all_subfolders_to_main_directory(source_root_directory, target_directory)

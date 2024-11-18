@@ -41,7 +41,7 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
 
 
 dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopy'
-subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopy\Subsets'
+subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets'
 metadata_file = r'C:\Users\isaac\Downloads\metadata.parquet'
 metadata_df = pd.read_parquet(metadata_file)
 percentage = 50

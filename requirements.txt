@@ -1,4 +1,14 @@
 name: Fyp311
+
+Main Requirements:
+numpy==1.23.5
+pandas
+torch
+rasterio
+
+
+
+
 channels:
   - pytorch
   - nvidia

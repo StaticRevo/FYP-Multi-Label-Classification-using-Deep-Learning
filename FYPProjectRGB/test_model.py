@@ -1,7 +1,7 @@
 from models.resnet18.resnet18 import BigEarthNetResNet18Model
 from dataloader import BigEarthNetSubsetDataModule
 import pytorch_lightning as pl
-from config import ModelConfig
+from FYPProjectRGB.preprocessing.config import ModelConfig
 import os
 import torch
 import subprocess

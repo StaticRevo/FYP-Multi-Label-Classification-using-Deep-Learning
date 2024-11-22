@@ -276,13 +276,18 @@ def process_folders(dataset_dir, combined_dir_name, combine_function, exclude_di
             dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
             combine_function(subfolder_path, dest_subfolder_path)
 
-def generatePaths(base_path):
-    bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
-    return [f"{base_path}_{band}.tif" for band in bands]
 
 def generateRGBPaths(base_path):
     bands = ['B04', 'B03', 'B02']
     return [f"{base_path}_{band}.tif" for band in bands]
+
+def generatePaths(base_path):
+    bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+    return [f"{base_path}_{band}.tif" for band in bands]
+
+def normalize_band(band_data, band_mean, band_std):
+    normalized_data = ((band_data - band_mean) / band_std * 255).astype(np.uint8)
+    return normalized_data
 
 def combineTiffs(base_path, output_path):
     band_paths = generatePaths(base_path)
@@ -290,22 +295,22 @@ def combineTiffs(base_path, output_path):
     # Read the first image to get metadata
     with rasterio.open(band_paths[0]) as src:
         meta = src.meta.copy()
-        meta.update(count=len(band_paths), dtype='uint8')  # Update the count to the number of bands and set dtype to uint8
+        meta.update(count=len(band_paths), dtype='uint8')  
 
     # Create a new multi-band TIFF file
     with rasterio.open(output_path, 'w', **meta) as dst:
         for idx, path in enumerate(band_paths, start=1):
             with rasterio.open(path) as src:
                 band_data = src.read(1)
-                # Normalize each band data using predefined min and max
-                normalized_band = normalize_band(band_data)
+                band_name = os.path.basename(path).split('_')[-1].split('.')[0]
+
+                print(f"Processing band: {band_name}")
+
+                band_mean = band_stats["mean"].get(band_name, 0)
+                band_std = band_stats["std"].get(band_name, 1)
+                normalized_band = normalize_band(band_data, band_mean, band_std)
                 # Write each band's data to the corresponding index in the new file
                 dst.write(normalized_band, idx)
-
-def normalize_band(band_data, band_min=0, band_max=3000):
-    band_data = np.clip(band_data, band_min, band_max)
-    normalized_data = ((band_data - band_min) / (band_max - band_min) * 255).astype(np.uint8)
-    return normalized_data
 
 def combineRGBTiffs(base_path, output_path):
     band_paths = generateRGBPaths(base_path)
@@ -329,7 +334,7 @@ def combineRGBTiffs(base_path, output_path):
 
 ############################################################################################################
 if __name__ == '__main__':
-    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopy'
+    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets2\50_percent'
     subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets'
     metadata_file = r'C:\Users\isaac\Downloads\metadata.parquet'
     unwanted_metadata_file = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
@@ -337,8 +342,51 @@ if __name__ == '__main__':
     metadata_df = pd.read_parquet(metadata_file)
     snow_cloud_metadata_df = pd.read_parquet(unwanted_metadata_file)
 
-    #BigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)
 
-    sys.path.append(os.getcwd())
+    bands_of_interest = ['B01', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']
 
-   
+    for folder in os.listdir(dataset_dir):
+        folder_path = os.path.join(dataset_dir, folder)
+        if os.path.isdir(folder_path):
+            for subfolder in tqdm(os.listdir(folder_path), desc='Resizing TIFF files'):
+                subfolder_path = os.path.join(folder_path, subfolder)
+                if os.path.isdir(subfolder_path):
+                    for band in bands_of_interest:
+                        band_source = subfolder_path + "/" + subfolder + "_" + band + ".tif"
+                        temp_tif = subfolder_path + "/" + subfolder + "_" + band + "_resized.tif"
+                        new_width = 120
+                        new_height = 120
+
+                        resizeTiffFiles(band_source, temp_tif, new_width, new_height)
+
+                        os.remove(band_source)  # Delete the original
+                        os.rename(temp_tif, band_source)  # Rename the temporary file
+
+        band_stats = {
+        "mean": {
+            "B02": 445.76902822066324,
+            "B03": 626.9061237185847,
+            "B04": 605.0589129818594,
+            "B05": 971.6512098450492,
+            "B06": 1821.9817358749056,
+            "B07": 2108.096240315571,
+            "B08": 2256.3215618504346,
+            "B8A": 2310.6351913265307,
+            "B11": 1608.6865167942176,
+            "B12": 1017.1259618291762
+        },
+        "std": {
+            "B02": 648.4384481402268,
+            "B03": 639.2669907766995,
+            "B04": 717.5748664544205,
+            "B05": 761.8971822905785,
+            "B06": 1090.758232889144,
+            "B07": 1256.5524552734478,
+            "B08": 1349.2050493390414,
+            "B8A": 1287.1124261320342,
+            "B11": 1057.3350765979644,
+            "B12": 802.1790763840752
+        }
+    }
+        
+    process_folders(dataset_dir, 'CombinedImages', combineTiffs, exclude_dirs=["CombinedImages"])

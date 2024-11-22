@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import shutil
 from tqdm import tqdm
-from config import DatasetConfig
+from FYPProjectRGB.preprocessing.config import DatasetConfig
 
 def removeUnnecessaryFiles(dataset_dir, unwanted_metadata_file):
     deleted_folders = 0

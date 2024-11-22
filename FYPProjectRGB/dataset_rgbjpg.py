@@ -10,10 +10,10 @@ from PIL import Image  # Image handling and manipulation.
 import pandas as pd  # Data analysis and manipulation.
 import ast  # Parsing Python code.
 from pathlib import Path  # File system path handling.
-from config import DatasetConfig  # Import the dataclasses
+from preprocessing.config import DatasetConfig  # Import the dataclasses
 from utils.helper_functions import encode_label  # Helper function for encoding labels.
 
-from config import ModelConfig, DatasetConfig
+from preprocessing.config import ModelConfig, DatasetConfig
 
 class BigEarthNetSubset(Dataset):
     def __init__(self, *, df, root_dir, transforms=None, is_test=False):
@@ -64,4 +64,4 @@ print(train_dataset)
 print()
 image, label = train_dataset[0]
 print()
-print(image) # should be a tensor
+print(image) 

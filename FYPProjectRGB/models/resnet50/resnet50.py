@@ -17,7 +17,7 @@ from torchviz import make_dot  # Model visualization.
 import pytorch_lightning as pl  # Training management.
 
 # Custom modules
-from config import DatasetConfig  # Import the dataclasses
+from FYPProjectRGB.preprocessing.config import DatasetConfig  # Import the dataclasses
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

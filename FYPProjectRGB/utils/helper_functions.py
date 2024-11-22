@@ -1,4 +1,4 @@
-from config import DatasetConfig, ModelConfig
+from preprocessing.config import DatasetConfig, ModelConfig
 import torch
 
 # Helper functions

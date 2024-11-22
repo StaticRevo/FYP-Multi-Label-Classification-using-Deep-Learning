@@ -1,5 +1,5 @@
 from models.resnet18.resnet18 import BigEarthNetResNet18Model
-from config import ModelConfig, DatasetConfig
+from FYPProjectRGB.preprocessing.config import ModelConfig, DatasetConfig
 import os
 import torch
 from PIL import Image

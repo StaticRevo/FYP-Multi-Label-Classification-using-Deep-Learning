@@ -7,7 +7,7 @@ from dataloader import BigEarthNetSubsetDataModule
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
-from config import ModelConfig
+from FYPProjectRGB.preprocessing.config import ModelConfig
 import os
 
 # Training the model

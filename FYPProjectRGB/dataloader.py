@@ -1,8 +1,8 @@
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import pytorch_lightning as pl
-from config import DatasetConfig, ModelConfig
-from FYPProject.dataset_rgbjpg import BigEarthNetSubset
+from FYPProjectRGB.preprocessing.config import DatasetConfig, ModelConfig
+from dataset_rgbjpg import BigEarthNetSubset
 
 class BigEarthNetSubsetDataModule(pl.LightningDataModule):    
     def setup(self, stage=None):

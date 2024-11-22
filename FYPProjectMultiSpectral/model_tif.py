@@ -17,7 +17,7 @@ from torchviz import make_dot  # Model visualization.
 import pytorch_lightning as pl  # Training management.
 
 # Custom modules
-from processing.config import DatasetConfig  # Import the dataclasses
+from config.config import DatasetConfig  # Import the dataclasses
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BigEarthNetResNet18ModelTIF(pl.LightningModule):
@@ -28,7 +28,7 @@ class BigEarthNetResNet18ModelTIF(pl.LightningModule):
 
         original_conv1 = self.model.conv1
         self.model.conv1 = nn.Conv2d(
-            in_channels=3,  
+            in_channels=4,  
             out_channels=original_conv1.out_channels,
             kernel_size=original_conv1.kernel_size,
             stride=original_conv1.stride,

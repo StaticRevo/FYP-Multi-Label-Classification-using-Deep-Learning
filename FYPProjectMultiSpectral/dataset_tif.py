@@ -8,7 +8,7 @@ from pathlib import Path
 import ast
 import pandas as pd
 
-from processing.config import DatasetConfig
+from config.config import DatasetConfig
 from utils.helper_functions import encode_label, get_band_indices
 
 
@@ -34,10 +34,13 @@ class BigEarthNetDatasetTIF(Dataset):
         image_path = self.image_paths[idx]
 
         with rasterio.open(image_path) as src:
-            image = src.read()  # Read all bands
+            image = src.read()  
             image = image[self.selected_band_indices, :, :]
         
         image = torch.tensor(image, dtype=torch.float32)
+
+        if self.transforms:
+            image = self.transforms(image)
 
         label = self.get_label(image_path)
 

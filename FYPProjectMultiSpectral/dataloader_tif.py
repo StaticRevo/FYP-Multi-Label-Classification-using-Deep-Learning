@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import pytorch_lightning as pl
-from processing.config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig, ModelConfig
 from dataset_tif import BigEarthNetDatasetTIF
 
 class BigEarthNetTIFDataModule(pl.LightningDataModule):    
@@ -11,9 +11,9 @@ class BigEarthNetTIFDataModule(pl.LightningDataModule):
         val_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'validation']
         test_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'test']
 
-        self.train_dataset = BigEarthNetDatasetTIF(df=train_df, root_dir=DatasetConfig.combined_path, transforms=None, selected_bands=DatasetConfig.rgb_bands)
-        self.val_dataset = BigEarthNetDatasetTIF(df=val_df, root_dir=DatasetConfig.combined_path, transforms=None, selected_bands=DatasetConfig.rgb_bands)
-        self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.combined_path, transforms=None, selected_bands=DatasetConfig.rgb_bands)
+        self.train_dataset = BigEarthNetDatasetTIF(df=train_df, root_dir=DatasetConfig.combined_path, transforms=None, selected_bands=DatasetConfig.rgb_nir_bands)
+        self.val_dataset = BigEarthNetDatasetTIF(df=val_df, root_dir=DatasetConfig.combined_path, transforms=None, selected_bands=DatasetConfig.rgb_nir_bands)
+        self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.combined_path, transforms=None, selected_bands=DatasetConfig.rgb_nir_bands)
         #print(f"Number of samples in train set: {len(self.train_dataset)}, val set: {len(self.val_dataset)}, test set: {len(self.test_dataset)}")
 
     def train_dataloader(self):

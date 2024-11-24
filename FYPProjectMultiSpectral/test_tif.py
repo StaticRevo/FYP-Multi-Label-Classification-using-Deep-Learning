@@ -1,6 +1,7 @@
 import os
 import subprocess
 import pandas as pd
+from config.config import DatasetConfig
 
 metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\metadata.parquet'
 unwanted_metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\metadata_for_patches_with_snow_cloud_or_shadow (1).parquet'
@@ -11,3 +12,6 @@ unwanted_metadata = pd.read_parquet(unwanted_metadata_path)
 print(f"Number of records: {metadata_csv.shape[0]}")
 print(f"Number of unwanted records: {unwanted_metadata.shape[0]}")
 print(f"Total number of records: {metadata_csv.shape[0] + unwanted_metadata.shape[0]}")
+
+
+print(DatasetConfig.class_weights)

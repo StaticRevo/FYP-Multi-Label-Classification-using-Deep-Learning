@@ -39,9 +39,7 @@ class BigEarthNetResNet18ModelTIF(pl.LightningModule):
         # Initialize weights for the new channels (copy pretrained weights for 3 channels and random for the rest)
         nn.init.kaiming_normal_(self.model.conv1.weight, mode='fan_out', nonlinearity='relu')
 
-        # Modify the final layer to output 19 classes
         self.model.fc = nn.Linear(self.model.fc.in_features, DatasetConfig.num_classes)
-        # Addition of a sigmoid activation function for muylti-label classification
         self.sigmoid = nn.Sigmoid()
         # Passing the model to the GPU
         self.model.to(device)

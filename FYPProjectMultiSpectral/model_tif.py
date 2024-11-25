@@ -35,12 +35,11 @@ class BigEarthNetResNet18ModelTIF(pl.LightningModule):
             padding=original_conv1.padding,
             bias=original_conv1.bias,
         )
-
-        # Initialize weights for the new channels (copy pretrained weights for 3 channels and random for the rest)
         nn.init.kaiming_normal_(self.model.conv1.weight, mode='fan_out', nonlinearity='relu')
-
         self.model.fc = nn.Linear(self.model.fc.in_features, DatasetConfig.num_classes)
         self.sigmoid = nn.Sigmoid()
+        self.class_weights = torch.tensor(DatasetConfig.class_weights, dtype=torch.float32).to(device)
+
         # Passing the model to the GPU
         self.model.to(device)
 
@@ -72,7 +71,7 @@ class BigEarthNetResNet18ModelTIF(pl.LightningModule):
         return x
     
     def cross_entropy_loss(self, logits, labels):
-        return F.binary_cross_entropy_with_logits(logits, labels)
+        return F.binary_cross_entropy_with_logits(logits, labels, pos_weight=self.class_weights)
     
     def configure_optimizers(self):
         optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -146,4 +145,3 @@ class BigEarthNetResNet18ModelTIF(pl.LightningModule):
         self.log('test_recall_epoch', self.test_recall.compute())
         self.log('test_f1_epoch', self.test_f1.compute())
         self.log('test_precision_epoch', self.test_precision.compute())
-      

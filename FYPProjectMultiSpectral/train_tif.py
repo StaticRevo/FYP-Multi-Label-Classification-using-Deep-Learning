@@ -1,4 +1,4 @@
-from config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig, ModelConfig
 from dataloader_tif import BigEarthNetTIFDataModule
 from model_tif import BigEarthNetResNet18ModelTIF
 import torch
@@ -16,7 +16,7 @@ def main():
 
     # Initialize the logger
     log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
-    logger = TensorBoardLogger(log_dir, name=f"my_model_resnet18_eurosat_notpretrained_4channel")
+    logger = TensorBoardLogger(log_dir, name=f"resnet18_eurosat_notpretrained_4channel_classweights")
 
     weights_info = 'none'
     checkpoint_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints'

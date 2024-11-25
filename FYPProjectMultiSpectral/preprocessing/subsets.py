@@ -40,10 +40,10 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
     metadata_subset.to_csv(os.path.join(subset_dir, f'metadata_{percentage}_percent.csv'), index=False)
 
 
-dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopy'
-subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets2'
+dataset_dir = r'D:\Datasets\BigEarthNet-S2\100%BigEarthNet'
+subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNet'
 metadata_file = r'C:\Users\isaac\Downloads\metadata.parquet'
 metadata_df = pd.read_parquet(metadata_file)
-percentage = 50
+percentage = 5
 
 createSubsets(dataset_dir, subset_dir, metadata_df, percentage)

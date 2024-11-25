@@ -14,6 +14,14 @@ def choose_and_run_model():
         '9': 'Swin-Transformer',
         '10': 'Vit-Transformer',
     }
+    band_selection = {
+        '1': 'All bands',
+        '2': 'RGB bands',
+        '3': 'RGB + NIR bands',
+        '4': 'RGB + SWIR bands',
+        '5': 'RGB + NIR + SWIR bands',
+    }
+
     print("Please choose a model to run:")
     for key, model in models.items():
         print(f"{key}: {model}")
@@ -36,10 +44,22 @@ def choose_and_run_model():
             print("Invalid choice. Please try again.")
             return
 
-        # Run the trainer.py script with the selected model and weights
-        script_path = os.path.join(os.getcwd(), 'FYPProject', 'trainer.py')
-        print(f"Running {model_name} model with weights={weights}...")
-        subprocess.run(['python', script_path, model_name, weights])
+        # Prompt for band selection
+        print("Please choose the band combination:")
+        for key, bands in band_selection.items():
+            print(f"{key}: {bands}")
+
+        band_choice = input("Enter the number corresponding to the band combination: ")
+        if band_choice in band_selection:
+            selected_bands = band_selection[band_choice]
+        else:
+            print("Invalid choice. Please try again.")
+            return
+
+        # Run the trainer.py script with the selected model, weights, and band combination
+        script_path = os.path.join(os.getcwd(), 'FYPProjectMultiSpectral', 'trainer.py')
+        print(f"Running {model_name} model with weights={weights} and bands={selected_bands}...")
+        subprocess.run(['python', script_path, model_name, weights, selected_bands])
 
     else:
         print("Invalid choice. Please try again.")

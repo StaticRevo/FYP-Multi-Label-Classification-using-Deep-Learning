@@ -1,0 +1,96 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import pytorch_lightning as pl
+from torchmetrics.classification import (
+    MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy
+)
+
+class BaseModel(pl.LightningModule):
+    def __init__(self, model, num_classes, class_weights):
+        super(BaseModel, self).__init__()
+        
+        self.model = model
+        self.num_classes = num_classes
+        self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
+        
+        # Initialize Sigmoid layer
+        self.sigmoid = nn.Sigmoid()
+        
+        # Define loss function
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights)
+
+        # Accuracy metrics
+        self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
+        self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)
+        self.test_acc = MultilabelAccuracy(num_labels=self.num_classes)
+
+        # Other metrics (Recall, Precision, F1 Score)
+        self.train_recall = MultilabelRecall(num_labels=self.num_classes)
+        self.val_recall = MultilabelRecall(num_labels=self.num_classes)
+        self.test_recall = MultilabelRecall(num_labels=self.num_classes)
+
+        self.train_precision = MultilabelPrecision(num_labels=self.num_classes)
+        self.val_precision = MultilabelPrecision(num_labels=self.num_classes)
+        self.test_precision = MultilabelPrecision(num_labels=self.num_classes)
+
+        self.train_f1 = MultilabelF1Score(num_labels=self.num_classes)
+        self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
+        self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
+
+    def forward(self, x):
+        x = self.model(x)
+        x = self.sigmoid(x)
+        return x
+
+    def configure_optimizers(self):
+        return optim.Adam(self.model.parameters(), lr=0.001)
+
+    def cross_entropy_loss(self, logits, labels):
+        return self.criterion(logits, labels)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = self.cross_entropy_loss(logits, y)
+        acc = self.train_acc(logits, y)
+        recall = self.train_recall(logits, y)
+        f1 = self.train_f1(logits, y)
+        precision = self.train_precision(logits, y)
+        
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train_acc', acc, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train_recall', recall, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train_f1', f1, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train_precision', precision, on_step=True, on_epoch=True, prog_bar=True)
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx, 'val')
+
+    def test_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx, 'test')
+
+    def _step(self, batch, batch_idx, phase):
+        x, y = batch
+        logits = self.forward(x)
+        loss = self.cross_entropy_loss(logits, y)
+        acc = getattr(self, f'{phase}_acc')(logits, y)
+        recall = getattr(self, f'{phase}_recall')(logits, y)
+        f1 = getattr(self, f'{phase}_f1')(logits, y)
+        precision = getattr(self, f'{phase}_precision')(logits, y)
+
+        self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True)
+        self.log(f'{phase}_acc', acc, on_epoch=True, prog_bar=True)
+        self.log(f'{phase}_recall', recall, on_epoch=True, prog_bar=True)
+        self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True)
+        self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True)
+        
+        return loss
+
+    def on_epoch_end(self, phase):
+        self.log(f'{phase}_acc_epoch', getattr(self, f'{phase}_acc').compute())
+        self.log(f'{phase}_recall_epoch', getattr(self, f'{phase}_recall').compute())
+        self.log(f'{phase}_f1_epoch', getattr(self, f'{phase}_f1').compute())
+        self.log(f'{phase}_precision_epoch', getattr(self, f'{phase}_precision').compute())

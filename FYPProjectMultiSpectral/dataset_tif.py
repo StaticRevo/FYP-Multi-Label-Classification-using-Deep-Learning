@@ -18,14 +18,14 @@ class BigEarthNetDatasetTIF(Dataset):
         self.root_dir = root_dir
         self.transforms = transforms
         self.is_test = is_test
-        self.selected_bands = selected_bands if selected_bands is not None else DatasetConfig.all_bands
+        self.selected_bands = selected_bands if selected_bands is not None else DatasetConfig.rgb_bands
 
         self.image_paths = list(Path(root_dir).rglob("*.tif"))
         self.metadata = pd.read_csv(DatasetConfig.metadata_path)
         self.patch_to_labels = dict(zip(self.metadata['patch_id'], self.metadata['labels']))
         self.image_paths = list(Path(root_dir).rglob("*.tif"))
 
-        self.selected_band_indices = get_band_indices(self.selected_bands, DatasetConfig.all_bands)
+        self.selected_band_indices = get_band_indices(self.selected_bands, DatasetConfig.rgb_bands)
 
     def __len__(self):
         return len(self.df)
@@ -54,7 +54,6 @@ class BigEarthNetDatasetTIF(Dataset):
         if labels is None:
             return torch.zeros(DatasetConfig.num_classes)  
     
-        # Convert the labels string to an actual list if needed
         if isinstance(labels, str):
             labels = ast.literal_eval(labels) 
     

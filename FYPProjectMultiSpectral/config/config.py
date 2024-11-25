@@ -43,6 +43,7 @@ class DatasetConfig:
     rgb_nir_bands = ["B04", "B03", "B02", "B08"]
     rgb_swir_bands = ["B04", "B03", "B02", "B11", "B12"]
     rgb_nir_swir_bands = ["B04", "B03", "B02", "B08", "B11", "B12"]
+    all_imp_bands = [ "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
     all_bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12"]
     
     band_stats = {

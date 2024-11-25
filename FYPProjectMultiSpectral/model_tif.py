@@ -19,7 +19,9 @@ import pytorch_lightning as pl  # Training management.
 # Custom modules
 from config.config import DatasetConfig  # Import the dataclasses
 
+# Set the device to GPU if available, otherwise CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class BigEarthNetResNet18ModelTIF(pl.LightningModule):
     def __init__(self):
         super(BigEarthNetResNet18ModelTIF, self).__init__()
@@ -28,7 +30,7 @@ class BigEarthNetResNet18ModelTIF(pl.LightningModule):
 
         original_conv1 = self.model.conv1
         self.model.conv1 = nn.Conv2d(
-            in_channels=4,  
+            in_channels=3,  
             out_channels=original_conv1.out_channels,
             kernel_size=original_conv1.kernel_size,
             stride=original_conv1.stride,

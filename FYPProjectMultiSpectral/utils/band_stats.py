@@ -35,7 +35,7 @@ def calculate_band_stats(root_dir, num_bands):
 
 # Example usage
 root_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets'
-num_bands = 12  # Number of bands in your dataset
+num_bands = 12  
 band_means, band_stds = calculate_band_stats(root_dir, num_bands)
 
 # Print the results

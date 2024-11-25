@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 from config.config import DatasetConfig, ModelConfig
 from dataset_tif import BigEarthNetDatasetTIF
 from dataclasses import dataclass
-from normalisation import BandNormalisation
+from .normalisation import BandNormalisation
 
 @dataclass
 class TransformsConfig:
@@ -13,8 +13,8 @@ class TransformsConfig:
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         BandNormalisation(
-            mean=[DatasetConfig.band_stats["mean"][band] for band in DatasetConfig.rgb_bands],
-            std=[DatasetConfig.band_stats["std"][band] for band in DatasetConfig.rgb_bands]
+            mean=[DatasetConfig.band_stats["mean"][band] for band in DatasetConfig.rgb_nir_bands],
+            std=[DatasetConfig.band_stats["std"][band] for band in DatasetConfig.rgb_nir_bands]
         )
     ])
 

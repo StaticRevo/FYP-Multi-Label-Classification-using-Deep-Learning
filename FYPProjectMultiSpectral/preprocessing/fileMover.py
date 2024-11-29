@@ -83,9 +83,6 @@ def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
         
 
 if __name__ == "__main__":
-    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets\50_percent'
-    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets'
-    csv_file_path = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
-    #move_images_to_single_folder(source_root_directory, target_directory)
-
-    move_all_subfolders_to_main_directory(source_root_directory, target_directory)
+    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\5_percent\CombinedImages'
+    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\CombinedImages'
+    move_images_to_single_folder(source_root_directory, target_directory)

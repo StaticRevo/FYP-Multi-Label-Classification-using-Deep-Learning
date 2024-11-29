@@ -5,27 +5,43 @@ import ast
 import numpy as np  
 import os
 
-metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
+metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\metadata_5_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
 
-if isinstance(metadata_csv['labels'].iloc[0], str):
-    metadata_csv['labels'] = metadata_csv['labels'].apply(ast.literal_eval)
+# if isinstance(metadata_csv['labels'].iloc[0], str):
+#     metadata_csv['labels'] = metadata_csv['labels'].apply(ast.literal_eval)
 
-class_labels = metadata_csv['labels'].explode().unique()
+# class_labels = metadata_csv['labels'].explode().unique()
 
-# Calculate class weights
+# # Calculate class weights
+# label_counts = metadata_csv['labels'].explode().value_counts()
+# total_counts = label_counts.sum()
+# class_weights = {label: total_counts / count for label, count in label_counts.items()}
+# class_weights_array = np.array([class_weights[label] for label in class_labels])
+
+
+# Function to clean and parse labels
+def clean_and_parse_labels(label_string):
+    cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
+    return ast.literal_eval(cleaned_labels)
+
+metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
+
+class_labels = set()
+for labels in metadata_csv['labels']:
+    class_labels.update(labels)
+
 label_counts = metadata_csv['labels'].explode().value_counts()
 total_counts = label_counts.sum()
 class_weights = {label: total_counts / count for label, count in label_counts.items()}
 class_weights_array = np.array([class_weights[label] for label in class_labels])
 
+
 # Description: Configuration file for the project
 @dataclass
 class DatasetConfig:
-    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%'
-    combined_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedImagesTIF'
-    combined_rgb_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedRGBImagesJPG'
-    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\metadata_50_percent.csv'
+    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets\50%\CombinedImagesTIF'
+    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\metadata_50_percent.csv'
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     metadata_csv = pd.read_csv(metadata_path)
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)

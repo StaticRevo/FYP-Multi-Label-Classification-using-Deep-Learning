@@ -256,6 +256,7 @@ def resizeTiffFiles(input_tiff, output_tiff, new_width, new_height):
                     resampling=Resampling.nearest
                 )
 
+
 def process_folders(dataset_dir, combined_dir_name, combine_function, exclude_dirs=[]):
     combined_destination_dir = os.path.join(dataset_dir, combined_dir_name)
 

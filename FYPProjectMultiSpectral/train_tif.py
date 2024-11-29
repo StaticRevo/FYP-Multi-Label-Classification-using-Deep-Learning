@@ -16,7 +16,7 @@ def main():
 
     # Initialize the logger
     log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
-    logger = TensorBoardLogger(log_dir, name=f"resnet18_eurosat_notpretrained_rgb_classweights_withouttransformations")
+    logger = TensorBoardLogger(log_dir, name=f"resnet18_eurosat_notpretrained_rgb_classweights_withouttransformations_0.5percent")
 
     weights_info = 'none'
     checkpoint_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints'
@@ -54,9 +54,6 @@ def main():
 
     # Start training
     trainer.fit(model, data_module)
-
-    # Run test after training
-    trainer.test(model, datamodule=data_module)
 
     # Start TensorBoard
     subprocess.Popen(['tensorboard', '--logdir', log_dir])

@@ -64,7 +64,7 @@ def combineTiffs(base_path, output_path):
                 dst.write(src.read(1), idx)
             
 if __name__ == "__main__":
-    path = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNet\5_percent'
+    path = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\5_percent'
     bands_of_interest = ['B01', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']
 
     for folder in os.listdir(path):

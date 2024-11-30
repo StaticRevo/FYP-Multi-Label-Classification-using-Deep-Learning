@@ -6,15 +6,14 @@ from dataset_tif import BigEarthNetDatasetTIF
 from transformations.transforms import TransformsConfig
 
 class BigEarthNetTIFDataModule(pl.LightningDataModule):    
-    def setup(self, stage=None):
-        
+    def setup(self, stage=None, bands=None):
         train_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'train']
         val_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'validation']
         test_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'test']
 
-        self.train_dataset = BigEarthNetDatasetTIF(df=train_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=DatasetConfig.rgb_bands)
-        self.val_dataset = BigEarthNetDatasetTIF(df=val_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=DatasetConfig.rgb_bands)
-        self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=DatasetConfig.rgb_bands)
+        self.train_dataset = BigEarthNetDatasetTIF(df=train_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=bands)
+        self.val_dataset = BigEarthNetDatasetTIF(df=val_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=bands)
+        self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=bands)
         #print(f"Number of samples in train set: {len(self.train_dataset)}, val set: {len(self.val_dataset)}, test set: {len(self.test_dataset)}")
 
     def train_dataloader(self):

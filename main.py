@@ -3,7 +3,7 @@ import subprocess
 
 def choose_and_run_model():
     models = {
-        '1': 'custom model',
+        '1': 'custom_model',
         '2': 'ResNet18',
         '3': 'ResNet50',
         '4': 'VGG16',
@@ -15,11 +15,11 @@ def choose_and_run_model():
         '10': 'Vit-Transformer',
     }
     band_selection = {
-        '1': 'All bands',
-        '2': 'RGB bands',
-        '3': 'RGB + NIR bands',
-        '4': 'RGB + SWIR bands',
-        '5': 'RGB + NIR + SWIR bands',
+        '1': 'all_bands',
+        '2': 'rgb_bands',
+        '3': 'rgb_nir_bands',
+        '4': 'rgb_swir_bands',
+        '5': 'rgb_nir_swir_bands',
     }
 
     print("Please choose a model to run:")
@@ -56,13 +56,11 @@ def choose_and_run_model():
             print("Invalid choice. Please try again.")
             return
 
-        # Run the trainer.py script with the selected model, weights, and band combination
-        script_path = os.path.join(os.getcwd(), 'FYPProjectMultiSpectral', 'trainer.py')
-        print(f"Running {model_name} model with weights={weights} and bands={selected_bands}...")
-        subprocess.run(['python', script_path, model_name, weights, selected_bands])
-
+        # Call train_tif.py with the selected choices
+        subprocess.run(['python', 'FYPProjectMultiSpectral\\train_tif.py', model_name, weights, selected_bands])
     else:
         print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     choose_and_run_model()
+

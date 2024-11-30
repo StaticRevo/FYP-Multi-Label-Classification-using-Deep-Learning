@@ -5,7 +5,11 @@ import pytorch_lightning as pl
 from torchmetrics.classification import (
     MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy
 )
+from torchsummary import summary
+from torchviz import make_dot
+import os
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
     def __init__(self, model, num_classes, class_weights):
         super(BaseModel, self).__init__()
@@ -94,3 +98,26 @@ class BaseModel(pl.LightningModule):
         self.log(f'{phase}_recall_epoch', getattr(self, f'{phase}_recall').compute())
         self.log(f'{phase}_f1_epoch', getattr(self, f'{phase}_f1').compute())
         self.log(f'{phase}_precision_epoch', getattr(self, f'{phase}_precision').compute())
+
+    def print_summary(self, input_size):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(device)
+        summary(self.model, input_size)
+
+    def visualize_model(self, input_size, model_name):
+        # Get the current working directory path
+        current_directory = os.getcwd()
+        save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture')
+        os.makedirs(save_path, exist_ok=True)  # Creates the directory if it doesn't exist
+
+        # Move the model to the correct device
+        self.model.to(device)
+
+        # Create a random tensor input based on the input size
+        x = torch.randn(1, *input_size).to(device)  
+        # Pass the tensor through the model
+        y = self.model(x)
+
+        # Create the visualization and save it at the specified path
+        file_path = os.path.join(save_path, f'{model_name}.png')
+        make_dot(y, params=dict(self.model.named_parameters())).render(file_path, format="png")

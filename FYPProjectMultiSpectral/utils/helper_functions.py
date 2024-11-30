@@ -1,5 +1,11 @@
 from config.config import DatasetConfig, ModelConfig
 import torch
+import pytorch_lightning as pl
+import ast
+import numpy as np
+import rasterio
+import os
+import matplotlib.pyplot as plt
 
 # Helper functions
 def denormalize(tensors, *, mean, std):
@@ -33,3 +39,43 @@ def decode_target(
 
 def get_band_indices(band_names, all_band_names):
     return [all_band_names.index(band) for band in band_names]
+
+def clean_and_parse_labels(label_string):
+    cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
+    return ast.literal_eval(cleaned_labels)
+
+def get_labels_for_image(image_path, model, transform, patch_to_labels):
+    # Load and preprocess the image
+    with rasterio.open(image_path) as src:
+        bands = [2, 3, 4]  # Bands to combine for display
+        image = np.stack([src.read(band) for band in bands], axis=-1)
+        image = transform(image).unsqueeze(0).to(model.device)  # Add batch dimension and move to device
+
+    # Get the predicted labels
+    model.eval()
+    with torch.no_grad():
+        preds = model(image).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
+        preds = preds.cpu().numpy().astype(int).flatten()
+
+    # Get the true labels
+    patch_id = os.path.basename(image_path).split('.')[0]
+    true_labels = patch_to_labels[patch_id]
+
+    return preds, true_labels, image
+
+def display_image(image_path):
+    with rasterio.open(image_path) as src:
+        bands = [2, 3, 4]  # Bands to combine for display
+        image = np.stack([src.read(band) for band in bands], axis=-1)
+        plt.imshow(image)
+        plt.title("Image with Bands 2, 3, and 4")
+        plt.show()
+
+def display_image_and_labels(image_path, model, transform, patch_to_labels):
+    # Display the image
+    display_image(image_path)
+
+    # Get predicted and true labels
+    preds, true_labels, _ = get_labels_for_image(image_path, model, transform, patch_to_labels)
+    print(f"Predicted Labels: {preds}")
+    print(f"True Labels: {true_labels}")

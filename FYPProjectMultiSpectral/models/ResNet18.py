@@ -1,16 +1,18 @@
 from torch import nn
-import torchvision.models as models
-from BaseModel import BaseModel
+from torchvision.models import resnet18, ResNet18_Weights
+from models.BaseModel import BaseModel
+import torch
+from torchsummary import summary
 
 class BigEarthNetResNet18ModelTIF(BaseModel):
-    def __init__(self, class_weights, num_classes):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights):
         # Load the ResNet-18 model
-        resnet_model = models.resnet18(weights=None)
+        resnet_model = resnet18(weights=ResNet18_Weights.DEFAULT)
 
-        # Modify first convolution layer to accept 3 channels
+        # Modify first convolution layer to accept multiple channels
         original_conv1 = resnet_model.conv1
         resnet_model.conv1 = nn.Conv2d(
-            in_channels=3,  
+            in_channels=in_channels,  
             out_channels=original_conv1.out_channels,
             kernel_size=original_conv1.kernel_size,
             stride=original_conv1.stride,
@@ -24,3 +26,6 @@ class BigEarthNetResNet18ModelTIF(BaseModel):
 
         # Call the parent class constructor with the modified model
         super(BigEarthNetResNet18ModelTIF, self).__init__(resnet_model, num_classes, class_weights)
+
+   
+

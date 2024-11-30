@@ -16,23 +16,8 @@ def main(model_name, weights):
     data_module = BigEarthNetSubsetDataModule()
     data_module.setup()
 
-    # Initialize the model with the selected weights
-    if model_name == 'ResNet18':
-        if weights == 'None':
-            model = BigEarthNetResNet18Model(weights=None)
-        else:
-            model = BigEarthNetResNet18Model(weights=weights)
-    elif model_name == 'ResNet50':
-        if weights == 'None':
-            model = BigEarthNetResNet50Model(weights=None)
-        else:
-            model = BigEarthNetResNet50Model(weights=weights)
-    elif model_name == 'VGG16':
-        if weights == 'None':
-            model = BigEarthNetVGG16Model(weights=None)
-        else:
-            model = BigEarthNetVGG16Model(weights=weights)
-
+    model = BigEarthNetResNet18Model(weights=None)
+   
     # Initialize the logger
     log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProject\experiments\logs'
     logger = TensorBoardLogger(log_dir, name=f"my_model_{model_name}_eurosat_notpretrained")

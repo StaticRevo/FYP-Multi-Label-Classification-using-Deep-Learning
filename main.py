@@ -10,7 +10,7 @@ def choose_and_run_model():
         '4': 'VGG16',
         '5': 'VGG19',
         '6': 'DenseNet121',
-        '7': 'EfficientNet',
+        '7': 'EfficientNetB0',
         '8': 'EfficientNet_v2',
         '9': 'Swin-Transformer',
         '10': 'Vit-Transformer'
@@ -66,7 +66,7 @@ def choose_and_run_model():
             return
 
         # Prompt for dataset selection
-        print("Please choose the dataset percantage:")
+        print("Please choose the dataset percentage:")
         for key, dataset in dataset_selection.items():
             print(f"{key}: {dataset}")
 

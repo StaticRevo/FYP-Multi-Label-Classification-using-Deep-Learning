@@ -8,9 +8,13 @@ import subprocess
 import sys
 
 #from model_tif import BigEarthNetResNet18ModelTIF
-from models.ResNet18 import BigEarthNetResNet18ModelTIF
 from models.CustomModel import CustomModel
+from models.ResNet18 import BigEarthNetResNet18ModelTIF
+from models.ResNet50 import BigEarthNetResNet50ModelTIF
 from models.VGG16 import BigEarthNetVGG16ModelTIF
+from models.VGG19 import BigEarthNetVGG19ModelTIF
+from models.DenseNet121 import BigEarthNetDenseNet121ModelTIF
+from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
 
 # Training the model
 def main():
@@ -49,22 +53,39 @@ def main():
     data_module.setup(stage=None)
 
     # Initialize the model
-    if model_name == 'ResNet18':
-        model = BigEarthNetResNet18ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'resnet18.png')
-    elif model_name == 'custom_model':
+    if model_name == 'custom_model':
         model = CustomModel(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
         model.print_summary((in_channels, 120, 120))
         model.visualize_model((in_channels, 120, 120), 'custom_model.png')
+    elif model_name == 'ResNet18':
+        model = BigEarthNetResNet18ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'resnet18.png')
+    elif model_name == 'ResNet50':
+        model = BigEarthNetResNet50ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'resnet50')
     elif model_name == 'VGG16':
         model = BigEarthNetVGG16ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
         model.print_summary((in_channels, 120, 120))
         model.visualize_model((in_channels, 120, 120), 'vgg16.png')
+    elif model_name == 'VGG19':
+        model = BigEarthNetVGG19ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'vgg19.png')
+    elif model_name == 'DenseNet121':
+        model = BigEarthNetDenseNet121ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'densenet121.png')
+    elif model_name == 'EfficientNetB0':
+        model = BigEarthNetEfficientNetB0ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'efficientnetb0.png')
     else:
         print("Invalid model name. Please try again.")
         return
     
+    print()
     print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
 
     # Initialize the logger

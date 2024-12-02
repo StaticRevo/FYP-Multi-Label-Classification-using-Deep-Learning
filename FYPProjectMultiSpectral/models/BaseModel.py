@@ -102,6 +102,11 @@ class BaseModel(pl.LightningModule):
     def print_summary(self, input_size):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(device)
+    
+        # Create a dummy input tensor with the specified input size
+        dummy_input = torch.zeros(1, *input_size).to(device)
+    
+        # Print the summary
         summary(self.model, input_size)
 
     def visualize_model(self, input_size, model_name):
@@ -119,5 +124,5 @@ class BaseModel(pl.LightningModule):
         y = self.model(x)
 
         # Create the visualization and save it at the specified path
-        file_path = os.path.join(save_path, f'{model_name}.png')
+        file_path = os.path.join(save_path, f'{model_name}')
         make_dot(y, params=dict(self.model.named_parameters())).render(file_path, format="png")

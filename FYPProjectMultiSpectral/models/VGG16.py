@@ -3,7 +3,7 @@ from torchvision.models import vgg16, VGG16_Weights
 from models.BaseModel import BaseModel
 
 class BigEarthNetVGG16ModelTIF(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels):
+    def __init__(self, class_weights, num_classes, in_channels, weights):
         # Load the pretrained VGG16 model
         vgg_model = vgg16(weights=VGG16_Weights.DEFAULT)
 

@@ -11,7 +11,6 @@ import pandas as pd
 from config.config import DatasetConfig
 from utils.helper_functions import encode_label, get_band_indices
 
-
 class BigEarthNetDatasetTIF(Dataset):
     def __init__(self, *, df, root_dir, transforms=None, is_test=False, selected_bands=None):
         self.df = df
@@ -59,4 +58,3 @@ class BigEarthNetDatasetTIF(Dataset):
     
         encoded = encode_label(labels)
         return encoded
-    

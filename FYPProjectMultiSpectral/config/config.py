@@ -5,9 +5,8 @@ import ast
 import numpy as np  
 import os
 
-metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\metadata_5_percent.csv'
+metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5%_BigEarthNet.csv'
 metadata_csv = pd.read_csv(metadata_path)
-
 
 # Function to clean and parse labels
 def clean_and_parse_labels(label_string):
@@ -29,8 +28,8 @@ class_weights_array = np.array([class_weights[label] for label in class_labels])
 # Description: Configuration file for the project
 @dataclass
 class DatasetConfig:
-    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\CombinedImages'
-    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\metadata_5_percent.csv'
+    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages'
+    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5%_BigEarthNet.csv'
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     metadata_csv = pd.read_csv(metadata_path)
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
@@ -79,9 +78,11 @@ class DatasetConfig:
         }
     }
 
-DEFAULT_MEAN = 0
-DEFAULT_STD = 1
-
+    def update_path(self, dataset_percentage):
+        base_path = r'C:\Users\isaac\Desktop\BigEarthTests'
+        self.dataset_path = os.path.join(base_path, f'{dataset_percentage}\CombinedImages')
+        self.metadata_path = os.path.join(base_path, f'{dataset_percentage}\metadata_{dataset_percentage}.csv')
+        
 @dataclass
 class ModelConfig:
     batch_size: int = 32
@@ -93,6 +94,7 @@ class ModelConfig:
     weight_decay: float = 1e-4
     lr_step_size: int = 7
     lr_gamma: float = 0.1
+    patience: int = 5
 
     model_names: list = field(default_factory=lambda: [
         'resnet18', 

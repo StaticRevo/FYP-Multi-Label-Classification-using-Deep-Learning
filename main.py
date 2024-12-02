@@ -1,5 +1,6 @@
 import os
 import subprocess
+from FYPProjectMultiSpectral.config.config import DatasetConfig, ModelConfig
 
 def choose_and_run_model():
     models = {
@@ -12,14 +13,22 @@ def choose_and_run_model():
         '7': 'EfficientNet',
         '8': 'EfficientNet_v2',
         '9': 'Swin-Transformer',
-        '10': 'Vit-Transformer',
+        '10': 'Vit-Transformer'
     }
     band_selection = {
         '1': 'all_bands',
         '2': 'rgb_bands',
         '3': 'rgb_nir_bands',
         '4': 'rgb_swir_bands',
-        '5': 'rgb_nir_swir_bands',
+        '5': 'rgb_nir_swir_bands'
+    }
+    dataset_selection = {
+        '1': '100%_BigEarthNet',
+        '2': '50%_BigEarthNet',
+        '3': '10%_BigEarthNet',
+        '4': '5%_BigEarthNet',
+        '5': '1%_BigEarthNet',
+        '6': '0.5%_BigEarthNet'
     }
 
     print("Please choose a model to run:")
@@ -56,8 +65,20 @@ def choose_and_run_model():
             print("Invalid choice. Please try again.")
             return
 
+        # Prompt for dataset selection
+        print("Please choose the dataset percantage:")
+        for key, dataset in dataset_selection.items():
+            print(f"{key}: {dataset}")
+
+        dataset_choice = input("Enter the number corresponding to the dataset percentage: ")
+        if dataset_choice in dataset_selection:
+            selected_dataset = dataset_selection[dataset_choice]
+        else:
+            print("Invalid choice. Please try again.")
+            return
+        
         # Call train_tif.py with the selected choices
-        subprocess.run(['python', 'FYPProjectMultiSpectral\\train_tif.py', model_name, weights, selected_bands])
+        subprocess.run(['python', 'FYPProjectMultiSpectral\\train_tif.py', model_name, weights, selected_bands, selected_dataset])
     else:
         print("Invalid choice. Please try again.")
 

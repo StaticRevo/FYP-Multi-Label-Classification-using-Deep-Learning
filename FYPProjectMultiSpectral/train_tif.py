@@ -20,6 +20,9 @@ def main():
     model_name = sys.argv[1]
     weights = sys.argv[2]
     selected_bands = sys.argv[3]
+    selected_dataset = sys.argv[4]
+
+    print(f"Selected bands from command line: {selected_bands}")
 
     # Determine the number of input channels based on the selected bands
     if selected_bands == 'all_bands':
@@ -40,33 +43,33 @@ def main():
     else:
         print(f"Band combination {selected_bands} is not supported.")
         sys.exit(1)
-    
+
     # Initialize the data module
-    data_module = BigEarthNetTIFDataModule()
-    data_module.setup(bands)
+    data_module = BigEarthNetTIFDataModule(bands=bands)
+    data_module.setup(stage=None)
 
     # Initialize the model
     if model_name == 'ResNet18':
         model = BigEarthNetResNet18ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((3, 120, 120))
-        model.visualize_model((3, 120, 120), 'resnet18.png')
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'resnet18.png')
     elif model_name == 'custom_model':
         model = CustomModel(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((3, 120, 120))
-        model.visualize_model((3, 120, 120), 'custom_model.png')
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'custom_model.png')
     elif model_name == 'VGG16':
         model = BigEarthNetVGG16ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((3, 120, 120))
-        model.visualize_model((3, 120, 120), 'vgg16.png')
+        model.print_summary((in_channels, 120, 120))
+        model.visualize_model((in_channels, 120, 120), 'vgg16.png')
     else:
         print("Invalid model name. Please try again.")
         return
     
-    print(f"Training {model_name} model with {weights} weights and {selected_bands} bands.")
+    print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
 
     # Initialize the logger
     log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
-    logger = TensorBoardLogger(log_dir, name=f"{model_name}_{weights}_{selected_bands}_experiment_5percent")
+    logger = TensorBoardLogger(log_dir, name=f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}")
 
     checkpoint_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints'
 

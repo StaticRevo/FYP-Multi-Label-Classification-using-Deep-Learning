@@ -5,7 +5,7 @@ from models.BaseModel import BaseModel
 class BigEarthNetVGG16ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, weights):
         # Load the pretrained VGG16 model
-        vgg_model = vgg16(weights=VGG16_Weights.DEFAULT)
+        vgg_model = vgg16(weights=weights)
 
         # Modify the first convolutional layer
         original_conv1 = vgg_model.features[0]  # Access the first Conv2d layer

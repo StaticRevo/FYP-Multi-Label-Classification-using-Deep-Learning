@@ -1,3 +1,4 @@
+import json
 from config.config import DatasetConfig, ModelConfig
 from dataloader_tif import BigEarthNetTIFDataModule
 import torch
@@ -15,6 +16,8 @@ from models.VGG16 import BigEarthNetVGG16ModelTIF
 from models.VGG19 import BigEarthNetVGG19ModelTIF
 from models.DenseNet121 import BigEarthNetDenseNet121ModelTIF
 from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
+from models.VisionTransformer import BigEarthNetVitTransformerModelTIF
+from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
 
 # Training the model
 def main():
@@ -52,38 +55,26 @@ def main():
     data_module = BigEarthNetTIFDataModule(bands=bands)
     data_module.setup(stage=None)
 
+    model_mapping = {
+        'custom_model': (CustomModel, 'custom_model.png'),
+        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18.png'),
+        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50.png'),
+        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16.png'),
+        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19.png'),
+        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121.png'),
+        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0.png'),
+        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer.png'),
+        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer.png')
+    }
+
     # Initialize the model
-    if model_name == 'custom_model':
-        model = CustomModel(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'custom_model.png')
-    elif model_name == 'ResNet18':
-        model = BigEarthNetResNet18ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'resnet18.png')
-    elif model_name == 'ResNet50':
-        model = BigEarthNetResNet50ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'resnet50')
-    elif model_name == 'VGG16':
-        model = BigEarthNetVGG16ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'vgg16.png')
-    elif model_name == 'VGG19':
-        model = BigEarthNetVGG19ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'vgg19.png')
-    elif model_name == 'DenseNet121':
-        model = BigEarthNetDenseNet121ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'densenet121.png')
-    elif model_name == 'EfficientNetB0':
-        model = BigEarthNetEfficientNetB0ModelTIF(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
-        model.print_summary((in_channels, 120, 120))
-        model.visualize_model((in_channels, 120, 120), 'efficientnetb0.png')
+    if model_name in model_mapping:
+        model_class, filename = model_mapping[model_name]
+        model = model_class(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model.print_summary((in_channels, 120, 120)) 
+        model.visualize_model((in_channels, 120, 120), filename)
     else:
         print("Invalid model name. Please try again.")
-        return
     
     print()
     print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
@@ -128,8 +119,15 @@ def main():
     # Start training
     trainer.fit(model, data_module)
 
+    best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path
+    best_loss_checkpoint_path = checkpoint_callback_loss.best_model_path
+
+
     # Start TensorBoard
     subprocess.Popen(['tensorboard', '--logdir', log_dir])
+
+    # Run test
+    subprocess.run(['python', 'FYPProjectMultiSpectral\\test_tif.py', model_name, weights, selected_bands, selected_dataset, best_acc_checkpoint_path, best_loss_checkpoint_path,  str(in_channels)])
 
 if __name__ == "__main__":
     main()

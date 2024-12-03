@@ -15,9 +15,9 @@ class BigEarthNetTIFDataModule(pl.LightningDataModule):
         val_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'validation']
         test_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'test']
 
-        self.train_dataset = BigEarthNetDatasetTIF(df=train_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=self.bands)
-        self.val_dataset = BigEarthNetDatasetTIF(df=val_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=self.bands)
-        self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.dataset_path, transforms=None, selected_bands=self.bands)
+        self.train_dataset = BigEarthNetDatasetTIF(df=train_df, root_dir=DatasetConfig.dataset_path, transforms=TransformsConfig.train_transforms, selected_bands=self.bands)
+        self.val_dataset = BigEarthNetDatasetTIF(df=val_df, root_dir=DatasetConfig.dataset_path, transforms=TransformsConfig.val_transforms, selected_bands=self.bands)
+        self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.dataset_path, transforms=TransformsConfig.test_transforms, selected_bands=self.bands)
         
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=ModelConfig.num_workers, pin_memory=True, shuffle=True, persistent_workers=True)

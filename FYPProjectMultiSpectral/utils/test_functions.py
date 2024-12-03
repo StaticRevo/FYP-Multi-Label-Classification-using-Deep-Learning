@@ -1,9 +1,5 @@
-import ast
 import pandas as pd
-import os
 from PIL import Image
-import torch
-import rasterio
 from torchvision import transforms
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,25 +7,19 @@ import seaborn as sns
 from sklearn.metrics import multilabel_confusion_matrix
 from tqdm import tqdm
 from utils.helper_functions import get_labels_for_image, display_image
+from torchcam.methods import GradCAM
+from torchcam.utils import overlay_mask
+from torchvision.transforms.functional import to_pil_image
+import random
+import os
+import torch
+import rasterio
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import multilabel_confusion_matrix
 
-def collect_predictions_and_plot_confusion_matrix(model, data_module, DatasetConfig):
-    # Collect predictions and true labels
-    all_preds = []
-    all_labels = []
-
-    # Add progress bar using tqdm
-    for batch in tqdm(data_module.test_dataloader(), desc="Processing Batches"):
-        inputs, labels = batch
-        inputs = inputs.to(model.device)  # Move inputs to the same device as the model
-        labels = labels.to(model.device)  # Move labels to the same device as the model
-        preds = model(inputs).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
-        all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(labels.cpu().numpy())
-
-    # Convert lists to numpy arrays
-    all_preds = np.array(all_preds)
-    all_labels = np.array(all_labels)
-
+def collect_predictions_and_plot_confusion_matrix(all_preds, all_labels, DatasetConfig):
     # Compute multilabel confusion matrix
     mcm = multilabel_confusion_matrix(all_labels, all_preds)
     print("Multilabel Confusion Matrix:")
@@ -47,10 +37,69 @@ def collect_predictions_and_plot_confusion_matrix(model, data_module, DatasetCon
     print(cm)
 
     # Plot confusion matrix
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(15, 12))  # Increase figure size for better visibility
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=DatasetConfig.class_labels, yticklabels=DatasetConfig.class_labels)
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
+    plt.yticks(rotation=0)  # Rotate y-axis labels for better visibility
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.title('Confusion Matrix')
+    plt.tight_layout()  # Adjust layout to ensure everything fits without overlapping
     plt.show()
 
+def apply_gradcam(model, input_tensor, target_layer, target_class):
+    cam_extractor = GradCAM(model, target_layer) # Initialize Grad-CAM
+    out = model(input_tensor) # Forward pass
+
+    activation_map = cam_extractor(out.squeeze(0).argmax().item(), out) # Extract CAM
+    result = overlay_mask(to_pil_image(input_tensor.squeeze(0)), to_pil_image(activation_map[0], mode='F'), alpha=0.5)
+
+    plt.imshow(result)
+    plt.title(f'Grad-CAM for class {target_class}')
+    plt.axis('off')
+    plt.show()
+
+def predict_and_display_random_image(model, dataset_dir, metadata_csv, bands):
+    # Select a random image
+    image_files = [f for f in os.listdir(dataset_dir) if f.endswith('.tif')]
+    random_image_file = random.choice(image_files)
+    image_path = os.path.join(dataset_dir, random_image_file)
+
+    # Load and preprocess the image
+    with rasterio.open(image_path) as src:
+        if max(bands) >= src.count:
+            print(f"Requested band index exceeds the number of available bands ({src.count}).")
+            return
+        input_image = src.read(bands)
+    input_tensor = torch.tensor(input_image).unsqueeze(0).float()  # Add batch dimension
+    input_tensor = input_tensor / 255.0  # Normalize
+
+    # Check number of channels
+    if input_tensor.shape[1] < 4:
+        print(f"Image has only {input_tensor.shape[1]} bands, cannot access bands 1, 2, 3.")
+        return
+
+    # Move the input tensor to the model's device
+    input_tensor = input_tensor.to(model.device)
+
+    # Predict labels
+    model.eval()
+    with torch.no_grad():
+        output = model(input_tensor)
+    predicted_labels = (output.sigmoid() > 0.5).cpu().numpy().astype(int).squeeze()
+
+    # Get true labels
+    image_id = os.path.splitext(random_image_file)[0]
+    print(f"Selected image ID: {image_id}")
+
+    if image_id not in metadata_csv['patch_id'].values:
+        print(f"Image ID {image_id} not found in metadata. Skipping.")
+        return
+
+    true_labels = metadata_csv[metadata_csv['patch_id'] == image_id]['labels'].values[0]
+
+    # Display the image, true labels, and predicted labels
+    plt.imshow(to_pil_image(input_tensor.cpu().squeeze(0)[[0, 1, 2]]))  
+    plt.title(f"True Labels: {true_labels}\nPredicted Labels: {predicted_labels}")
+    plt.axis('off')
+    plt.show()

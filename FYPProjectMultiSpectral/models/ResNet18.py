@@ -7,7 +7,7 @@ from torchsummary import summary
 class BigEarthNetResNet18ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         # Load the ResNet-18 model
-        resnet_model = resnet18(weights=ResNet18_Weights.DEFAULT)
+        resnet_model = resnet18(weights=model_weights)
 
         # Modify first convolution layer to accept multiple channels
         original_conv1 = resnet_model.conv1

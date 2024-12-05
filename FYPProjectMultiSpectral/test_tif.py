@@ -15,7 +15,7 @@ from tqdm import tqdm
 import ast
 from sklearn.metrics import multilabel_confusion_matrix
 from utils.helper_functions import get_labels_for_image, display_image, display_image_and_labels
-from utils.test_functions import collect_predictions_and_plot_confusion_matrix, display_image_and_labels
+from utils.test_functions import plot_confusion_matrix, predict_and_display_random_image, plot_normalized_confusion_matrix
 from config.config import clean_and_parse_labels
 
 from models.CustomModel import CustomModel
@@ -95,12 +95,47 @@ def main():
     # Run test
     trainer.test(model, datamodule=data_module)
 
-    # Collect predictions and plot confusion matrix
-    collect_predictions_and_plot_confusion_matrix(model, data_module, DatasetConfig)
+    # Collect predictions and true labels
+    all_preds = []
+    all_labels = []
 
-    image_path = r'C:\Users\isaac\Desktop\BigEarthTests\5PercentBigEarthNetSubset\CombinedImages\S2A_MSIL2A_20170613T101031_N9999_R022_T33UUP_28_56.tif'
-    display_image_and_labels(image_path, model, data_module.train_dataset.patch_to_labels)
- 
+    # Add progress bar using tqdm
+    for batch in tqdm(data_module.test_dataloader(), desc="Processing Batches"):
+        inputs, labels = batch
+        inputs = inputs.to(model.device)  
+        labels = labels.to(model.device)  
+        preds = model(inputs).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
+        all_preds.extend(preds.cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
 
+    # Convert lists to numpy arrays
+    all_preds = np.array(all_preds)
+    all_labels = np.array(all_labels)
+
+    # Save predictions and true labels to a file
+    save_path = 'test_predictions.npz'
+    np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
+
+    # Load predictions and true labels
+    data = np.load(save_path)
+    all_preds = data['all_preds']
+    all_labels = data['all_labels']
+
+    # Check the shapes
+    print(f"Predictions shape: {all_preds.shape}")
+    print(f"Labels shape: {all_labels.shape}")
+
+    # Plot confusion matrix
+    plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
+    plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
+
+    # Load the trained model checkpoint
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=01-val_acc=0.93.ckpt'
+    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=3, model_weights='ResNet18_Weights.DEFAULT')
+
+    # Predict and display a random image
+    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
+    predict_and_display_random_image(model, dataset_dir, metadata_csv)
+    
 if __name__ == "__main__":
     main()

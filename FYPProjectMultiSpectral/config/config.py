@@ -28,8 +28,8 @@ class_weights_array = np.array([class_weights[label] for label in class_labels])
 # Description: Configuration file for the project
 @dataclass
 class DatasetConfig:
-    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages'
-    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5%_BigEarthNet.csv'
+    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
+    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     metadata_csv = pd.read_csv(metadata_path)
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)

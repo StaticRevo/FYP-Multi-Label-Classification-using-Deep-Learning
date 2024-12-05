@@ -30,7 +30,6 @@ def calculate_band_stats(root_dir, num_bands):
 
     return band_means, band_stds
 
-# Example usage
 root_dir = r'C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\CombinedImages'
 num_bands = 12  
 band_means, band_stds = calculate_band_stats(root_dir, num_bands)

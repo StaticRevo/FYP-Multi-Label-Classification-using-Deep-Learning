@@ -8,7 +8,7 @@ from config.config import DatasetConfig
 import torch
 from dataset_tif import BigEarthNetDatasetTIF
 
-root_dir = DatasetConfig.combined_path
+root_dir = DatasetConfig.dataset_path
 metadata_csv = DatasetConfig.metadata_csv
 train_df = metadata_csv[metadata_csv['split'] == 'train']
 transforms = TransformsConfig.train_transforms

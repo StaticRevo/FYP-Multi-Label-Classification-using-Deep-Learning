@@ -5,7 +5,7 @@ from torchsummary import summary
 import torch
 
 class CustomModel(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels, weights):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights):
         # Define the custom model architecture
         custom_model = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=3, stride=1, padding=1),

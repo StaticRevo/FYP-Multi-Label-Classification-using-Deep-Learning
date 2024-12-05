@@ -13,7 +13,6 @@ from tqdm import tqdm
 import ast
 from sklearn.metrics import multilabel_confusion_matrix
 from utils.helper_functions import get_labels_for_image, display_image, display_image_and_labels
-from utils.test_functions import collect_predictions_and_plot_confusion_matrix, predict_and_display_random_image
 from config.config import clean_and_parse_labels
 
 from models.CustomModel import CustomModel
@@ -41,12 +40,13 @@ for labels in metadata_csv['labels']:
 # Testing the model
 def main():
     # Initialize the data module
-    data_module = BigEarthNetTIFDataModule(bands=DatasetConfig.rgb_bands)
+    bands=DatasetConfig.rgb_bands
+    data_module = BigEarthNetTIFDataModule(bands=bands)
     data_module.setup(stage=None)
 
     # Load the trained model checkpoint
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\custom_model-custom_model_Weights.DEFAULT-epoch=00-val_acc=0.94.ckpt'
-    model = CustomModel.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=3, weights='DEFAULT')
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=01-val_acc=0.93.ckpt'
+    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=3, model_weights='ResNet18_Weights.DEFAULT')
 
     # Model Testing with mixed precision
     trainer = pl.Trainer(
@@ -65,8 +65,8 @@ def main():
     # Add progress bar using tqdm
     for batch in tqdm(data_module.test_dataloader(), desc="Processing Batches"):
         inputs, labels = batch
-        inputs = inputs.to(model.device)  # Move inputs to the same device as the model
-        labels = labels.to(model.device)  # Move labels to the same device as the model
+        inputs = inputs.to(model.device)  
+        labels = labels.to(model.device)  
         preds = model(inputs).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
@@ -83,14 +83,6 @@ def main():
     data = np.load(save_path)
     all_preds = data['all_preds']
     all_labels = data['all_labels']
-
-    # Plot confusion matrix
-    collect_predictions_and_plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
-
-    # Predict and display a random image
-    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages'
-    predict_and_display_random_image(model, dataset_dir, metadata_csv, bands=[2, 3, 4])
-
 
 if __name__ == "__main__":
     main()

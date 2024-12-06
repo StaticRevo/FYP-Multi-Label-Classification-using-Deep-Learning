@@ -1,4 +1,5 @@
 import json
+import os
 from config.config import DatasetConfig, ModelConfig
 from dataloader_tif import BigEarthNetTIFDataModule
 import torch
@@ -7,6 +8,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import subprocess
 import sys
+from utils.helper_functions import save_tensorboard_graphs
 
 #from model_tif import BigEarthNetResNet18ModelTIF
 from models.CustomModel import CustomModel
@@ -105,6 +107,14 @@ def main():
         mode='max'
     )
 
+    # Early stopping callback
+    early_stopping = pl.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=ModelConfig.patience,
+        verbose=True,
+        mode='min'
+    )
+
     # Model Training with custom callbacks
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
@@ -113,7 +123,7 @@ def main():
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
         log_every_n_steps=1,
-        callbacks=[checkpoint_callback_loss, checkpoint_callback_acc]
+        callbacks=[checkpoint_callback_loss, checkpoint_callback_acc, early_stopping]
     )
 
     # Start training
@@ -121,6 +131,10 @@ def main():
 
     best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path
     best_loss_checkpoint_path = checkpoint_callback_loss.best_model_path
+
+    # Save Tensorboard graphs as images
+    output_dir = os.path.join('FYPProjectMultiSpectral/experiments/results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
+    save_tensorboard_graphs(logger.log_dir, output_dir)
 
     # Start TensorBoard
     subprocess.Popen(['tensorboard', '--logdir', log_dir])

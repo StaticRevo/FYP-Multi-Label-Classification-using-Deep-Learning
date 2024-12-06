@@ -6,6 +6,7 @@ import numpy as np
 import rasterio
 import os
 import matplotlib.pyplot as plt
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 # Helper functions
 def denormalize(tensors, *, mean, std):
@@ -79,3 +80,36 @@ def display_image_and_labels(image_path, model, transform, patch_to_labels):
     preds, true_labels, _ = get_labels_for_image(image_path, model, transform, patch_to_labels)
     print(f"Predicted Labels: {preds}")
     print(f"True Labels: {true_labels}")
+
+# Function to save TensorBoard graphs as images
+def save_tensorboard_graphs(log_dir, output_dir):
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Load the TensorBoard logs
+    event_acc = EventAccumulator(log_dir)
+    event_acc.Reload()
+
+    # Get the list of tags (metrics) in the logs
+    tags = event_acc.Tags()['scalars']
+
+    # Iterate over each tag and plot the graph
+    for tag in tags:
+        events = event_acc.Scalars(tag)
+        steps = [e.step for e in events]
+        values = [e.value for e in events]
+
+        # Plot the graph
+        plt.figure()
+        plt.plot(steps, values)
+        plt.xlabel('Steps')
+        plt.ylabel(tag)
+        plt.title(tag)
+        plt.grid(True)
+
+        # Save the graph as an image
+        output_path = os.path.join(output_dir, f"{tag.replace('/', '_')}.png")
+        plt.savefig(output_path)
+        plt.close()
+
+    print(f"Graphs saved to {output_dir}")

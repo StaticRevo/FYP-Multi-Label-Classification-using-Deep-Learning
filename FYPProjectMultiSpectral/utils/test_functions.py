@@ -20,7 +20,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import multilabel_confusion_matrix
 from config.config import DatasetConfig
-
+from torchcam.methods import GradCAM
+from torchcam.utils import overlay_mask
 
 def decode_target(
     target: list,
@@ -247,12 +248,59 @@ def predict_and_display_multiple_images(model, dataset_dir, metadata_csv, num_im
         axes[idx].axis('off')
 
         # Add text for true and predicted labels
-        axes[idx].text(0.5, -0.1, f"True Labels: {true_labels}", ha='center', va='center', transform=axes[idx].transAxes, fontsize=12)
-        axes[idx].text(0.5, -0.2, f"Predicted Labels: {predicted_labels_text}", ha='center', va='center', transform=axes[idx].transAxes, fontsize=12)
+        axes[idx].text(0.5, 1.05, f"True Labels: {true_labels}", ha='center', va='center', transform=axes[idx].transAxes, fontsize=12)
+        axes[idx].text(0.5, 1.15, f"Predicted Labels: {predicted_labels_text}", ha='center', va='center', transform=axes[idx].transAxes, fontsize=12)
 
     # Hide any unused subplots
     for j in range(idx + 1, len(axes)):
         axes[j].axis('off')
 
-    plt.tight_layout()
+    plt.tight_layout(pad=2.0)
     plt.show()
+
+def display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.55):
+    # Load and preprocess the image
+    with rasterio.open(image_path) as src:
+        red = src.read(4).astype(np.float32)
+        green = src.read(3).astype(np.float32)
+        blue = src.read(2).astype(np.float32)
+
+        red /= np.max(red)
+        green /= np.max(green)
+        blue /= np.max(blue)
+
+        rgb = np.dstack((red, green, blue))
+        input_image = np.stack([red, green, blue], axis=0)
+        input_tensor = torch.tensor(input_image).unsqueeze(0).float()
+
+    # Move the input tensor to the model's device
+    input_tensor = input_tensor.to(model.device)
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Initialize GradCAM
+    cam_extractor = GradCAM(model, target_layer=selected_layer)
+
+    # Perform a forward pass through the model
+    with torch.no_grad():  # Disable gradients for efficiency during forward pass
+        output = model(input_tensor)
+
+    # Get the target class
+    sigmoid_outputs = output.sigmoid()
+    predicted_labels = (sigmoid_outputs > threshold).cpu().numpy().astype(int).squeeze()
+    target_class = int(np.argmax(predicted_labels))
+    print(f"Target class for GradCAM: {class_labels[target_class]} ({target_class})")
+
+    # Extract the activation map for the target class
+    activation_map = cam_extractor(target_class, output)
+
+    # Overlay the activation map on the image
+    result = overlay_mask(to_pil_image(rgb), to_pil_image(activation_map[0].cpu(), mode='F'), alpha=0.5)
+
+    # Display the result
+    plt.imshow(result)
+    plt.title(f"GradCAM Heatmap for Class: {class_labels[target_class]}")
+    plt.axis('off')
+    plt.show()
+

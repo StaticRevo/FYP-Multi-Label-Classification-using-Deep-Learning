@@ -67,7 +67,7 @@ def main():
         inputs, labels = batch
         inputs = inputs.to(model.device)  
         labels = labels.to(model.device)  
-        preds = model(inputs).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
+        preds = model(inputs).sigmoid() > 0.5  
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 

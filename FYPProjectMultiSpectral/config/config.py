@@ -5,7 +5,7 @@ import ast
 import numpy as np  
 import os
 
-metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5%_BigEarthNet.csv'
+metadata_path: str =  r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
 
 # Function to clean and parse labels

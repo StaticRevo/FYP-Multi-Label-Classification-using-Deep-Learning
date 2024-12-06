@@ -104,7 +104,7 @@ def main():
         inputs, labels = batch
         inputs = inputs.to(model.device)  
         labels = labels.to(model.device)  
-        preds = model(inputs).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
+        preds = model(inputs).sigmoid() > 0.5  
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 
@@ -112,8 +112,11 @@ def main():
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
-    # Save predictions and true labels to a file
-    save_path = 'test_predictions.npz'
+    results_dir = f"experiments/results/{model_name}_{selected_bands}_{weights}_{selected_dataset}"
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Save predictions and true labels in an npz file
+    save_path = os.path.join(results_dir, 'test_predictions.npz')
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
     # Load predictions and true labels
@@ -127,7 +130,9 @@ def main():
 
     # Plot confusion matrix
     plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
+    plt.savefig(os.path.join(results_dir, 'confusion_matrix.png'))
     plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
+    plt.savefig(os.path.join(results_dir, 'normalized_confusion_matrix.png'))
 
     # Load the trained model checkpoint
     checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=01-val_acc=0.93.ckpt'

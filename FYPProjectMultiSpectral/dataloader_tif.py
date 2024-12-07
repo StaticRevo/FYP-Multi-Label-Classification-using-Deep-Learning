@@ -20,10 +20,13 @@ class BigEarthNetTIFDataModule(pl.LightningDataModule):
         self.test_dataset = BigEarthNetDatasetTIF(df=test_df, root_dir=DatasetConfig.dataset_path, transforms=TransformsConfig.test_transforms, selected_bands=self.bands)
         
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=ModelConfig.num_workers, pin_memory=True, shuffle=True, persistent_workers=True)
+        dataloader = DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=ModelConfig.num_workers, pin_memory=True, shuffle=True, persistent_workers=True)
+        return dataloader
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
+        dataloader = DataLoader(self.val_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
+        return dataloader
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
+        dataloader = DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
+        return dataloader

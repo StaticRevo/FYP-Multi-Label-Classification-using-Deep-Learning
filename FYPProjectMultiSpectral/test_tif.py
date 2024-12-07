@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import ast
 from sklearn.metrics import multilabel_confusion_matrix
-from utils.helper_functions import get_labels_for_image, display_image, display_image_and_labels
-from utils.test_functions import plot_confusion_matrix, predict_and_display_random_image, plot_normalized_confusion_matrix
+from utils.helper_functions import *
+from utils.test_functions import *
 from config.config import clean_and_parse_labels
 
 from models.CustomModel import CustomModel
@@ -80,7 +80,7 @@ def main():
     }
 
     if model_name in model_mapping:
-        model_class = model_mapping[model_name]
+        model_class, _ = model_mapping[model_name]  # Extract the class from the tuple
         model = model_class.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights)
     else:
         raise ValueError(f"Model {model_name} not recognized.")
@@ -130,17 +130,28 @@ def main():
 
     # Plot confusion matrix
     plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
-    plt.savefig(os.path.join(results_dir, 'confusion_matrix.png'))
     plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
-    plt.savefig(os.path.join(results_dir, 'normalized_confusion_matrix.png'))
 
     # Load the trained model checkpoint
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=01-val_acc=0.93.ckpt'
-    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=3, model_weights='ResNet18_Weights.DEFAULT')
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=08-val_acc=0.29.ckpt'
+    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=12, model_weights='ResNet18_Weights.DEFAULT')
 
     # Predict and display a random image
     dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
-    predict_and_display_random_image(model, dataset_dir, metadata_csv)
+    predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
+    
+    # Select an image for GradCAM
+    random_image_file = random.choice(metadata_csv[metadata_csv['split'] == 'test']['patch_id'].apply(lambda x: f"{x}.tif").tolist())
+    image_path = os.path.join(dataset_dir, random_image_file)
+    print()
+    print(f"Selected image for GradCAM: {random_image_file}")
+
+    # Display GradCAM heatmap
+    selected_layer = 'model.layer4'
+
+    display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.70)
+
+    plot_roc_auc(all_labels, all_preds, class_labels)
     
 if __name__ == "__main__":
     main()

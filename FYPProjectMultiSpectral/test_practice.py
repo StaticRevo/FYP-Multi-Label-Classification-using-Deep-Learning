@@ -28,7 +28,7 @@ from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
 # Set float32 matmul precision to 'high' to utilize Tensor Cores
 torch.set_float32_matmul_precision('high')
 
-metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5%_BigEarthNet.csv'
+metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
 
 metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
@@ -40,13 +40,13 @@ for labels in metadata_csv['labels']:
 # Testing the model
 def main():
     # Initialize the data module
-    bands=DatasetConfig.rgb_bands
+    bands=DatasetConfig.all_bands
     data_module = BigEarthNetTIFDataModule(bands=bands)
     data_module.setup(stage=None)
 
     # Load the trained model checkpoint
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=01-val_acc=0.93.ckpt'
-    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=3, model_weights='ResNet18_Weights.DEFAULT')
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=08-val_acc=0.29.ckpt'
+    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=12, model_weights='ResNet18_Weights.DEFAULT')
 
     # Model Testing with mixed precision
     trainer = pl.Trainer(
@@ -71,6 +71,9 @@ def main():
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 
+        print("Sample Inputs:", inputs[:2])
+        print("Sample Labels:", labels[:2])
+
     # Convert lists to numpy arrays
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
@@ -78,11 +81,6 @@ def main():
     # Save predictions and true labels to a file
     save_path = 'test_predictions.npz'
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
-
-    # Load predictions and true labels
-    data = np.load(save_path)
-    all_preds = data['all_preds']
-    all_labels = data['all_labels']
 
 if __name__ == "__main__":
     main()

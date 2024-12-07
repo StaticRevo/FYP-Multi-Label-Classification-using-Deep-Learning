@@ -22,6 +22,9 @@ from sklearn.metrics import multilabel_confusion_matrix
 from config.config import DatasetConfig
 from torchcam.methods import GradCAM
 from torchcam.utils import overlay_mask
+from torchvision.transforms.functional import to_pil_image
+from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.preprocessing import label_binarize
 
 def decode_target(
     target: list,
@@ -105,10 +108,25 @@ def plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig):
     plt.title('Normalized Confusion Matrix')
     plt.tight_layout()  # Adjust layout to ensure everything fits without overlapping
     plt.show()
+
+def select_random_img(metadata_csv, split='test'):
+    return random.choice(metadata_csv[metadata_csv['split'] == split]['patch_id'].apply(lambda x: f"{x}.tif").tolist())
     
-def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, class_labels=None):
-    # Filter metadata to include only 'test' split
+def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, bands=DatasetConfig.all_bands):
+    # Create dictionaries for mapping between labels and indices
+    class_labels_dict = DatasetConfig.class_labels_dict
+    reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict
+          
     test_metadata = metadata_csv[metadata_csv['split'] == 'test']
+    
+    # Map band names to indices
+    band_indices = {
+        "B01": 0, "B02": 1, "B03": 2, "B04": 3, "B05": 4, "B06": 5, "B07": 6,
+        "B08": 7, "B8A": 8, "B09": 9, "B11": 10, "B12": 11
+    }
+    
+    # Define RGB band indices
+    rgb_band_indices = [band_indices["B04"], band_indices["B03"], band_indices["B02"]]
     
     # Select a random image from the test split
     test_image_files = test_metadata['patch_id'].apply(lambda x: f"{x}.tif").tolist()
@@ -117,163 +135,95 @@ def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold
     print(f"Selected random image file: {random_image_file}")
 
     with rasterio.open(image_path) as src:
-        # Read the red, green, and blue bands
-        red = src.read(4)
-        green = src.read(3)
-        blue = src.read(2)
-        
+        # Read all bands
+        all_bands = src.read().astype(np.float32)
+    
         # Normalize each band to the range 0-1
-        red = red.astype(np.float32)
-        green = green.astype(np.float32)
-        blue = blue.astype(np.float32)
-        
-        red /= np.max(red)
-        green /= np.max(green)
-        blue /= np.max(blue)
-        
-        # Stack the bands into an RGB image
-        rgb = np.dstack((red, green, blue))
+        all_bands /= np.max(all_bands, axis=(1, 2), keepdims=True)
+    
+        # Read the red, green, and blue bands specifically for display
+        red = all_bands[rgb_band_indices[0]]
+        green = all_bands[rgb_band_indices[1]]
+        blue = all_bands[rgb_band_indices[2]]
+    
+    # Stack the bands into an RGB image
+    rgb = np.dstack((red, green, blue))
+    
+    # Read the specified bands for model input
+    input_bands = np.stack([all_bands[band_indices[band]] for band in bands], axis=0)
     
     # Convert to tensor and add batch dimension
-    input_image = np.stack([red, green, blue], axis=0)  # Stack bands into a single array
-    input_tensor = torch.tensor(input_image).unsqueeze(0).float()
-    print(f"Input tensor shape: {input_tensor.shape}")
-
-    # Move the input tensor to the model's device
+    input_tensor = torch.tensor(input_bands).unsqueeze(0).float()
     input_tensor = input_tensor.to(model.device)
-    print(f"Moved input tensor to device: {model.device}")
 
     # Predict labels
     model.eval()
     with torch.no_grad():
         output = model(input_tensor)
-    print(f"Raw logits: {output}")
+
     sigmoid_outputs = output.sigmoid()
-    print(f"Sigmoid outputs: {sigmoid_outputs}")
     predicted_labels = (sigmoid_outputs > threshold).cpu().numpy().astype(int).squeeze()
-    print(f"Predicted labels: {predicted_labels}")
 
-    # Convert predicted labels to text
-    predicted_labels_text = decode_target(predicted_labels, text_labels=True, cls_labels=class_labels)
-    print(f"Predicted labels (text): {predicted_labels_text}")
+    print("Sigmoid Outputs:", sigmoid_outputs)
 
-    # Get true labels
+    # Get true labels from the CSV
     image_id = os.path.splitext(random_image_file)[0]
-    print(f"Selected image ID: {image_id}")
+    row = metadata_csv[metadata_csv['patch_id'] == image_id]['labels'].values[0]
+    true_labels = row if isinstance(row, list) else [row]
 
-    if image_id not in metadata_csv['patch_id'].values:
-        print(f"Image ID {image_id} not found in metadata. Skipping.")
-        return
+    # Convert true labels to indices
+    true_labels_indices = [class_labels_dict[label] for label in true_labels]
 
-    true_labels = metadata_csv[metadata_csv['patch_id'] == image_id]['labels'].values[0]
-    print(f"True labels: {true_labels}")
+    # Convert numeric predicted labels to text
+    predicted_labels_indices = [idx for idx, value in enumerate(predicted_labels) if value == 1]
+
+    # Print results
+    print(f"Image ID: {image_id}")
+    print(f"True Labels (Indices): {true_labels_indices}")
+    print(f"Predicted Labels (Indices): {predicted_labels_indices}")
 
     # Display the image, true labels, and predicted labels
     plt.figure(figsize=(10, 10))
     plt.imshow(rgb)
-    plt.title(f"True Labels: {true_labels}\nPredicted Labels: {predicted_labels_text}")
+    plt.title(
+        f"Image ID: {image_id}\n"
+        f"True Labels: {true_labels_indices}\n"
+        f"Predicted Labels: {predicted_labels_indices}"
+    )
     plt.axis('off')
     plt.show()
 
-def predict_and_display_multiple_images(model, dataset_dir, metadata_csv, num_images=5, threshold=0.6, class_labels=None):
-    # Filter metadata to include only 'test' split
-    test_metadata = metadata_csv[metadata_csv['split'] == 'test']
+def display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.55, bands=DatasetConfig.all_bands):
+    # Map band names to indices
+    band_indices = {
+        "B01": 0, "B02": 1, "B03": 2, "B04": 3, "B05": 4, "B06": 5, "B07": 6,
+        "B08": 7, "B8A": 8, "B09": 9, "B11": 10, "B12": 11
+    }
     
-    # Select random images from the test split
-    test_image_files = test_metadata['patch_id'].apply(lambda x: f"{x}.tif").tolist()
-    random_image_files = random.sample(test_image_files, num_images)
-    
-    # Create a grid for displaying images
-    fig, axes = plt.subplots(nrows=num_images // 2 + num_images % 2, ncols=2, figsize=(15, num_images * 5))
-    axes = axes.flatten()
+    # Define RGB band indices
+    rgb_band_indices = [band_indices["B04"], band_indices["B03"], band_indices["B02"]]
 
-    for idx, random_image_file in enumerate(random_image_files):
-        image_path = os.path.join(dataset_dir, random_image_file)
-        print(f"Selected random image file: {random_image_file}")
-
-        with rasterio.open(image_path) as src:
-            # Read the red, green, and blue bands
-            red = src.read(4)
-            green = src.read(3)
-            blue = src.read(2)
-            
-            # Normalize each band to the range 0-1
-            red = red.astype(np.float32)
-            green = green.astype(np.float32)
-            blue = blue.astype(np.float32)
-            
-            red /= np.max(red)
-            green /= np.max(green)
-            blue /= np.max(blue)
-            
-            # Stack the bands into an RGB image
-            rgb = np.dstack((red, green, blue))
-        
-        # Convert to tensor and add batch dimension
-        input_image = np.stack([red, green, blue], axis=0)  # Stack bands into a single array
-        input_tensor = torch.tensor(input_image).unsqueeze(0).float()
-        print(f"Input tensor shape: {input_tensor.shape}")
-
-        # Move the input tensor to the model's device
-        input_tensor = input_tensor.to(model.device)
-        print(f"Moved input tensor to device: {model.device}")
-
-        # Predict labels
-        model.eval()
-        with torch.no_grad():
-            output = model(input_tensor)
-        print(f"Raw logits: {output}")
-        sigmoid_outputs = output.sigmoid()
-        print(f"Sigmoid outputs: {sigmoid_outputs}")
-        predicted_labels = (sigmoid_outputs > threshold).cpu().numpy().astype(int).squeeze()
-        print(f"Predicted labels: {predicted_labels}")
-
-        # Convert predicted labels to text
-        predicted_labels_text = decode_target(predicted_labels, text_labels=True, cls_labels=class_labels)
-        print(f"Predicted labels (text): {predicted_labels_text}")
-
-        # Get true labels
-        image_id = os.path.splitext(random_image_file)[0]
-        print(f"Selected image ID: {image_id}")
-
-        if image_id not in metadata_csv['patch_id'].values:
-            print(f"Image ID {image_id} not found in metadata. Skipping.")
-            continue
-
-        true_labels = metadata_csv[metadata_csv['patch_id'] == image_id]['labels'].values[0]
-        print(f"True labels: {true_labels}")
-
-        # Display the image
-        axes[idx].imshow(rgb)
-        axes[idx].axis('off')
-
-        # Add text for true and predicted labels
-        axes[idx].text(0.5, 1.05, f"True Labels: {true_labels}", ha='center', va='center', transform=axes[idx].transAxes, fontsize=12)
-        axes[idx].text(0.5, 1.15, f"Predicted Labels: {predicted_labels_text}", ha='center', va='center', transform=axes[idx].transAxes, fontsize=12)
-
-    # Hide any unused subplots
-    for j in range(idx + 1, len(axes)):
-        axes[j].axis('off')
-
-    plt.tight_layout(pad=2.0)
-    plt.show()
-
-def display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.55):
     # Load and preprocess the image
     with rasterio.open(image_path) as src:
-        red = src.read(4).astype(np.float32)
-        green = src.read(3).astype(np.float32)
-        blue = src.read(2).astype(np.float32)
-
-        red /= np.max(red)
-        green /= np.max(green)
-        blue /= np.max(blue)
-
-        rgb = np.dstack((red, green, blue))
-        input_image = np.stack([red, green, blue], axis=0)
-        input_tensor = torch.tensor(input_image).unsqueeze(0).float()
-
-    # Move the input tensor to the model's device
+        # Read all bands
+        all_bands = src.read().astype(np.float32)
+    
+        # Normalize each band to the range 0-1
+        all_bands /= np.max(all_bands, axis=(1, 2), keepdims=True)
+    
+        # Read the red, green, and blue bands specifically for display
+        red = all_bands[rgb_band_indices[0]]
+        green = all_bands[rgb_band_indices[1]]
+        blue = all_bands[rgb_band_indices[2]]
+    
+    # Stack the bands into an RGB image
+    rgb = np.dstack((red, green, blue))
+    
+    # Read the specified bands for model input
+    input_bands = np.stack([all_bands[band_indices[band]] for band in bands], axis=0)
+    
+    # Convert to tensor and add batch dimension
+    input_tensor = torch.tensor(input_bands).unsqueeze(0).float()
     input_tensor = input_tensor.to(model.device)
 
     # Set the model to evaluation mode
@@ -282,9 +232,8 @@ def display_gradcam_heatmap(model, image_path, class_labels, selected_layer, thr
     # Initialize GradCAM
     cam_extractor = GradCAM(model, target_layer=selected_layer)
 
-    # Perform a forward pass through the model
-    with torch.no_grad():  # Disable gradients for efficiency during forward pass
-        output = model(input_tensor)
+    # Perform a forward pass through the model with gradients enabled
+    output = model(input_tensor)
 
     # Get the target class
     sigmoid_outputs = output.sigmoid()
@@ -304,3 +253,36 @@ def display_gradcam_heatmap(model, image_path, class_labels, selected_layer, thr
     plt.axis('off')
     plt.show()
 
+def plot_roc_auc(all_labels, all_preds, class_labels):
+    # Binarize the labels for multi-label classification
+    all_labels_bin = label_binarize(all_labels, classes=range(len(class_labels)))
+    all_preds_bin = label_binarize(all_preds, classes=range(len(class_labels)))
+
+    # Compute ROC curve and ROC area for each class
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(len(class_labels)):
+        fpr[i], tpr[i], _ = roc_curve(all_labels_bin[:, i], all_preds_bin[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = roc_curve(all_labels_bin.ravel(), all_preds_bin.ravel())
+    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+    # Plot ROC curve for each class
+    plt.figure(figsize=(15, 10))
+    for i in range(len(class_labels)):
+        plt.plot(fpr[i], tpr[i], lw=2, label=f'ROC curve of class {class_labels[i]} (area = {roc_auc[i]:0.2f})')
+
+    plt.plot(fpr["micro"], tpr["micro"], color='deeppink', linestyle=':', linewidth=4,
+             label=f'micro-average ROC curve (area = {roc_auc["micro"]:0.2f})')
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc="lower right")
+    plt.show()

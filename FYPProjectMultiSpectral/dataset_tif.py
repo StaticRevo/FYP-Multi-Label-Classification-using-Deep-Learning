@@ -36,6 +36,7 @@ class BigEarthNetDatasetTIF(Dataset):
             image = src.read()  
             image = image[self.selected_band_indices, :, :]
         
+        # Image is convered to a tensor before applying transforms
         image = torch.tensor(image, dtype=torch.float32)
 
         if self.transforms:
@@ -54,7 +55,9 @@ class BigEarthNetDatasetTIF(Dataset):
             return torch.zeros(DatasetConfig.num_classes)  
     
         if isinstance(labels, str):
-            labels = ast.literal_eval(labels) 
-    
+            cleaned_labels = labels.replace(" '", ", '").replace("[", "[").replace("]", "]")
+            labels =  ast.literal_eval(cleaned_labels)
+        
         encoded = encode_label(labels)
         return encoded
+    

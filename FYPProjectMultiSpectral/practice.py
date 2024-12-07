@@ -39,31 +39,30 @@ all_labels = data['all_labels']
 print(f"Predictions shape: {all_preds.shape}")
 print(f"Labels shape: {all_labels.shape}")
 
-print(all_labels)
-print(all_preds)
+# Set print options to display the full arrays
+np.set_printoptions(threshold=np.inf)
 
-# # Plot confusion matrix
-# plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
-# plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
+# Plot confusion matrix
+plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
+plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
 
-# # Load the trained model checkpoint
-# checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=01-val_acc=0.93.ckpt'
-# model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=3, model_weights='ResNet18_Weights.DEFAULT')
+# Load the trained model checkpoint
+checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=08-val_acc=0.29.ckpt'
+model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=12, model_weights='ResNet18_Weights.DEFAULT')
 
 # # Predict and display a random image
-# dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
-# predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.55, class_labels=class_labels)
+dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
+predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
     
-# predict_and_display_multiple_images(model, dataset_dir, metadata_csv, threshold=0.55, class_labels=class_labels, num_images=5)
+# Select an image for GradCAM
+random_image_file = random.choice(metadata_csv[metadata_csv['split'] == 'test']['patch_id'].apply(lambda x: f"{x}.tif").tolist())
+image_path = os.path.join(dataset_dir, random_image_file)
+print()
+print(f"Selected image for GradCAM: {random_image_file}")
 
-# # Select an image for GradCAM
-# random_image_file = random.choice(metadata_csv[metadata_csv['split'] == 'test']['patch_id'].apply(lambda x: f"{x}.tif").tolist())
-# print(f"Selected image for GradCAM: {random_image_file}")
-# image_path = os.path.join(dataset_dir, random_image_file)
-# print(f"Selected image for GradCAM: {random_image_file}")
+# Display GradCAM heatmap
+selected_layer = 'model.layer4'
 
-# # Display GradCAM heatmap
-# selected_layer = 'model.layer4'
+display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.70)
 
-# print(model)
-# display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.55)
+plot_roc_auc(all_labels, all_preds, class_labels)

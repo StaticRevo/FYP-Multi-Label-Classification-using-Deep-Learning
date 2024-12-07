@@ -140,7 +140,7 @@ def main():
     subprocess.Popen(['tensorboard', '--logdir', log_dir])
 
     # Run test
-    #subprocess.run(['python', 'FYPProjectMultiSpectral\\test_tif.py', model_name, weights, selected_bands, selected_dataset, best_acc_checkpoint_path, best_loss_checkpoint_path,  str(in_channels)])
+    subprocess.run(['python', 'FYPProjectMultiSpectral\\test_tif.py', model_name, weights, selected_bands, selected_dataset, best_acc_checkpoint_path, best_loss_checkpoint_path,  str(in_channels)])
 
 if __name__ == "__main__":
     main()

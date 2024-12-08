@@ -5,6 +5,8 @@ from utils.test_functions import *
 from models.CustomModel import CustomModel
 from models.ResNet18 import BigEarthNetResNet18ModelTIF
 from models.ResNet50 import BigEarthNetResNet50ModelTIF
+from models.VGG16 import BigEarthNetVGG16ModelTIF
+from dataloader_tif import BigEarthNetTIFDataModule
 import pandas as pd
 import torch
 import os
@@ -28,6 +30,13 @@ for labels in metadata_csv['labels']:
 # Convert class_labels to a list
 class_labels = list(class_labels)
 
+# Load the trained model checkpoint
+checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=08-val_acc=0.29.ckpt'
+model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=12, model_weights='ResNet18_Weights.DEFAULT')
+
+# # Predict and display a random image
+dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
+
 # Load the saved file
 data = np.load('test_predictions.npz')
 
@@ -46,12 +55,6 @@ np.set_printoptions(threshold=np.inf)
 plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
 plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
 
-# Load the trained model checkpoint
-checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=08-val_acc=0.29.ckpt'
-model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=12, model_weights='ResNet18_Weights.DEFAULT')
-
-# # Predict and display a random image
-dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
 predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
     
 # Select an image for GradCAM
@@ -59,10 +62,17 @@ random_image_file = random.choice(metadata_csv[metadata_csv['split'] == 'test'][
 image_path = os.path.join(dataset_dir, random_image_file)
 print()
 print(f"Selected image for GradCAM: {random_image_file}")
-
-# Display GradCAM heatmap
 selected_layer = 'model.layer4'
-
 display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.70)
 
 plot_roc_auc(all_labels, all_preds, class_labels)
+
+predict_and_display_user_selected_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands, image_path='C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\CombinedImages\S2A_MSIL2A_20170613T101031_N9999_R022_T33UUP_30_57.tif')
+
+# Initialize the data module
+data_module = BigEarthNetTIFDataModule(bands=DatasetConfig.rgb_bands)
+data_module.setup(stage='test')
+test_dataloader = data_module.test_dataloader()
+
+# Predict and display batch predictions
+display_batch_predictions(model, test_dataloader, threshold=0.6, bands=DatasetConfig.rgb_bands)

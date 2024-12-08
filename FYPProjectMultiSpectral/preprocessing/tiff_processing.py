@@ -64,7 +64,7 @@ def combineTiffs(base_path, output_path):
                 dst.write(src.read(1), idx)
             
 if __name__ == "__main__":
-    path = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\0.5_percent'
+    path = r'C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet\50_percent'
     bands_of_interest = ['B01', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']
 
     for folder in os.listdir(path):
@@ -84,4 +84,4 @@ if __name__ == "__main__":
                         os.remove(band_source)  # Delete the original
                         os.rename(temp_tif, band_source)  # Rename the temporary file
 
-    process_folders(path, 'CombinedImages', combineTiffs, exclude_dirs=["CombinedImages"])
+    #process_folders(path, 'CombinedImages', combineTiffs, exclude_dirs=["CombinedImages"])

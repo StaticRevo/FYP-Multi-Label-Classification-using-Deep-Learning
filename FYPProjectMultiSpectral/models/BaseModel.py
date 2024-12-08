@@ -3,11 +3,12 @@ import torch.nn as nn
 import torch.optim as optim
 import pytorch_lightning as pl
 from torchmetrics.classification import (
-    MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy
+    MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy, MultilabelHammingDistance, MultilabelAveragePrecision
 )
 from torchsummary import summary
 from torchviz import make_dot
 import os
+from config.config import DatasetConfig, ModelConfig
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
@@ -29,18 +30,30 @@ class BaseModel(pl.LightningModule):
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.test_acc = MultilabelAccuracy(num_labels=self.num_classes)
 
-        # Other metrics (Recall, Precision, F1 Score)
+        # Recall metrics
         self.train_recall = MultilabelRecall(num_labels=self.num_classes)
         self.val_recall = MultilabelRecall(num_labels=self.num_classes)
         self.test_recall = MultilabelRecall(num_labels=self.num_classes)
 
+        # Precision metrics
         self.train_precision = MultilabelPrecision(num_labels=self.num_classes)
         self.val_precision = MultilabelPrecision(num_labels=self.num_classes)
         self.test_precision = MultilabelPrecision(num_labels=self.num_classes)
 
+        # F1 Score metrics
         self.train_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
+
+        # Hamming Distance metrics
+        self.train_hamming = MultilabelHammingDistance(num_labels=self.num_classes)
+        self.val_hamming = MultilabelHammingDistance(num_labels=self.num_classes)
+        self.test_hamming = MultilabelHammingDistance(num_labels=self.num_classes)
+
+        # Average Precision metrics
+        self.train_avg_precision = MultilabelAveragePrecision(num_labels=self.num_classes)
+        self.val_avg_precision = MultilabelAveragePrecision(num_labels=self.num_classes)
+        self.test_avg_precision = MultilabelAveragePrecision(num_labels=self.num_classes)
 
     def forward(self, x):
         x = self.model(x)
@@ -48,27 +61,13 @@ class BaseModel(pl.LightningModule):
         return x
 
     def configure_optimizers(self):
-        return optim.Adam(self.model.parameters(), lr=0.001)
+        return optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
 
     def cross_entropy_loss(self, logits, labels):
         return self.criterion(logits, labels)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self.forward(x)
-        loss = self.cross_entropy_loss(logits, y)
-        acc = self.train_acc(logits, y)
-        recall = self.train_recall(logits, y)
-        f1 = self.train_f1(logits, y)
-        precision = self.train_precision(logits, y)
-        
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train_acc', acc, on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train_recall', recall, on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train_f1', f1, on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train_precision', precision, on_step=True, on_epoch=True, prog_bar=True)
-
-        return loss
+        return self._step(batch, batch_idx, 'train')
 
     def validation_step(self, batch, batch_idx):
         return self._step(batch, batch_idx, 'val')
@@ -84,20 +83,44 @@ class BaseModel(pl.LightningModule):
         recall = getattr(self, f'{phase}_recall')(logits, y)
         f1 = getattr(self, f'{phase}_f1')(logits, y)
         precision = getattr(self, f'{phase}_precision')(logits, y)
+        hamming_loss = getattr(self, f'{phase}_hamming')(logits, y)
+        avg_precision = getattr(self, f'{phase}_avg_precision')(logits, y)
 
         self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_acc', acc, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_recall', recall, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True)
+        self.log(f'{phase}_hamming', hamming_loss, on_epoch=True, prog_bar=True)
+        self.log(f'{phase}_avg_precision', avg_precision, on_epoch=True, prog_bar=True)
         
         return loss
 
+    def training_epoch_end(self, outputs):
+        self._epoch_end(outputs, 'train')
+    
+    def validation_epoch_end(self, outputs):
+        self._epoch_end(outputs, 'val')
+    
+    def test_epoch_end(self, outputs):
+        self._epoch_end(outputs, 'test')
+        
     def on_epoch_end(self, phase):
         self.log(f'{phase}_acc_epoch', getattr(self, f'{phase}_acc').compute())
         self.log(f'{phase}_recall_epoch', getattr(self, f'{phase}_recall').compute())
         self.log(f'{phase}_f1_epoch', getattr(self, f'{phase}_f1').compute())
         self.log(f'{phase}_precision_epoch', getattr(self, f'{phase}_precision').compute())
+        self.log(f'{phase}_hamming_epoch', getattr(self, f'{phase}_hamming').compute())
+        self.log(f'{phase}_avg_precision_epoch', getattr(self, f'{phase}_avg_precision').compute())
+
+        # Reset metrics
+        getattr(self, f'{phase}_acc').reset()
+        getattr(self, f'{phase}_recall').reset()
+        getattr(self, f'{phase}_f1').reset()
+        getattr(self, f'{phase}_precision').reset()
+        getattr(self, f'{phase}_hamming').reset()
+        getattr(self, f'{phase}_avg_precision').reset()
+
 
     def print_summary(self, input_size):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -105,15 +128,13 @@ class BaseModel(pl.LightningModule):
     
         # Create a dummy input tensor with the specified input size
         dummy_input = torch.zeros(1, *input_size).to(device)
-    
-        # Print the summary
         summary(self.model, input_size)
 
     def visualize_model(self, input_size, model_name):
         # Get the current working directory path
         current_directory = os.getcwd()
         save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture')
-        os.makedirs(save_path, exist_ok=True)  # Creates the directory if it doesn't exist
+        os.makedirs(save_path, exist_ok=True)  
 
         # Move the model to the correct device
         self.model.to(device)

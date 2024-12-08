@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # # Get the test DataLoader
     test_dataloader = data_module.test_dataloader()
 
-    # # Create an iterator from the DataLoader
+    # Create an iterator from the DataLoader
     test_iterator = iter(test_dataloader)
 
     # # Get the next batch

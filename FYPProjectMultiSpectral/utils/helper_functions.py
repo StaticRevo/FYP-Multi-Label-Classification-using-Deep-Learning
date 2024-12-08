@@ -93,8 +93,11 @@ def save_tensorboard_graphs(log_dir, output_dir):
     # Get the list of tags (metrics) in the logs
     tags = event_acc.Tags()['scalars']
 
+    # Filter tags
+    filtered_tags = [tag for tag in tags if '_epoch' in tag or tag.startswith('val_')]
+
     # Iterate over each tag and plot the graph
-    for tag in tags:
+    for tag in filtered_tags:
         events = event_acc.Scalars(tag)
         steps = [e.step for e in events]
         values = [e.value for e in events]

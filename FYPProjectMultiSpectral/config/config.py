@@ -5,7 +5,7 @@ import ast
 import numpy as np  
 import os
 
-metadata_path: str =  r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
+metadata_path: str =  r'C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\metadata_5_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
 
 # Function to clean and parse labels
@@ -28,8 +28,8 @@ class_weights_array = np.array([class_weights[label] for label in class_labels])
 # Description: Configuration file for the project
 @dataclass
 class DatasetConfig:
-    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
-    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
+    dataset_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\CombinedImages'
+    metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\metadata_5_percent.csv'
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     metadata_csv = pd.read_csv(metadata_path)
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
@@ -89,7 +89,7 @@ class DatasetConfig:
         
 @dataclass
 class ModelConfig:
-    batch_size: int = 32
+    batch_size: int = 64
     num_epochs: int = 10
     model_name: str = 'resnet18'
     num_workers: int = os.cpu_count() // 2

@@ -359,3 +359,47 @@ def predict_and_display_user_selected_image(model, image_path, metadata_csv, thr
     )
     plt.axis('off')
     plt.show()
+
+
+def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
+    model.eval()
+    all_preds = []
+    all_true_labels = []
+    class_labels_dict = DatasetConfig.class_labels_dict
+    reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict
+
+    with torch.no_grad():
+        for batch in dataloader:
+            inputs, labels = batch
+            inputs = inputs.to(model.device)
+            labels = labels.to(model.device)
+
+            outputs = model(inputs)
+            sigmoid_outputs = outputs.sigmoid()
+            preds = (sigmoid_outputs > threshold).cpu().numpy().astype(int)
+
+            all_preds.extend(preds)
+            all_true_labels.extend(labels.cpu().numpy())
+
+    return np.array(all_preds), np.array(all_true_labels)
+
+def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
+    all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
+
+    for i, (pred, true) in enumerate(zip(all_preds, all_true_labels)):
+        # Convert numeric predicted labels to text
+        predicted_labels_indices = [idx for idx, value in enumerate(pred) if value == 1]
+        true_labels_indices = [idx for idx, value in enumerate(true) if value == 1]
+
+        # Display the image, true labels, and predicted labels
+        plt.figure(figsize=(10, 10))
+        image = dataloader.dataset[i][0]
+        image = image.permute(1, 2, 0).numpy()  # Convert to (H, W, C) format
+        plt.imshow(image)
+        plt.title(
+            f"Image {i}\n"
+            f"True Labels: {true_labels_indices}\n"
+            f"Predicted Labels: {predicted_labels_indices}"
+        )
+        plt.axis('off')
+        plt.show()

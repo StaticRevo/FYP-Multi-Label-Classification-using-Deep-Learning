@@ -1,8 +1,12 @@
 import os
 import subprocess
+import tkinter as tk
+from tkinter import ttk, messagebox
+from tkinter import Toplevel
+from threading import Thread  
 from FYPProjectMultiSpectral.config.config import DatasetConfig, ModelConfig
 
-def choose_and_run_model():
+def choose_and_run_model_gui():
     models = {
         '1': 'custom_model',
         '2': 'ResNet18',
@@ -31,57 +35,101 @@ def choose_and_run_model():
         '6': '0.5%_BigEarthNet'
     }
 
-    print("Please choose a model to run:")
-    for key, model in models.items():
-        print(f"{key}: {model}")
+    # Create main window
+    root = tk.Tk()
+    root.title("Model Selection")
 
-    choice = input("Enter the number corresponding to the model: ")
-    if choice in models:
-        model_name = models[choice]
+    # Create a style
+    style = ttk.Style()
+    style.configure("TLabel", padding=5, font=('Arial', 12))
+    style.configure("TRadiobutton", padding=5, font=('Arial', 10))
+    style.configure("TButton", padding=5, width=15, font=('Arial', 10, 'bold'))
+
+    # Set minimum size for the window
+    root.geometry("450x700")
+    
+    # Model selection
+    model_frame = ttk.LabelFrame(root, text="Choose a model to run", padding="10")
+    model_frame.grid(row=0, column=0, padx=20, pady=10, sticky='ew')
+    model_var = tk.StringVar(value='1')
+    for idx, (key, model) in enumerate(models.items(), start=1):
+        ttk.Radiobutton(model_frame, text=model, variable=model_var, value=key).grid(row=idx, column=0, sticky='w', padx=10)
+
+    # Weights selection
+    weights_frame = ttk.LabelFrame(root, text="Choose the weights option", padding="10")
+    weights_frame.grid(row=1, column=0, padx=20, pady=10, sticky='ew')
+    weights_var = tk.StringVar(value='1')
+    ttk.Radiobutton(weights_frame, text="None", variable=weights_var, value='1').grid(row=1, column=0, sticky='w', padx=10)
+    ttk.Radiobutton(weights_frame, text="DEFAULT", variable=weights_var, value='2').grid(row=2, column=0, sticky='w', padx=10)
+
+    # Band selection
+    band_frame = ttk.LabelFrame(root, text="Choose the band combination", padding="10")
+    band_frame.grid(row=0, column=1, padx=20, pady=10, sticky='ew')
+    band_var = tk.StringVar(value='1')
+    for idx, (key, bands) in enumerate(band_selection.items(), start=1):
+        ttk.Radiobutton(band_frame, text=bands, variable=band_var, value=key).grid(row=idx, column=0, sticky='w', padx=10)
+
+    # Dataset selection
+    dataset_frame = ttk.LabelFrame(root, text="Choose the dataset percentage", padding="10")
+    dataset_frame.grid(row=1, column=1, padx=20, pady=10, sticky='ew')
+    dataset_var = tk.StringVar(value='1')
+    for idx, (key, dataset) in enumerate(dataset_selection.items(), start=1):
+        ttk.Radiobutton(dataset_frame, text=dataset, variable=dataset_var, value=key).grid(row=idx, column=0, sticky='w', padx=10)
+
+    def run_model():
+        model_choice = model_var.get()
+        model_name = models.get(model_choice)
         
-        # Prompt for weights option
-        print("Please choose the weights option:")
-        print("1: None")
-        print(f"2: {model_name}_Weights.DEFAULT")
-        weights_choice = input("Enter the number corresponding to the weights option: ")
+        weights_choice = weights_var.get()
+        weights = 'None' if weights_choice == '1' else f'{model_name}_Weights.DEFAULT'
 
-        if weights_choice == '1':
-            weights = 'None'
-        elif weights_choice == '2':
-            weights = f'{model_name}_Weights.DEFAULT'
-        else:
-            print("Invalid choice. Please try again.")
-            return
+        band_choice = band_var.get()
+        selected_bands = band_selection.get(band_choice)
 
-        # Prompt for band selection
-        print("Please choose the band combination:")
-        for key, bands in band_selection.items():
-            print(f"{key}: {bands}")
+        dataset_choice = dataset_var.get()
+        selected_dataset = dataset_selection.get(dataset_choice)
 
-        band_choice = input("Enter the number corresponding to the band combination: ")
-        if band_choice in band_selection:
-            selected_bands = band_selection[band_choice]
-        else:
-            print("Invalid choice. Please try again.")
-            return
+        # Show loading dialog with progress bar
+        loading_window = Toplevel(root)
+        loading_window.title("Running Model")
+        loading_label = ttk.Label(loading_window, text="Running the model, please wait...", padding="20", font=('Arial', 12))
+        loading_label.pack(padx=20, pady=20)
 
-        # Prompt for dataset selection
-        print("Please choose the dataset percentage:")
-        for key, dataset in dataset_selection.items():
-            print(f"{key}: {dataset}")
+        # Create a progress bar
+        progress = ttk.Progressbar(loading_window, orient="horizontal", length=300, mode="indeterminate")
+        progress.pack(padx=20, pady=20)
+        progress.start()
 
-        dataset_choice = input("Enter the number corresponding to the dataset percentage: ")
-        if dataset_choice in dataset_selection:
-            selected_dataset = dataset_selection[dataset_choice]
-        else:
-            print("Invalid choice. Please try again.")
-            return
-        
-        # Call train_tif.py with the selected choices
-        subprocess.run(['python', 'FYPProjectMultiSpectral\\train_tif.py', model_name, weights, selected_bands, selected_dataset])
-    else:
-        print("Invalid choice. Please try again.")
+        loading_window.grab_set()
+
+        def model_training_thread():
+            try:
+                subprocess.run(['python', 'FYPProjectMultiSpectral\\train_tif.py', model_name, weights, selected_bands, selected_dataset])
+                messagebox.showinfo("Success", f"Model {model_name} with {selected_bands} and {selected_dataset} dataset is running.")
+            except Exception as e:
+                messagebox.showerror("Error", f"An error occurred: {e}")
+            finally:
+                loading_window.destroy()  
+
+        # Run the model training in a separate thread
+        thread = Thread(target=model_training_thread)
+        thread.start()
+
+    def reset_selections():
+        model_var.set('1')
+        weights_var.set('1')
+        band_var.set('1')
+        dataset_var.set('1')
+
+    # Run button
+    run_button = ttk.Button(root, text="Run Model", command=run_model)
+    run_button.grid(row=2, column=0, columnspan=2, pady=20)
+
+    # Reset button
+    reset_button = ttk.Button(root, text="Reset", command=reset_selections)
+    reset_button.grid(row=3, column=0, columnspan=2, pady=10)
+
+    root.mainloop()
 
 if __name__ == "__main__":
-    choose_and_run_model()
-
+    choose_and_run_model_gui()

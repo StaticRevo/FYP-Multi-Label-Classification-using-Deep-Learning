@@ -45,15 +45,6 @@ class BaseModel(pl.LightningModule):
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
 
-        # Hamming Distance metrics
-        self.train_hamming = MultilabelHammingDistance(num_labels=self.num_classes)
-        self.val_hamming = MultilabelHammingDistance(num_labels=self.num_classes)
-        self.test_hamming = MultilabelHammingDistance(num_labels=self.num_classes)
-
-        # Average Precision metrics
-        self.train_avg_precision = MultilabelAveragePrecision(num_labels=self.num_classes)
-        self.val_avg_precision = MultilabelAveragePrecision(num_labels=self.num_classes)
-        self.test_avg_precision = MultilabelAveragePrecision(num_labels=self.num_classes)
 
     def forward(self, x):
         x = self.model(x)
@@ -83,44 +74,27 @@ class BaseModel(pl.LightningModule):
         recall = getattr(self, f'{phase}_recall')(logits, y)
         f1 = getattr(self, f'{phase}_f1')(logits, y)
         precision = getattr(self, f'{phase}_precision')(logits, y)
-        hamming_loss = getattr(self, f'{phase}_hamming')(logits, y)
-        avg_precision = getattr(self, f'{phase}_avg_precision')(logits, y)
 
         self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_acc', acc, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_recall', recall, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True)
         self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True)
-        self.log(f'{phase}_hamming', hamming_loss, on_epoch=True, prog_bar=True)
-        self.log(f'{phase}_avg_precision', avg_precision, on_epoch=True, prog_bar=True)
-        
+
         return loss
 
-    def training_epoch_end(self, outputs):
-        self._epoch_end(outputs, 'train')
-    
-    def validation_epoch_end(self, outputs):
-        self._epoch_end(outputs, 'val')
-    
-    def test_epoch_end(self, outputs):
-        self._epoch_end(outputs, 'test')
-        
     def on_epoch_end(self, phase):
+        # Ensure this is within a hook that receives 'outputs'
         self.log(f'{phase}_acc_epoch', getattr(self, f'{phase}_acc').compute())
         self.log(f'{phase}_recall_epoch', getattr(self, f'{phase}_recall').compute())
         self.log(f'{phase}_f1_epoch', getattr(self, f'{phase}_f1').compute())
         self.log(f'{phase}_precision_epoch', getattr(self, f'{phase}_precision').compute())
-        self.log(f'{phase}_hamming_epoch', getattr(self, f'{phase}_hamming').compute())
-        self.log(f'{phase}_avg_precision_epoch', getattr(self, f'{phase}_avg_precision').compute())
 
         # Reset metrics
         getattr(self, f'{phase}_acc').reset()
         getattr(self, f'{phase}_recall').reset()
         getattr(self, f'{phase}_f1').reset()
         getattr(self, f'{phase}_precision').reset()
-        getattr(self, f'{phase}_hamming').reset()
-        getattr(self, f'{phase}_avg_precision').reset()
-
 
     def print_summary(self, input_size):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

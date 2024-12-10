@@ -7,8 +7,10 @@ import os
 import re
 
 def clean_and_parse_labels(label_string):
-    cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
-    return ast.literal_eval(cleaned_labels)
+    if isinstance(label_string, str):
+        cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
+        return ast.literal_eval(cleaned_labels)
+    return label_string  # If it's already a list, return it as is
 
 def calculate_class_weights(metadata_path):
     metadata_csv = pd.read_csv(metadata_path)
@@ -25,36 +27,27 @@ def calculate_class_weights(metadata_path):
 
     return class_labels, class_weights, class_weights_array, metadata_csv
 
-def calculate_dataset_metadata_paths(dataset_selected):
-    base_path = r"C:\Users\isaac\Desktop\BigEarthTests"
-    dataset_path = os.path.join(base_path, dataset_selected, "CombinedImages")
-    number = re.search(r"\d+", dataset_selected)  # Matches one or more digits
-    if number:
-        extracted_number = int(number.group())  
-
-    metadata_path = os.path.join(base_path, "metadata_" + str(extracted_number) + "_percent.csv")
- 
-    return dataset_path, metadata_path
 
 # Description: Configuration file for the project
 @dataclass
 class DatasetConfig:
-    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\10%_BigEarthNet\\metadata_10_percent.csv"
-    dataset_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\10%_BigEarthNet\\CombinedImages"
+    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\1%_BigEarthNet\\metadata_1_percent.csv"
+    dataset_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\1%_BigEarthNet\\CombinedImages"
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     metadata_csv = pd.read_csv(metadata_path)
     class_labels, class_weights, class_weights_array, metadata_csv = calculate_class_weights(metadata_path)
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
-    img_size: int = 120
     img_mean: list = field(default_factory=lambda: [0.485, 0.456, 0.406])
     img_std: list = field(default_factory=lambda: [0.229, 0.224, 0.225])
-    num_classes: int = 19
-    band_channels: int = 12
-    valid_pct: float = 0.1
     class_labels = class_labels
     class_labels_dict = {label: idx for idx, label in enumerate(class_labels)}
     reversed_class_labels_dict = {idx: label for label, idx in class_labels_dict.items()}
     class_weights = class_weights_array
+
+    num_classes: int = 19
+    band_channels: int = 12
+    valid_pct: float = 0.1
+    img_size: int = 120
 
     rgb_bands = ["B04", "B03", "B02"]
     rgb_nir_bands = ["B04", "B03", "B02", "B08"]
@@ -97,8 +90,7 @@ class DatasetConfig:
 @dataclass
 class ModelConfig:
     batch_size: int = 64
-    num_epochs: int = 10
-    model_name: str = 'resnet18'
+    num_epochs: int = 100
     num_workers: int = os.cpu_count() // 2
     learning_rate: float = 0.001
     momentum: float = 0.9

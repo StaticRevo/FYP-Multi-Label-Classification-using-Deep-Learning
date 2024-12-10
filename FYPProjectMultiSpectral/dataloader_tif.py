@@ -11,6 +11,7 @@ class BigEarthNetTIFDataModule(pl.LightningDataModule):
         self.bands = bands
 
     def setup(self, stage=None):
+        print(f"Selected bands: {self.bands}") 
         train_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'train']
         val_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'validation']
         test_df = DatasetConfig.metadata_csv[DatasetConfig.metadata_csv['split'] == 'test']

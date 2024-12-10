@@ -59,7 +59,6 @@ def main():
         print("Invalid choice. Defaulting to Best Accuracy checkpoint.")
         checkpoint_path = loss_checkpoint_path
 
-    print(f"Testing {model_name} with {weights} weights on bands: {selected_bands}")
     print(f"Using checkpoint: {checkpoint_path}")
 
     # Initialize the data module

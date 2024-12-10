@@ -5,7 +5,7 @@ import logging
 
 from matplotlib import pyplot as plt
 import pandas as pd
-from config.config import DatasetConfig, ModelConfig, calculate_dataset_metadata_paths
+from config.config import DatasetConfig, ModelConfig
 from dataloader_tif import BigEarthNetTIFDataModule
 import torch
 import pytorch_lightning as pl
@@ -26,8 +26,6 @@ from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
 from models.VisionTransformer import BigEarthNetVitTransformerModelTIF
 from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
 
-# Set up logging
-logging.basicConfig(filename='train_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Training the model
 def main():
@@ -58,8 +56,6 @@ def main():
     else:
         print(f"Band combination {selected_bands} is not supported.")
         sys.exit(1)
-
-    print(calculate_dataset_metadata_paths(selected_dataset))
 
     # Initialize the data module
     data_module = BigEarthNetTIFDataModule(bands=bands)
@@ -150,9 +146,6 @@ def main():
     # Start TensorBoard
     subprocess.Popen(['tensorboard', '--logdir', log_dir])
 
-    # Run test
-    subprocess.run(['python', 'FYPProjectMultiSpectral\\test_tif.py', model_name, weights, selected_bands, selected_dataset, best_acc_checkpoint_path, best_loss_checkpoint_path,  str(in_channels)])
-
     # Print best metrics
     best_acc = checkpoint_callback_acc.best_model_score
     best_loss = checkpoint_callback_loss.best_model_score
@@ -178,10 +171,21 @@ def main():
     training_minutes, _ = divmod(rem, 60)
     print(f"Training Time: {int(training_hours)} hours {int(training_minutes)} minutes")
 
-    # Store metrics in a DataFrame
     metrics = {
-        'Metric': ['Best Validation Accuracy', 'Best Validation Loss', 'Inference Rate (images/sec)', 'Model Size (MB)', 'Training Time (hours:minutes)'],
-        'Value': [best_acc, best_loss, f"{inference_rate:.2f}", f"{model_size:.2f}", f"{int(training_hours)}:{int(training_minutes)}"]
+        'Metric': [
+            'Best Validation Accuracy', 
+            'Best Validation Loss', 
+            'Inference Rate (images/sec)', 
+            'Model Size (MB)', 
+            'Training Time (hours:minutes)'
+        ],
+        'Value': [
+            best_acc.item() if isinstance(best_acc, torch.Tensor) else best_acc,  # Convert tensor to scalar
+            best_loss.item() if isinstance(best_loss, torch.Tensor) else best_loss,  # Convert tensor to scalar
+            f"{inference_rate:.2f}",
+            f"{model_size:.2f}",
+            f"{int(training_hours)}:{int(training_minutes)}"
+        ]
     }
     df_metrics = pd.DataFrame(metrics)
 
@@ -195,6 +199,10 @@ def main():
     table.scale(1.2, 1.2)  
     plt.savefig(os.path.join(output_dir, 'metrics_summary.png'))
     plt.close()
+
+    # Run test
+    subprocess.run(['python', 'FYPProjectMultiSpectral\\test_tif.py', model_name, weights, selected_bands, selected_dataset, best_acc_checkpoint_path, best_loss_checkpoint_path,  str(in_channels)])
+
 
 if __name__ == "__main__":
     main()

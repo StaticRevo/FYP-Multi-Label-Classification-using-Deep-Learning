@@ -37,6 +37,7 @@ class_labels = set()
 for labels in metadata_csv['labels']:
     class_labels.update(labels)
 
+
 # Testing the model
 def main():
     # Initialize the data module

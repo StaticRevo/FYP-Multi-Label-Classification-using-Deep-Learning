@@ -1,11 +1,9 @@
-import json
 import os
 import time
-import logging
 
 from matplotlib import pyplot as plt
 import pandas as pd
-from config.config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader_tif import BigEarthNetTIFDataModule
 import torch
 import pytorch_lightning as pl
@@ -13,7 +11,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 import subprocess
 import sys
-from utils.helper_functions import save_tensorboard_graphs
+from utils.helper_functions import save_tensorboard_graphs, extract_number
 
 #from model_tif import BigEarthNetResNet18ModelTIF
 from models.CustomModel import CustomModel
@@ -25,7 +23,6 @@ from models.DenseNet121 import BigEarthNetDenseNet121ModelTIF
 from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
 from models.VisionTransformer import BigEarthNetVitTransformerModelTIF
 from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
-
 
 # Training the model
 def main():
@@ -56,9 +53,30 @@ def main():
     else:
         print(f"Band combination {selected_bands} is not supported.")
         sys.exit(1)
+    
+    dataset_num = extract_number(selected_dataset)
+    if dataset_num == 1:
+        dataset_dir = DatasetConfig.dataset_paths["1"]
+        metadata_path = DatasetConfig.metadata_paths["1"]
+        metadata_csv = pd.read_csv(metadata_path)
+    elif dataset_num == 5:
+        dataset_dir = DatasetConfig.dataset_paths["5"]
+        metadata_path = DatasetConfig.metadata_paths["5"]
+        metadata_csv = pd.read_csv(metadata_path)
+    elif dataset_num == 10:
+        dataset_dir = DatasetConfig.dataset_paths["10"]
+        metadata_path = DatasetConfig.metadata_paths["10"]
+        metadata_csv = pd.read_csv(metadata_path)
+    elif dataset_num == 50:
+        dataset_dir = DatasetConfig.dataset_paths["50"]
+        metadata_path = DatasetConfig.metadata_paths["50"]
+        metadata_csv = pd.read_csv(metadata_path)
+    
+    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
+    class_weights = class_weights_array
 
     # Initialize the data module
-    data_module = BigEarthNetTIFDataModule(bands=bands)
+    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     model_mapping = {
@@ -76,7 +94,7 @@ def main():
     # Initialize the model
     if model_name in model_mapping:
         model_class, filename = model_mapping[model_name]
-        model = model_class(DatasetConfig.class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model = model_class(class_weights, DatasetConfig.num_classes, in_channels, weights)
         model.print_summary((in_channels, 120, 120)) 
         model.visualize_model((in_channels, 120, 120), filename)
     else:
@@ -180,8 +198,8 @@ def main():
             'Training Time (hours:minutes)'
         ],
         'Value': [
-            best_acc.item() if isinstance(best_acc, torch.Tensor) else best_acc,  # Convert tensor to scalar
-            best_loss.item() if isinstance(best_loss, torch.Tensor) else best_loss,  # Convert tensor to scalar
+            best_acc.item() if isinstance(best_acc, torch.Tensor) else best_acc, 
+            best_loss.item() if isinstance(best_loss, torch.Tensor) else best_loss,  
             f"{inference_rate:.2f}",
             f"{model_size:.2f}",
             f"{int(training_hours)}:{int(training_minutes)}"
@@ -201,8 +219,21 @@ def main():
     plt.close()
 
     # Run test
-    subprocess.run(['python', 'FYPProjectMultiSpectral\\test_tif.py', model_name, weights, selected_bands, selected_dataset, best_acc_checkpoint_path, best_loss_checkpoint_path,  str(in_channels)])
-
+    subprocess.run([
+        'python', 
+        'FYPProjectMultiSpectral\\test_tif.py', 
+        model_name, 
+        weights, 
+        selected_bands, 
+        selected_dataset, 
+        best_acc_checkpoint_path, 
+        best_loss_checkpoint_path, 
+        str(in_channels),
+        class_weights, 
+        metadata_csv, 
+        dataset_dir, 
+        bands
+    ])
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,4 @@
-import json
 import os
-import subprocess
 import sys
 import pandas as pd
 from config.config import DatasetConfig, ModelConfig
@@ -12,7 +10,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import ast
 from sklearn.metrics import multilabel_confusion_matrix
 from utils.helper_functions import *
 from utils.test_functions import *
@@ -28,18 +25,11 @@ from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
 from models.VisionTransformer import BigEarthNetVitTransformerModelTIF
 from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
 
-# Set float32 matmul precision to 'high' to utilize Tensor Cores
-torch.set_float32_matmul_precision('high')
-
-metadata_csv = DatasetConfig.metadata_csv
-metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
-
-class_labels = set()
-for labels in metadata_csv['labels']:
-    class_labels.update(labels)
-
 # Testing the model
 def main():
+    # Set float32 matmul precision to 'high' to utilize Tensor Cores
+    torch.set_float32_matmul_precision('high')
+
     # Parse command-line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
@@ -48,6 +38,10 @@ def main():
     acc_checkpoint_path = sys.argv[5]
     loss_checkpoint_path = sys.argv[6]
     in_channels = int(sys.argv[7])
+    class_weights = sys.argv[8]
+    metadata_csv = sys.argv[9]
+    dataset_dir = sys.argv[10]
+    bands = sys.argv[11]
 
     # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\nChoice [1/2]: ")
@@ -62,7 +56,7 @@ def main():
     print(f"Using checkpoint: {checkpoint_path}")
 
     # Initialize the data module
-    data_module = BigEarthNetTIFDataModule(bands=DatasetConfig.all_bands)
+    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     model_mapping = {
@@ -79,7 +73,7 @@ def main():
 
     if model_name in model_mapping:
         model_class, _ = model_mapping[model_name]  
-        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights)
+        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights)
     else:
         raise ValueError(f"Model {model_name} not recognized.")
     
@@ -140,10 +134,10 @@ def main():
     print()
     print(f"Selected image for GradCAM: {random_image_file}")
     selected_layer = 'model.layer4'
-    display_gradcam_heatmap(model, image_path, class_labels, selected_layer, threshold=0.70)
+    display_gradcam_heatmap(model, image_path, DatasetConfig.class_labels, selected_layer, threshold=0.70)
 
     # Plot ROC AUC curve
-    plot_roc_auc(all_labels, all_preds, class_labels)
+    plot_roc_auc(all_labels, all_preds, DatasetConfig.class_labels)
     
 if __name__ == "__main__":
     main()

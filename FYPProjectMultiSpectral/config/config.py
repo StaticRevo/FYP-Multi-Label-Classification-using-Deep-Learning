@@ -12,8 +12,7 @@ def clean_and_parse_labels(label_string):
         return ast.literal_eval(cleaned_labels)
     return label_string  # If it's already a list, return it as is
 
-def calculate_class_weights(metadata_path):
-    metadata_csv = pd.read_csv(metadata_path)
+def calculate_class_weights(metadata_csv):
     metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
 
     class_labels = set()
@@ -25,24 +24,44 @@ def calculate_class_weights(metadata_path):
     class_weights = {label: total_counts / count for label, count in label_counts.items()}
     class_weights_array = np.array([class_weights[label] for label in class_labels])
 
-    return class_labels, class_weights, class_weights_array, metadata_csv
+    return class_weights, class_weights_array
 
+def calculate_class_labels(metadata_csv):
+    metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
+
+    class_labels = set()
+    for labels in metadata_csv['labels']:
+        class_labels.update(labels)
+
+    return class_labels
 
 # Description: Configuration file for the project
 @dataclass
 class DatasetConfig:
-    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\1%_BigEarthNet\\metadata_1_percent.csv"
-    dataset_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\1%_BigEarthNet\\CombinedImages"
+    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\50%_BigEarthNet\\metadata_50_percent.csv"
+    dataset_paths = {
+        "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages",
+        "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages",
+        "5": r"C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\CombinedImages",
+        "10": r"C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\CombinedImages",
+        "50": r"C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet\CombinedImages",
+        "100": r"C:\Users\isaac\Desktop\BigEarthTests\100%_BigEarthNet\CombinedImages"
+    }
+    metadata_paths = {
+        "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5_percent.csv",
+        "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv",
+        "5": r"C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\metadata_5_percent.csv",
+        "10": r"C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\metadata_10_percent.csv",
+        "50": r"C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet\metadata_50_percent.csv",
+        "100": r"C:\Users\isaac\Desktop\BigEarthTests\100%_BigEarthNet\metadata_100_percent.csv"
+    }
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
-    metadata_csv = pd.read_csv(metadata_path)
-    class_labels, class_weights, class_weights_array, metadata_csv = calculate_class_weights(metadata_path)
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
-    img_mean: list = field(default_factory=lambda: [0.485, 0.456, 0.406])
-    img_std: list = field(default_factory=lambda: [0.229, 0.224, 0.225])
+
+    class_labels = calculate_class_labels(pd.read_csv(metadata_path))
     class_labels = class_labels
     class_labels_dict = {label: idx for idx, label in enumerate(class_labels)}
     reversed_class_labels_dict = {idx: label for label, idx in class_labels_dict.items()}
-    class_weights = class_weights_array
 
     num_classes: int = 19
     band_channels: int = 12
@@ -89,15 +108,16 @@ class DatasetConfig:
 
 @dataclass
 class ModelConfig:
-    batch_size: int = 64
+    batch_size: int = 32
     num_epochs: int = 100
     num_workers: int = os.cpu_count() // 2
-    learning_rate: float = 0.001
+    learning_rate: float = 0.0001
     momentum: float = 0.9
     weight_decay: float = 1e-4
     lr_step_size: int = 7
-    lr_gamma: float = 0.1
+    lr_factor: float = 0.1
     patience: int = 5
+    lr_patience: int = 5
 
     model_names: list = field(default_factory=lambda: [
         'resnet18', 

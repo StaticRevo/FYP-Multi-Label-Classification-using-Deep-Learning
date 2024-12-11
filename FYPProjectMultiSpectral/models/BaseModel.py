@@ -9,6 +9,7 @@ from torchsummary import summary
 from torchviz import make_dot
 import os
 from config.config import DatasetConfig, ModelConfig
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
@@ -45,14 +46,24 @@ class BaseModel(pl.LightningModule):
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
 
-
     def forward(self, x):
         x = self.model(x)
         x = self.sigmoid(x)
         return x
 
     def configure_optimizers(self):
-        return optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
+        optimizer = optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',  
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+        #return optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
 
     def cross_entropy_loss(self, logits, labels):
         return self.criterion(logits, labels)
@@ -105,7 +116,6 @@ class BaseModel(pl.LightningModule):
         summary(self.model, input_size)
 
     def visualize_model(self, input_size, model_name):
-        # Get the current working directory path
         current_directory = os.getcwd()
         save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture')
         os.makedirs(save_path, exist_ok=True)  

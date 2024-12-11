@@ -133,3 +133,8 @@ def save_tensorboard_graphs(log_dir, output_dir):
         plt.close()
 
     print(f"Graphs saved to {output_dir}")
+
+def extract_number(string):
+    number_str = string.split('%')[0]
+    return int(number_str)
+

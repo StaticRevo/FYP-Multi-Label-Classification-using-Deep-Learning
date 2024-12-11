@@ -12,15 +12,15 @@ from config.config import DatasetConfig
 from utils.helper_functions import encode_label, get_band_indices
 
 class BigEarthNetDatasetTIF(Dataset):
-    def __init__(self, *, df, root_dir, transforms=None, is_test=False, selected_bands=None):
+    def __init__(self, *, df, root_dir, transforms=None, is_test=False, selected_bands=None, metadata_csv=None):
         self.df = df
         self.root_dir = root_dir
         self.transforms = transforms
         self.is_test = is_test
         self.selected_bands = selected_bands if selected_bands is not None else DatasetConfig.rgb_bands
+        self.metadata = metadata_csv
 
         self.image_paths = list(Path(root_dir).rglob("*.tif"))
-        self.metadata = pd.read_csv(DatasetConfig.metadata_path)
         self.patch_to_labels = dict(zip(self.metadata['patch_id'], self.metadata['labels']))
         self.image_paths = list(Path(root_dir).rglob("*.tif"))
 

@@ -83,6 +83,6 @@ def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
         
 
 if __name__ == "__main__":
-    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\10_percent\CombinedImages'
-    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\CombinedImages'
+    source_root_directory = r'C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet\CombinedImages'
+    target_directory = r'C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet\CombinedImages1'
     move_images_to_single_folder(source_root_directory, target_directory)

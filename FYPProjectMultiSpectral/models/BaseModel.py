@@ -8,39 +8,37 @@ from torchmetrics.classification import (
 from torchsummary import summary
 from torchviz import make_dot
 import os
-from config.config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig, ModelConfig, ModuleConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from .modules.modules import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
-    def __init__(self, model, num_classes, class_weights):
+    def __init__(self, model, num_classes, class_weights, in_channels):
         super(BaseModel, self).__init__()
-        
+        # Model 
         self.model = model
         self.num_classes = num_classes
         self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
         
-        # Initialize Sigmoid layer
-        self.sigmoid = nn.Sigmoid()
-        
-        # Define loss function
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights)
+        self.sigmoid = nn.Sigmoid() # Initialize Sigmoid layer
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) # Define loss function
+
+        # Modules
+        #self.se_block = SE(in_channels=in_channels, config=ModuleConfig)
 
         # Accuracy metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.test_acc = MultilabelAccuracy(num_labels=self.num_classes)
-
         # Recall metrics
         self.train_recall = MultilabelRecall(num_labels=self.num_classes)
         self.val_recall = MultilabelRecall(num_labels=self.num_classes)
         self.test_recall = MultilabelRecall(num_labels=self.num_classes)
-
         # Precision metrics
         self.train_precision = MultilabelPrecision(num_labels=self.num_classes)
         self.val_precision = MultilabelPrecision(num_labels=self.num_classes)
         self.test_precision = MultilabelPrecision(num_labels=self.num_classes)
-
         # F1 Score metrics
         self.train_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
@@ -48,6 +46,7 @@ class BaseModel(pl.LightningModule):
 
     def forward(self, x):
         x = self.model(x)
+        #x = self.se_block(x)
         x = self.sigmoid(x)
         return x
 
@@ -95,7 +94,6 @@ class BaseModel(pl.LightningModule):
         return loss
 
     def on_epoch_end(self, phase):
-        # Ensure this is within a hook that receives 'outputs'
         self.log(f'{phase}_acc_epoch', getattr(self, f'{phase}_acc').compute())
         self.log(f'{phase}_recall_epoch', getattr(self, f'{phase}_recall').compute())
         self.log(f'{phase}_f1_epoch', getattr(self, f'{phase}_f1').compute())

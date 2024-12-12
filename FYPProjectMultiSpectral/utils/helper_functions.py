@@ -136,5 +136,11 @@ def save_tensorboard_graphs(log_dir, output_dir):
 
 def extract_number(string):
     number_str = string.split('%')[0]
-    return int(number_str)
+    try:
+        number = float(number_str)
+        if number.is_integer():
+            return int(number)
+        return number
+    except ValueError:
+        raise ValueError(f"Cannot extract a number from the string: {string}")
 

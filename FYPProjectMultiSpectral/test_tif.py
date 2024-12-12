@@ -15,15 +15,7 @@ from utils.helper_functions import *
 from utils.test_functions import *
 from config.config import clean_and_parse_labels
 
-from models.CustomModel import CustomModel
-from models.ResNet18 import BigEarthNetResNet18ModelTIF
-from models.ResNet50 import BigEarthNetResNet50ModelTIF
-from models.VGG16 import BigEarthNetVGG16ModelTIF
-from models.VGG19 import BigEarthNetVGG19ModelTIF
-from models.DenseNet121 import BigEarthNetDenseNet121ModelTIF
-from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
-from models.VisionTransformer import BigEarthNetVitTransformerModelTIF
-from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
+from models.Models import *
 
 # Testing the model
 def main():

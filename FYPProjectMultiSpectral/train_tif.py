@@ -13,16 +13,7 @@ import subprocess
 import sys
 from utils.helper_functions import save_tensorboard_graphs, extract_number
 
-#from model_tif import BigEarthNetResNet18ModelTIF
-from models.CustomModel import CustomModel
-from models.ResNet18 import BigEarthNetResNet18ModelTIF
-from models.ResNet50 import BigEarthNetResNet50ModelTIF
-from models.VGG16 import BigEarthNetVGG16ModelTIF
-from models.VGG19 import BigEarthNetVGG19ModelTIF
-from models.DenseNet121 import BigEarthNetDenseNet121ModelTIF
-from models.EfficientNetB0 import BigEarthNetEfficientNetB0ModelTIF
-from models.VisionTransformer import BigEarthNetVitTransformerModelTIF
-from models.SwinTransformer import BigEarthNetSwinTransformerModelTIF
+from models.Models import *
 
 # Training the model
 def main():
@@ -55,7 +46,11 @@ def main():
         sys.exit(1)
     
     dataset_num = extract_number(selected_dataset)
-    if dataset_num == 1:
+    if dataset_num == 0.5:
+        dataset_dir = DatasetConfig.dataset_paths["0.5"]
+        metadata_path = DatasetConfig.metadata_paths["0.5"]
+        metadata_csv = pd.read_csv(metadata_path)
+    elif dataset_num == 1:
         dataset_dir = DatasetConfig.dataset_paths["1"]
         metadata_path = DatasetConfig.metadata_paths["1"]
         metadata_csv = pd.read_csv(metadata_path)
@@ -144,7 +139,9 @@ def main():
         logger=logger,
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
+        precision='16-mixed',
         log_every_n_steps=1,
+        accumulate_grad_batches=2,
         callbacks=[checkpoint_callback_loss, checkpoint_callback_acc, early_stopping]
     )
 

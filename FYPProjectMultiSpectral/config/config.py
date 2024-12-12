@@ -5,35 +5,8 @@ import ast
 import numpy as np  
 import os
 import re
-
-def clean_and_parse_labels(label_string):
-    if isinstance(label_string, str):
-        cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
-        return ast.literal_eval(cleaned_labels)
-    return label_string  # If it's already a list, return it as is
-
-def calculate_class_weights(metadata_csv):
-    metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
-
-    class_labels = set()
-    for labels in metadata_csv['labels']:
-        class_labels.update(labels)
-
-    label_counts = metadata_csv['labels'].explode().value_counts()
-    total_counts = label_counts.sum()
-    class_weights = {label: total_counts / count for label, count in label_counts.items()}
-    class_weights_array = np.array([class_weights[label] for label in class_labels])
-
-    return class_weights, class_weights_array
-
-def calculate_class_labels(metadata_csv):
-    metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
-
-    class_labels = set()
-    for labels in metadata_csv['labels']:
-        class_labels.update(labels)
-
-    return class_labels
+import torch.nn as nn
+from .config_utils import *
 
 # Description: Configuration file for the project
 @dataclass
@@ -108,8 +81,8 @@ class DatasetConfig:
 
 @dataclass
 class ModelConfig:
-    batch_size: int = 32
     num_epochs: int = 100
+    batch_size: int = 32
     num_workers: int = os.cpu_count() // 2
     learning_rate: float = 0.0001
     momentum: float = 0.9
@@ -133,3 +106,11 @@ class ModelConfig:
         'vgg16',
         'vgg19'
     ])
+
+@dataclass
+class ModuleConfig:
+    reduction: int = 16
+    ratio: int = 8
+    kernel_size: int = 3
+    dropout_rt: float = 0.1
+    activation: type = nn.ReLU

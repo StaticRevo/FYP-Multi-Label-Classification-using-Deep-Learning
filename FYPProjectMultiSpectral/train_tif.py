@@ -77,15 +77,16 @@ def main():
     data_module.setup(stage=None)
 
     model_mapping = {
-        'custom_model': (CustomModel, 'custom_model.png'),
-        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18.png'),
-        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50.png'),
-        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16.png'),
-        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19.png'),
-        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121.png'),
-        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0.png'),
-        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer.png'),
-        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer.png')
+        'custom_model': (CustomModel, 'custom_model'),
+        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18'),
+        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50'),
+        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16'),
+        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19'),
+        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121'),
+        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0'),
+        'EfficientNet_v2': (BigEarthNetEfficientNetV2MModelTIF, 'efficientnet_v2'),
+        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer'),
+        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer')
     }
 
     # Initialize the model
@@ -93,7 +94,7 @@ def main():
         model_class, filename = model_mapping[model_name]
         model_weights = None if weights == 'None' else weights
         model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights)
-        model.print_summary((in_channels, 120, 120)) 
+        model.print_summary((in_channels, 120, 120), filename) 
         model.visualize_model((in_channels, 120, 120), filename)
     else:
         print("Invalid model name. Please try again.")
@@ -105,7 +106,7 @@ def main():
     log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
     logger = TensorBoardLogger(log_dir, name=f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}")
 
-    checkpoint_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints'
+    checkpoint_dir = fr'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\{model_name}_{weights}_{selected_bands}_{selected_dataset}'
 
     # Checkpoint callback for val_loss
     checkpoint_callback_loss = ModelCheckpoint(
@@ -127,6 +128,12 @@ def main():
         mode='max'
     )
 
+    final_checkpoint = ModelCheckpoint(
+        dirpath=checkpoint_dir,
+        filename=f'{model_name}-{weights}-{selected_bands}-{selected_dataset}-final',
+        save_last=True
+    )
+
     # Early stopping callback
     early_stopping = EarlyStopping(
         monitor='val_loss',
@@ -145,7 +152,7 @@ def main():
         precision='16-mixed',
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        callbacks=[checkpoint_callback_loss, checkpoint_callback_acc, early_stopping]
+        callbacks=[checkpoint_callback_loss, checkpoint_callback_acc, final_checkpoint, early_stopping]
     )
 
     # Start training while measuring training time

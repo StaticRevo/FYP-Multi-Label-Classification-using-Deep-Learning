@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import pandas as pd
 from config.config import DatasetConfig, ModelConfig
 from dataloader_tif import BigEarthNetTIFDataModule
@@ -26,10 +27,10 @@ def main():
     acc_checkpoint_path = sys.argv[5]
     loss_checkpoint_path = sys.argv[6]
     in_channels = int(sys.argv[7])
-    class_weights = sys.argv[8]
+    class_weights = json.loads(sys.argv[8])
     metadata_csv = pd.read_csv(sys.argv[9])
     dataset_dir = sys.argv[10]
-    bands = sys.argv[11]
+    bands = json.loads(sys.argv[11])
 
     # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\nChoice [1/2]: ")
@@ -41,22 +42,36 @@ def main():
         print("Invalid choice. Defaulting to Best Accuracy checkpoint.")
         checkpoint_path = loss_checkpoint_path
 
+    print()
     print(f"Using checkpoint: {checkpoint_path}")
+    print()
 
     # Initialize the data module
     data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     model_mapping = {
-        'custom_model': (CustomModel, 'custom_model.png'),
-        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18.png'),
-        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50.png'),
-        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16.png'),
-        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19.png'),
-        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121.png'),
-        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0.png'),
-        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer.png'),
-        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer.png')
+        'custom_model': (CustomModel, 'custom_model'),
+        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18'),
+        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50'),
+        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16'),
+        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19'),
+        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121'),
+        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0'),
+        'EfficientNet_v2': (BigEarthNetEfficientNetV2MModelTIF, 'efficientnet_v2'),
+        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer'),
+        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer')
+    }
+    model_layer_mapping = {
+        'custom_model': '0',
+        'ResNet18': 'layer4',
+        'ResNet50': 'layer4',
+        'VGG16': 'features.29',
+        'VGG19': 'features.35',
+        'DenseNet121': 'features.denseblock4',
+        'EfficientNetB0': 'features.7',
+        'Vit-Transformer': 'blocks.11',  
+        'Swin-Transformer': 'layers.3'
     }
 
     if model_name in model_mapping:
@@ -108,24 +123,22 @@ def main():
     print(f"Predictions shape: {all_preds.shape}")
     print(f"Labels shape: {all_labels.shape}")
 
-    # # Plot confusion matrix
-    # plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
-    # plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
+    # Plot confusion matrix
+    plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
+    plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
 
-    # # Predict and display a random image
-    # dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages'
-    # predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
+    # Predict and display a random image
+    predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
     
-    # # Select an image for GradCAM
-    # random_image_file = random.choice(metadata_csv[metadata_csv['split'] == 'test']['patch_id'].apply(lambda x: f"{x}.tif").tolist())
-    # image_path = os.path.join(dataset_dir, random_image_file)
-    # print()
-    # print(f"Selected image for GradCAM: {random_image_file}")
-    # selected_layer = 'model.layer4'
-    # display_gradcam_heatmap(model, image_path, DatasetConfig.class_labels, selected_layer, threshold=0.70)
+    # Select an image for GradCAM
+    # Get the target layer for the selected model
+    if model_name in model_layer_mapping:
+        selected_layer = model_layer_mapping[model_name]
+    else:
+        raise ValueError(f"Model {model_name} not recognized.")
 
-    # # Plot ROC AUC curve
-    # plot_roc_auc(all_labels, all_preds, DatasetConfig.class_labels)
+    # Plot ROC AUC curve
+    plot_roc_auc(all_labels, all_preds, DatasetConfig.class_labels)
     
 if __name__ == "__main__":
     main()

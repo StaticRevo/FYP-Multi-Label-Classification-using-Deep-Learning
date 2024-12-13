@@ -13,14 +13,14 @@ from tqdm import tqdm
 import ast
 from sklearn.metrics import multilabel_confusion_matrix
 from utils.helper_functions import get_labels_for_image, display_image, display_image_and_labels
-from config.config import clean_and_parse_labels
+from config.config import clean_and_parse_labels, calculate_class_weights
 
-from models.Models import *
+from models.models import *
 
 # Set float32 matmul precision to 'high' to utilize Tensor Cores
 torch.set_float32_matmul_precision('high')
 
-metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
+metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
 
 metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
@@ -34,12 +34,15 @@ for labels in metadata_csv['labels']:
 def main():
     # Initialize the data module
     bands=DatasetConfig.all_bands
-    data_module = BigEarthNetTIFDataModule(bands=bands)
+    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=DatasetConfig.dataset_paths["0.5"], metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
+    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
+    class_weights = class_weights_array
+
     # Load the trained model checkpoint
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18-ResNet18_Weights.DEFAULT-epoch=08-val_acc=0.29.ckpt'
-    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=DatasetConfig.class_weights, num_classes=19, in_channels=12, model_weights='ResNet18_Weights.DEFAULT')
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\custom_model-None-all_bands-0.5%_BigEarthNetepoch=00-val_loss=6.04.ckpt'
+    model = CustomModel.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=12, model_weights='None')
 
     # Model Testing with mixed precision
     trainer = pl.Trainer(

@@ -6,6 +6,7 @@ from torchvision.models import vgg16, VGG16_Weights
 from torchvision.models import vgg19, VGG19_Weights
 from torchvision.models import densenet121, DenseNet121_Weights
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
+from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from models.base_model import BaseModel
 from torchsummary import summary
 import timm
@@ -149,6 +150,29 @@ class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
         )
 
         super(BigEarthNetEfficientNetB0ModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels)
+
+class BigEarthNetEfficientNetV2MModelTIF(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights):
+        efficientnet_model = efficientnet_v2_m(weights=model_weights)
+
+        # Modify the first convolutional layer
+        original_conv1 = efficientnet_model.conv_stem
+        efficientnet_model.conv_stem = nn.Conv2d(
+            in_channels=in_channels,  
+            out_channels=original_conv1.out_channels,
+            kernel_size=original_conv1.kernel_size,
+            stride=original_conv1.stride,
+            padding=original_conv1.padding,
+            bias=original_conv1.bias
+        )
+        nn.init.kaiming_normal_(efficientnet_model.conv_stem.weight, mode='fan_out', nonlinearity='relu')
+
+        # Modify the final fully connected layer
+        efficientnet_model.classifier = nn.Linear(
+            efficientnet_model.classifier.in_features, num_classes
+        )
+
+        super(BigEarthNetEfficientNetV2MModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels)
 
 class BigEarthNetDenseNet121ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):

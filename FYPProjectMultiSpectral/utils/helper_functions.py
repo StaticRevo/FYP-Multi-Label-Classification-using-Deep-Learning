@@ -1,6 +1,4 @@
-from config.config import DatasetConfig
 import torch
-import pytorch_lightning as pl
 import ast
 import numpy as np
 import rasterio
@@ -9,6 +7,7 @@ import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import pandas as pd
 import random
+from config.config import DatasetConfig
 
 def set_random_seeds(seed=42):
     random.seed(seed)

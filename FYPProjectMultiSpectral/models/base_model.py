@@ -11,6 +11,7 @@ import os
 from config.config import ModelConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from .modules.modules import *
+from contextlib import redirect_stdout
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
@@ -27,7 +28,6 @@ class BaseModel(pl.LightningModule):
         # Modules
         # self.se_block = SE(in_channels=in_channels, config=ModuleConfig)
        
-
         # Accuracy metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)
@@ -105,17 +105,26 @@ class BaseModel(pl.LightningModule):
         getattr(self, f'{phase}_f1').reset()
         getattr(self, f'{phase}_precision').reset()
 
-    def print_summary(self, input_size):
+    def print_summary(self, input_size, filename):
+        current_directory = os.getcwd()
+        save_dir = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', filename)
+        save_path = os.path.join(save_dir, f'{filename}_summary.txt)')
+        os.makedirs(save_dir, exist_ok=True)  
+
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(device)
-    
+
         # Create a dummy input tensor with the specified input size
         dummy_input = torch.zeros(1, *input_size).to(device)
-        summary(self.model, input_size)
+
+        # Redirect the summary output to a file
+        with open(save_path, 'w') as f:
+            with redirect_stdout(f):
+                summary(self.model, input_size)
 
     def visualize_model(self, input_size, model_name):
         current_directory = os.getcwd()
-        save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture')
+        save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', model_name)
         os.makedirs(save_path, exist_ok=True)  
 
         # Move the model to the correct device
@@ -128,4 +137,4 @@ class BaseModel(pl.LightningModule):
 
         # Create the visualization and save it at the specified path
         file_path = os.path.join(save_path, f'{model_name}')
-        make_dot(y, params=dict(self.model.named_parameters())).render(file_path, format="png")
+        make_dot(y, params=dict(self.model.named_parameters())).render(file_path)

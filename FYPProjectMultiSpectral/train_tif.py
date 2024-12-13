@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -11,12 +12,13 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 import subprocess
 import sys
-from utils.helper_functions import save_tensorboard_graphs, extract_number
+from utils.helper_functions import save_tensorboard_graphs, extract_number, set_random_seeds
 
-from models.Models import *
+from models.models import *
 
 # Training the model
 def main():
+    set_random_seeds()
     torch.set_float32_matmul_precision('high')
 
     # Initalising the variables from the command line arguments
@@ -89,7 +91,8 @@ def main():
     # Initialize the model
     if model_name in model_mapping:
         model_class, filename = model_mapping[model_name]
-        model = model_class(class_weights, DatasetConfig.num_classes, in_channels, weights)
+        model_weights = None if weights == 'None' else weights
+        model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights)
         model.print_summary((in_channels, 120, 120)) 
         model.visualize_model((in_channels, 120, 120), filename)
     else:
@@ -109,7 +112,7 @@ def main():
         dirpath=checkpoint_dir,
         filename=f'{model_name}-{weights}-{selected_bands}-{selected_dataset}{{epoch:02d}}-{{val_loss:.2f}}',
         save_top_k=1,
-        verbose=True,
+        verbose=False,
         monitor='val_loss',
         mode='min'
     )
@@ -119,7 +122,7 @@ def main():
         dirpath=checkpoint_dir,
         filename=f'{model_name}-{weights}-{selected_bands}-{selected_dataset}-{{epoch:02d}}-{{val_acc:.2f}}',
         save_top_k=1,
-        verbose=True,
+        verbose=False,
         monitor='val_acc',
         mode='max'
     )
@@ -226,10 +229,10 @@ def main():
         best_acc_checkpoint_path, 
         best_loss_checkpoint_path, 
         str(in_channels),
-        class_weights, 
-        metadata_csv, 
+        json.dumps(class_weights.tolist()),
+        metadata_path, 
         dataset_dir, 
-        bands
+        json.dumps(bands)
     ])
 
 if __name__ == "__main__":

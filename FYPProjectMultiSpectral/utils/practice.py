@@ -2,10 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config.config import DatasetConfig, clean_and_parse_labels
 from utils.test_functions import *
-from models.CustomModel import CustomModel
-from models.ResNet18 import BigEarthNetResNet18ModelTIF
-from models.ResNet50 import BigEarthNetResNet50ModelTIF
-from models.VGG16 import BigEarthNetVGG16ModelTIF
+from models.models import *
 from dataloader_tif import BigEarthNetTIFDataModule
 import pandas as pd
 import torch

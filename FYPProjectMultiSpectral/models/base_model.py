@@ -8,7 +8,7 @@ from torchmetrics.classification import (
 from torchsummary import summary
 from torchviz import make_dot
 import os
-from config.config import DatasetConfig, ModelConfig, ModuleConfig
+from config.config import ModelConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from .modules.modules import *
 
@@ -25,7 +25,8 @@ class BaseModel(pl.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) # Define loss function
 
         # Modules
-        #self.se_block = SE(in_channels=in_channels, config=ModuleConfig)
+        # self.se_block = SE(in_channels=in_channels, config=ModuleConfig)
+       
 
         # Accuracy metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
@@ -62,7 +63,6 @@ class BaseModel(pl.LightningModule):
                 'frequency': 1
             }
         }
-        #return optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
 
     def cross_entropy_loss(self, logits, labels):
         return self.criterion(logits, labels)

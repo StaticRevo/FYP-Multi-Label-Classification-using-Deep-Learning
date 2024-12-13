@@ -1,10 +1,6 @@
 from dataclasses import dataclass, field
 import pandas as pd
-from torchvision import transforms
-import ast
-import numpy as np  
 import os
-import re
 import torch.nn as nn
 from .config_utils import *
 
@@ -81,7 +77,7 @@ class DatasetConfig:
 
 @dataclass
 class ModelConfig:
-    num_epochs: int = 100
+    num_epochs: int = 1
     batch_size: int = 32
     num_workers: int = os.cpu_count() // 2
     learning_rate: float = 0.0001
@@ -91,6 +87,7 @@ class ModelConfig:
     lr_factor: float = 0.1
     patience: int = 5
     lr_patience: int = 5
+    dropout: float = 0.5
 
     model_names: list = field(default_factory=lambda: [
         'resnet18', 

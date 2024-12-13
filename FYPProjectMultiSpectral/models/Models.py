@@ -1,30 +1,35 @@
 from torch import nn
+from config.config import DatasetConfig, ModelConfig
 from torchvision.models import resnet18, ResNet18_Weights
 from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import vgg16, VGG16_Weights
 from torchvision.models import vgg19, VGG19_Weights
 from torchvision.models import densenet121, DenseNet121_Weights
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
-from models.BaseModel import BaseModel
-import torch
+from models.base_model import BaseModel
 from torchsummary import summary
 import timm
 
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         custom_model = nn.Sequential(
+            # First Convolutional Block
             nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # Second Convolutional Block
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # Fully Connected Layers
             nn.Flatten(),
             nn.Linear(128 * 30 * 30, 512),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(ModelConfig.dropout),
             nn.Linear(512, num_classes)
         )
 
@@ -32,7 +37,6 @@ class CustomModel(BaseModel):
 
 class BigEarthNetResNet18ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
-        # Load the ResNet-18 model
         resnet_model = resnet18(weights=model_weights)
 
         # Modify first convolution layer to accept multiple channels
@@ -50,12 +54,10 @@ class BigEarthNetResNet18ModelTIF(BaseModel):
         # Modify the final fully connected layer
         resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
 
-        # Call the parent class constructor with the modified model
         super(BigEarthNetResNet18ModelTIF, self).__init__(resnet_model, num_classes, class_weights, in_channels)
 
 class BigEarthNetResNet50ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
-        # Load the ResNet-50 model
         resnet_model = resnet50(weights=ResNet50_Weights.DEFAULT)
 
         # Modify first convolution layer to accept multiple channels
@@ -73,17 +75,15 @@ class BigEarthNetResNet50ModelTIF(BaseModel):
         # Modify the final fully connected layer
         resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
 
-        # Call the parent class constructor with the modified model
         super(BigEarthNetResNet50ModelTIF, self).__init__(resnet_model, num_classes, class_weights, in_channels)
 
 
 class BigEarthNetVGG16ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, weights):
-        # Load the pretrained VGG16 model
         vgg_model = vgg16(weights=weights)
 
         # Modify the first convolutional layer
-        original_conv1 = vgg_model.features[0]  # Access the first Conv2d layer
+        original_conv1 = vgg_model.features[0] 
         vgg_model.features[0] = nn.Conv2d(
             in_channels=in_channels,
             out_channels=original_conv1.out_channels,
@@ -100,13 +100,11 @@ class BigEarthNetVGG16ModelTIF(BaseModel):
             out_features=num_classes,
         )
 
-        # Call the parent class constructor with the modified model
         super(BigEarthNetVGG16ModelTIF, self).__init__(vgg_model, num_classes, class_weights, in_channels )
 
    
 class BigEarthNetVGG19ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, weights):
-        # Load the pretrained VGG19 model
         vgg_model = vgg19(weights=weights)
 
         # Modify the first convolutional layer
@@ -127,7 +125,6 @@ class BigEarthNetVGG19ModelTIF(BaseModel):
             out_features=num_classes,
         )
 
-        # Call the parent class constructor with the modified model
         super(BigEarthNetVGG19ModelTIF, self).__init__(vgg_model, num_classes, class_weights, in_channels)
 
 class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
@@ -135,7 +132,7 @@ class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
         efficientnet_model = efficientnet_b0(weights=model_weights)
 
         # Modify the first convolutional layer
-        original_conv1 = efficientnet_model.features[0][0]  # Access the first Conv2d layer
+        original_conv1 = efficientnet_model.features[0][0] 
         efficientnet_model.features[0][0] = nn.Conv2d(
             in_channels=in_channels,  # Adjust for custom input channels
             out_channels=original_conv1.out_channels,
@@ -155,7 +152,6 @@ class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
 
 class BigEarthNetDenseNet121ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
-        # Load the DenseNet-121 model
         densenet_model = densenet121(weights=model_weights)
 
         # Modify the first convolutional layer to accept custom number of input channels

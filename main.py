@@ -5,8 +5,10 @@ from tkinter import ttk, messagebox
 from tkinter import Toplevel
 from threading import Thread  
 from FYPProjectMultiSpectral.config.config import DatasetConfig, ModelConfig
+from FYPProjectMultiSpectral.utils.helper_functions import set_random_seeds
 
 def choose_and_run_model_gui():
+    set_random_seeds()
     models = {
         '1': 'custom_model',
         '2': 'ResNet18',

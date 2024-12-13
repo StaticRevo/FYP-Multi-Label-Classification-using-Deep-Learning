@@ -1,4 +1,4 @@
-from config.config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig
 import torch
 import pytorch_lightning as pl
 import ast
@@ -8,6 +8,17 @@ import os
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import pandas as pd
+import random
+
+def set_random_seeds(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def clean_and_parse_labels(label_string):
     cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
@@ -27,6 +38,7 @@ def calculate_class_weights(metadata_path):
     class_weights_array = np.array([class_weights[label] for label in class_labels])
 
     return class_labels, class_weights, class_weights_array, metadata_csv
+
 # Helper functions
 def denormalize(tensors, *, mean, std):
     for c in range(DatasetConfig.band_channels):

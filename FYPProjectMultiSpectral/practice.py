@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config.config import DatasetConfig, clean_and_parse_labels
 from utils.test_functions import *
+from utils.helper_functions import *
 from models.models import *
 from dataloader_tif import BigEarthNetTIFDataModule
 import pandas as pd
@@ -15,7 +16,8 @@ import seaborn as sns
 from sklearn.metrics import multilabel_confusion_matrix
 from utils.helper_functions import decode_target
 from config.config import DatasetConfig, clean_and_parse_labels, calculate_class_weights
-from FYPProjectMultiSpectral.utils.gradcam import GradCAM
+from utils.gradcam import GradCAM
+from transformations.normalisation import BandNormalisation
 
 metadata_path: str = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5_percent.csv'
 metadata_csv = pd.read_csv(metadata_path)
@@ -64,13 +66,19 @@ image_path = os.path.join(dataset_dir, random_image_file)
 print()
 print(f"Selected image for GradCAM: {random_image_file}")
 
-selected_layer = '1'
+test_transforms = transforms.Compose([
+    transforms.CenterCrop(120),
+    transforms.ToTensor(),
+    BandNormalisation(
+        mean=[DatasetConfig.band_stats["mean"][band] for band in DatasetConfig.all_bands],
+        std=[DatasetConfig.band_stats["std"][band] for band in DatasetConfig.all_bands]
+    )
+])
 
-# Initialize the GradCAM object
-grad_cam = GradCAM(model, selected_layer)
+# Selecting layers from the model to generate activations
+image_to_heatmaps = nn.Sequential(*list(model.custom_model.children())[:-4])
 
 
 
-# Clear hooks
-grad_cam.clear_hooks()
+
 

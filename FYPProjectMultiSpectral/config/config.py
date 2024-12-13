@@ -77,7 +77,7 @@ class DatasetConfig:
 
 @dataclass
 class ModelConfig:
-    num_epochs: int = 1
+    num_epochs: int = 10
     batch_size: int = 32
     num_workers: int = os.cpu_count() // 2
     learning_rate: float = 0.0001

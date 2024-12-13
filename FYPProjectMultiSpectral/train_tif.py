@@ -163,6 +163,7 @@ def main():
 
     best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path
     best_loss_checkpoint_path = checkpoint_callback_loss.best_model_path
+    last_checkpoint_path = final_checkpoint.best_model_path
 
     # Save Tensorboard graphs as images
     output_dir = os.path.join('FYPProjectMultiSpectral/experiments/results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
@@ -235,6 +236,7 @@ def main():
         selected_dataset, 
         best_acc_checkpoint_path, 
         best_loss_checkpoint_path, 
+        last_checkpoint_path,
         str(in_channels),
         json.dumps(class_weights.tolist()),
         metadata_path, 

@@ -26,11 +26,12 @@ def main():
     selected_dataset = sys.argv[4]
     acc_checkpoint_path = sys.argv[5]
     loss_checkpoint_path = sys.argv[6]
-    in_channels = int(sys.argv[7])
-    class_weights = json.loads(sys.argv[8])
-    metadata_csv = pd.read_csv(sys.argv[9])
-    dataset_dir = sys.argv[10]
-    bands = json.loads(sys.argv[11])
+    last_checkpoint_path = sys.argv[7]
+    in_channels = int(sys.argv[8])
+    class_weights = json.loads(sys.argv[9])
+    metadata_csv = pd.read_csv(sys.argv[10])
+    dataset_dir = sys.argv[11]
+    bands = json.loads(sys.argv[12])
 
     # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\nChoice [1/2]: ")
@@ -129,8 +130,7 @@ def main():
 
     # Predict and display a random image
     predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
-    
-    # Select an image for GradCAM
+
     # Get the target layer for the selected model
     if model_name in model_layer_mapping:
         selected_layer = model_layer_mapping[model_name]

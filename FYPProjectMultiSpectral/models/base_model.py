@@ -45,9 +45,11 @@ class BaseModel(pl.LightningModule):
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
 
+        self.gradients = None
+
     def forward(self, x):
         x = self.model(x)
-        #x = self.se_block(x)
+        # x = self.se_block(x)
         x = self.sigmoid(x)
         return x
 

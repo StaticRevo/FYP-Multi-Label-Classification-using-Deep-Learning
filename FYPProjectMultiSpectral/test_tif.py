@@ -34,14 +34,16 @@ def main():
     bands = json.loads(sys.argv[12])
 
     # Allow user to choose checkpoint
-    checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\nChoice [1/2]: ")
+    checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\n3. Final ({last_checkpoint_path})\nChoice [1/2/3]: ")
     if checkpoint_choice == "1":
         checkpoint_path = acc_checkpoint_path
     elif checkpoint_choice == "2":
         checkpoint_path = loss_checkpoint_path
+    elif checkpoint_choice == "3":
+        checkpoint_path = last_checkpoint_path
     else:
-        print("Invalid choice. Defaulting to Best Accuracy checkpoint.")
-        checkpoint_path = loss_checkpoint_path
+        print("Invalid choice. Defaulting to Last Saved checkpoint.")
+        checkpoint_path = last_checkpoint_path
 
     print()
     print(f"Using checkpoint: {checkpoint_path}")

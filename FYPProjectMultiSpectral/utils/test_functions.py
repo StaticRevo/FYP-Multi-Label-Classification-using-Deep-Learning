@@ -66,14 +66,14 @@ def plot_confusion_matrix(all_preds, all_labels, DatasetConfig):
     print(cm)
 
     # Plot confusion matrix
-    plt.figure(figsize=(15, 12))  # Increase figure size for better visibility
+    plt.figure(figsize=(15, 12))  
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=DatasetConfig.class_labels, yticklabels=DatasetConfig.class_labels)
-    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better visibility
-    plt.yticks(rotation=0)  # Rotate y-axis labels for better visibility
+    plt.xticks(rotation=45, ha='right')  
+    plt.yticks(rotation=0)  
     plt.xlabel('Predicted')
     plt.ylabel('True')
     plt.title('Confusion Matrix')
-    plt.tight_layout()  # Adjust layout to ensure everything fits without overlapping
+    plt.tight_layout()  
     plt.show()
 
 def plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig):
@@ -112,7 +112,7 @@ def plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig):
 def select_random_img(metadata_csv, split='test'):
     return random.choice(metadata_csv[metadata_csv['split'] == split]['patch_id'].apply(lambda x: f"{x}.tif").tolist())
     
-def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, bands=DatasetConfig.all_bands):
+def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, bands=DatasetConfig.rgb_bands):
     # Create dictionaries for mapping between labels and indices
     class_labels_dict = DatasetConfig.class_labels_dict
     reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict

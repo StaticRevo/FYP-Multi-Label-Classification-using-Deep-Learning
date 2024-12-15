@@ -33,16 +33,16 @@ for labels in metadata_csv['labels']:
 # Testing the model
 def main():
     # Initialize the data module
-    bands=DatasetConfig.all_bands
-    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=DatasetConfig.dataset_paths["0.5"], metadata_csv=metadata_csv)
+    bands=DatasetConfig.rgb_bands
+    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=DatasetConfig.dataset_paths["50"], metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     class_weights, class_weights_array = calculate_class_weights(metadata_csv)
     class_weights = class_weights_array
 
     # Load the trained model checkpoint
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\custom_model-None-all_bands-0.5%_BigEarthNetepoch=00-val_loss=6.04.ckpt'
-    model = CustomModel.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=12, model_weights='None')
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet50_ResNet50_Weights.DEFAULT_rgb_bands_0.5%_BigEarthNet\ResNet50-ResNet50_Weights.DEFAULT-rgb_bands-0.5%_BigEarthNet-final.ckpt'
+    model = BigEarthNetResNet50ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=3, model_weights='ResNet_Weights.DEFAULT')
 
     # Model Testing with mixed precision
     trainer = pl.Trainer(
@@ -67,8 +67,6 @@ def main():
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 
-        print("Sample Inputs:", inputs[:2])
-        print("Sample Labels:", labels[:2])
 
     # Convert lists to numpy arrays
     all_preds = np.array(all_preds)

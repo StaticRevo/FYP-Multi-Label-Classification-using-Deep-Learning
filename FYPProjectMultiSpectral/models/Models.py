@@ -1,5 +1,5 @@
 from torch import nn
-from config.config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig, ModelConfig, ModuleConfig
 from torchvision.models import resnet18, ResNet18_Weights
 from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import vgg16, VGG16_Weights
@@ -8,9 +8,11 @@ from torchvision.models import densenet121, DenseNet121_Weights
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from models.base_model import BaseModel
+#from models.modules import ResidualBlock, SE, ChannelAttention, ECA
 from torchsummary import summary
 import timm
 
+# Custom Model
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         custom_model = nn.Sequential(
@@ -25,17 +27,33 @@ class CustomModel(BaseModel):
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+            
+            # Third Convolutional Block with Residual Block
+            #ResidualBlock(in_channels=128, out_channels=256, stride=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # Fourth Convolutional Block with SE Module
+            nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(512),
+            #SE(in_channels=512, config=ModuleConfig),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # Fifth Convolutional Block with Channel Attention Module
+            nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(1024),
+            #ChannelAttention(in_channels=1024, reduction_ratio=16),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Fully Connected Layers
             nn.Flatten(),
-            nn.Linear(128 * 30 * 30, 512),
-            nn.ReLU(),
+            nn.Linear(1024 * 7 * 7, 512),
             nn.Dropout(ModelConfig.dropout),
             nn.Linear(512, num_classes)
         )
 
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels)
 
+# ResNet18 Model
 class BigEarthNetResNet18ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         resnet_model = resnet18(weights=model_weights)
@@ -57,6 +75,7 @@ class BigEarthNetResNet18ModelTIF(BaseModel):
 
         super(BigEarthNetResNet18ModelTIF, self).__init__(resnet_model, num_classes, class_weights, in_channels)
 
+# ResNet50 Model
 class BigEarthNetResNet50ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         resnet_model = resnet50(weights=ResNet50_Weights.DEFAULT)
@@ -78,7 +97,7 @@ class BigEarthNetResNet50ModelTIF(BaseModel):
 
         super(BigEarthNetResNet50ModelTIF, self).__init__(resnet_model, num_classes, class_weights, in_channels)
 
-
+# VGG16 Model
 class BigEarthNetVGG16ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, weights):
         vgg_model = vgg16(weights=weights)
@@ -103,7 +122,7 @@ class BigEarthNetVGG16ModelTIF(BaseModel):
 
         super(BigEarthNetVGG16ModelTIF, self).__init__(vgg_model, num_classes, class_weights, in_channels )
 
-   
+# VGG19 Model
 class BigEarthNetVGG19ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, weights):
         vgg_model = vgg19(weights=weights)
@@ -128,6 +147,7 @@ class BigEarthNetVGG19ModelTIF(BaseModel):
 
         super(BigEarthNetVGG19ModelTIF, self).__init__(vgg_model, num_classes, class_weights, in_channels)
 
+# EfficientNetB0 Model
 class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         efficientnet_model = efficientnet_b0(weights=model_weights)
@@ -151,6 +171,7 @@ class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
 
         super(BigEarthNetEfficientNetB0ModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels)
 
+# EfficientNetV2 Model
 class BigEarthNetEfficientNetV2MModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         efficientnet_model = efficientnet_v2_m(weights=model_weights)
@@ -174,6 +195,7 @@ class BigEarthNetEfficientNetV2MModelTIF(BaseModel):
 
         super(BigEarthNetEfficientNetV2MModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels)
 
+# DenseNet121 Model
 class BigEarthNetDenseNet121ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         densenet_model = densenet121(weights=model_weights)
@@ -197,7 +219,7 @@ class BigEarthNetDenseNet121ModelTIF(BaseModel):
 
         super(BigEarthNetDenseNet121ModelTIF, self).__init__(densenet_model, num_classes, class_weights, in_channels)   
 
-
+# Swin Transformer Model
 class BigEarthNetSwinTransformerModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         if model_weights is None:
@@ -211,7 +233,7 @@ class BigEarthNetSwinTransformerModelTIF(BaseModel):
         # Call the parent class constructor with the modified model
         super(BigEarthNetSwinTransformerModelTIF, self).__init__(swin_model, num_classes, class_weights, in_channels)
 
-
+# Vision Transformer Model
 class BigEarthNetVitTransformerModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         if model_weights is None:

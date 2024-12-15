@@ -12,6 +12,7 @@ from config.config import ModelConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from .modules.modules import *
 from contextlib import redirect_stdout
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
@@ -23,11 +24,8 @@ class BaseModel(pl.LightningModule):
         self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
         
         self.sigmoid = nn.Sigmoid() # Initialize Sigmoid layer
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) # Define loss function
+        self.criterion = nn.BCEWithLogitsLoss() # Define loss function
 
-        # Modules
-        # self.se_block = SE(in_channels=in_channels, config=ModuleConfig)
-       
         # Accuracy metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)
@@ -49,7 +47,6 @@ class BaseModel(pl.LightningModule):
 
     def forward(self, x):
         x = self.model(x)
-        # x = self.se_block(x)
         x = self.sigmoid(x)
         return x
 
@@ -107,6 +104,7 @@ class BaseModel(pl.LightningModule):
         getattr(self, f'{phase}_f1').reset()
         getattr(self, f'{phase}_precision').reset()
 
+   
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()
         save_dir = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', filename)

@@ -111,7 +111,7 @@ def main():
     # Checkpoint callback for val_loss
     checkpoint_callback_loss = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename=f'{model_name}-{weights}-{selected_bands}-{selected_dataset}{{epoch:02d}}-{{val_loss:.2f}}',
+        filename=f'{{epoch:02d}}-{{val_loss:.2f}}',
         save_top_k=1,
         verbose=False,
         monitor='val_loss',
@@ -121,7 +121,7 @@ def main():
     # Checkpoint callback for val_acc
     checkpoint_callback_acc = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename=f'{model_name}-{weights}-{selected_bands}-{selected_dataset}-{{epoch:02d}}-{{val_acc:.2f}}',
+        filename=f'{{epoch:02d}}-{{val_acc:.2f}}',
         save_top_k=1,
         verbose=False,
         monitor='val_acc',

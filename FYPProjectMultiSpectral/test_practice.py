@@ -33,16 +33,15 @@ for labels in metadata_csv['labels']:
 # Testing the model
 def main():
     # Initialize the data module
-    bands=DatasetConfig.rgb_bands
-    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=DatasetConfig.dataset_paths["50"], metadata_csv=metadata_csv)
+    bands=DatasetConfig.all_bands
+    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=DatasetConfig.dataset_paths["0.5"], metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     class_weights, class_weights_array = calculate_class_weights(metadata_csv)
     class_weights = class_weights_array
 
-    # Load the trained model checkpoint
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet50_ResNet50_Weights.DEFAULT_rgb_bands_0.5%_BigEarthNet\ResNet50-ResNet50_Weights.DEFAULT-rgb_bands-0.5%_BigEarthNet-final.ckpt'
-    model = BigEarthNetResNet50ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=3, model_weights='ResNet_Weights.DEFAULT')
+    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet50_None_all_bands_0.5%_BigEarthNet\last.ckpt'
+    model = BigEarthNetResNet50ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=12, model_weights='None')
 
     # Model Testing with mixed precision
     trainer = pl.Trainer(
@@ -63,7 +62,7 @@ def main():
         inputs, labels = batch
         inputs = inputs.to(model.device)  
         labels = labels.to(model.device)  
-        preds = model(inputs).sigmoid() > 0.5  
+        preds = model(inputs).sigmoid() > 0.7  
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
 

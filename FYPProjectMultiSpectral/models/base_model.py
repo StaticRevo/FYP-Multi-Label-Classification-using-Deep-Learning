@@ -24,7 +24,7 @@ class BaseModel(pl.LightningModule):
         self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
         
         self.sigmoid = nn.Sigmoid() # Initialize Sigmoid layer
-        self.criterion = nn.BCEWithLogitsLoss() # Define loss function
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) # Define loss function
 
         # Accuracy metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)

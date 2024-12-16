@@ -1,3 +1,5 @@
+# Classes used for Band Normalisation and Unnormalisation
+
 class BandNormalisation:
     def __init__(self, mean, std):
         self.mean = mean

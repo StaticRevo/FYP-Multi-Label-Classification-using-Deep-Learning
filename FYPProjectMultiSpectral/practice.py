@@ -34,8 +34,9 @@ class_weights = class_weights_array
 
 # Load the trained model checkpoint
 
-checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet50_ResNet50_Weights.DEFAULT_rgb_bands_0.5%_BigEarthNet\ResNet50-ResNet50_Weights.DEFAULT-rgb_bands-0.5%_BigEarthNet-final.ckpt'
-model = BigEarthNetResNet50ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=3, model_weights='ResNet_Weights.DEFAULT')
+checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet50_None_all_bands_0.5%_BigEarthNet\last.ckpt'
+model = BigEarthNetResNet50ModelTIF.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=19, in_channels=12, model_weights='None')
+
 
 model.eval()
 
@@ -60,7 +61,7 @@ np.set_printoptions(threshold=np.inf)
 plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
 plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
 
-predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.rgb_bands)
+predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
     
 
 

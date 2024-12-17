@@ -103,10 +103,12 @@ def main():
     print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
 
     # Initialize the logger
-    log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
+    #log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
+    log_dir = r'C:\Users\isaac\Desktop\experiments\logs'
     logger = TensorBoardLogger(log_dir, name=f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}")
 
-    checkpoint_dir = fr'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\{model_name}_{weights}_{selected_bands}_{selected_dataset}'
+    #checkpoint_dir = fr'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\{model_name}_{weights}_{selected_bands}_{selected_dataset}'
+    checkpoint_dir = fr'C:\Users\isaac\Desktop\experiments\checkpoints\{model_name}_{weights}_{selected_bands}_{selected_dataset}'
 
     # Checkpoint callback for val_loss
     checkpoint_callback_loss = ModelCheckpoint(
@@ -130,7 +132,7 @@ def main():
 
     final_checkpoint = ModelCheckpoint(
         dirpath=checkpoint_dir,
-        filename=f'{model_name}-{weights}-{selected_bands}-{selected_dataset}-final',
+        filename=f'final',
         save_last=True
     )
 
@@ -166,7 +168,8 @@ def main():
     last_checkpoint_path = final_checkpoint.best_model_path
 
     # Save Tensorboard graphs as images
-    output_dir = os.path.join('FYPProjectMultiSpectral/experiments/results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
+    #output_dir = os.path.join('FYPProjectMultiSpectral/experiments/results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
+    output_dir = os.path.join('C:\Users\isaac\Desktop\experiments\results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
     save_tensorboard_graphs(logger.log_dir, output_dir)
 
     # Start TensorBoard

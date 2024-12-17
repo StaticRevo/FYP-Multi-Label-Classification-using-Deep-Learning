@@ -403,3 +403,47 @@ def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetCon
         )
         plt.axis('off')
         plt.show()
+
+
+def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands):
+    # Create dictionaries for mapping between labels and indices
+    class_labels_dict = DatasetConfig.class_labels_dict
+    reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict
+          
+    test_metadata = metadata_csv[metadata_csv['split'] == 'test']
+    
+    # Map band names to indices
+    band_indices = {
+        "B01": 0, "B02": 1, "B03": 2, "B04": 3, "B05": 4, "B06": 5, "B07": 6,
+        "B08": 7, "B8A": 8, "B09": 9, "B11": 10, "B12": 11
+    }
+    
+    sigmoid_outputs_list = []
+
+    # Iterate over all test images with a progress bar
+    for image_file in tqdm(test_metadata['patch_id'].apply(lambda x: f"{x}.tif").tolist(), desc="Processing Images"):
+        image_path = os.path.join(dataset_dir, image_file)
+        with rasterio.open(image_path) as src:
+            # Read all bands
+            all_bands = src.read().astype(np.float32)
+        
+            # Normalize each band to the range 0-1
+            all_bands /= np.max(all_bands, axis=(1, 2), keepdims=True)
+        
+        # Read the specified bands for model input
+        input_bands = np.stack([all_bands[band_indices[band]] for band in bands], axis=0)
+        
+        # Convert to tensor and add batch dimension
+        input_tensor = torch.tensor(input_bands).unsqueeze(0).float()
+        input_tensor = input_tensor.to(model.device)
+
+        # Predict labels
+        model.eval()
+        with torch.no_grad():
+            output = model(input_tensor)
+
+        sigmoid_outputs = output.sigmoid()
+        sigmoid_outputs_list.append(sigmoid_outputs.cpu().numpy().squeeze())
+
+    return np.array(sigmoid_outputs_list)
+

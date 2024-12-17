@@ -83,6 +83,8 @@ def main():
     else:
         raise ValueError(f"Model {model_name} not recognized.")
     
+    model.eval()
+
     # Model Testing with mixed precision
     trainer = pl.Trainer(
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
@@ -126,12 +128,15 @@ def main():
     print(f"Predictions shape: {all_preds.shape}")
     print(f"Labels shape: {all_labels.shape}")
 
+    sigmoid_outputs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.all_bands)
+    print("Sigmoid Outputs for all test images:", sigmoid_outputs)
+
     # Plot confusion matrix
     plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
     plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
 
     # Predict and display a random image
-    predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=DatasetConfig.all_bands)
+    predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=bands)
 
     # Get the target layer for the selected model
     if model_name in model_layer_mapping:

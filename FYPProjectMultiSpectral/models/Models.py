@@ -150,6 +150,8 @@ class BigEarthNetVGG19ModelTIF(BaseModel):
 # EfficientNetB0 Model
 class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
+        if model_weights == 'EfficientNetB0_Weights.DEFAULT':
+            model_weights = EfficientNet_B0_Weights.DEFAULT
         efficientnet_model = efficientnet_b0(weights=model_weights)
 
         # Modify the first convolutional layer

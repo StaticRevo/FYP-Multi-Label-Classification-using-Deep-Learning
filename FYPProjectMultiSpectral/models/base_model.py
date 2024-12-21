@@ -47,7 +47,6 @@ class BaseModel(pl.LightningModule):
 
     def forward(self, x):
         x = self.model(x)
-        x = self.sigmoid(x)
         return x
 
     def configure_optimizers(self):

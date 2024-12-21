@@ -1,6 +1,6 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from config.config import ModelConfig
+from config.config import ModelConfig, DatasetConfig
 from dataset_tif import BigEarthNetDatasetTIF
 from transformations.transforms import TransformsConfig
 
@@ -32,3 +32,4 @@ class BigEarthNetTIFDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         dataloader = DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
         return dataloader
+    

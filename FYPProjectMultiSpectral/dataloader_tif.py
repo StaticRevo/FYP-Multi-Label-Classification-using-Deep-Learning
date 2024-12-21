@@ -1,10 +1,10 @@
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from config.config import DatasetConfig, ModelConfig
+from config.config import ModelConfig
 from dataset_tif import BigEarthNetDatasetTIF
 from transformations.transforms import TransformsConfig
 
+# Data module for BigEarthNet dataset
 class BigEarthNetTIFDataModule(pl.LightningDataModule):
     def __init__(self, bands=None, dataset_dir=None, metadata_csv=None):
         super().__init__()

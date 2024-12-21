@@ -9,18 +9,50 @@
        BatchNorm2d-6          [-1, 128, 60, 60]             256
               ReLU-7          [-1, 128, 60, 60]               0
          MaxPool2d-8          [-1, 128, 30, 30]               0
-           Flatten-9               [-1, 115200]               0
-           Linear-10                  [-1, 512]      58,982,912
-             ReLU-11                  [-1, 512]               0
-          Dropout-12                  [-1, 512]               0
-           Linear-13                   [-1, 19]           9,747
+            Conv2d-9          [-1, 256, 30, 30]         294,912
+      BatchNorm2d-10          [-1, 256, 30, 30]             512
+             ReLU-11          [-1, 256, 30, 30]               0
+           Conv2d-12          [-1, 256, 30, 30]         589,824
+      BatchNorm2d-13          [-1, 256, 30, 30]             512
+           Conv2d-14          [-1, 256, 30, 30]          32,768
+      BatchNorm2d-15          [-1, 256, 30, 30]             512
+             ReLU-16          [-1, 256, 30, 30]               0
+    ResidualBlock-17          [-1, 256, 30, 30]               0
+        MaxPool2d-18          [-1, 256, 15, 15]               0
+           Conv2d-19          [-1, 512, 15, 15]       1,180,160
+      BatchNorm2d-20          [-1, 512, 15, 15]           1,024
+AdaptiveAvgPool2d-21            [-1, 512, 1, 1]               0
+           Conv2d-22             [-1, 32, 1, 1]          16,416
+             ReLU-23             [-1, 32, 1, 1]               0
+          Dropout-24             [-1, 32, 1, 1]               0
+           Conv2d-25            [-1, 512, 1, 1]          16,896
+          Sigmoid-26            [-1, 512, 1, 1]               0
+               SE-27          [-1, 512, 15, 15]               0
+        MaxPool2d-28            [-1, 512, 7, 7]               0
+           Conv2d-29           [-1, 1024, 7, 7]       4,719,616
+      BatchNorm2d-30           [-1, 1024, 7, 7]           2,048
+AdaptiveAvgPool2d-31           [-1, 1024, 1, 1]               0
+           Conv2d-32             [-1, 64, 1, 1]          65,600
+             ReLU-33             [-1, 64, 1, 1]               0
+           Conv2d-34           [-1, 1024, 1, 1]          66,560
+AdaptiveMaxPool2d-35           [-1, 1024, 1, 1]               0
+           Conv2d-36             [-1, 64, 1, 1]          65,600
+             ReLU-37             [-1, 64, 1, 1]               0
+           Conv2d-38           [-1, 1024, 1, 1]          66,560
+          Sigmoid-39           [-1, 1024, 1, 1]               0
+ ChannelAttention-40           [-1, 1024, 7, 7]               0
+        MaxPool2d-41           [-1, 1024, 3, 3]               0
+          Flatten-42                 [-1, 9216]               0
+           Linear-43                  [-1, 512]       4,719,104
+          Dropout-44                  [-1, 512]               0
+           Linear-45                   [-1, 19]           9,747
 ================================================================
-Total params: 59,073,875
-Trainable params: 59,073,875
+Total params: 11,929,587
+Trainable params: 11,929,587
 Non-trainable params: 0
 ----------------------------------------------------------------
 Input size (MB): 0.66
-Forward/backward pass size (MB): 35.17
-Params size (MB): 225.35
-Estimated Total Size (MB): 261.18
+Forward/backward pass size (MB): 54.72
+Params size (MB): 45.51
+Estimated Total Size (MB): 100.88
 ----------------------------------------------------------------

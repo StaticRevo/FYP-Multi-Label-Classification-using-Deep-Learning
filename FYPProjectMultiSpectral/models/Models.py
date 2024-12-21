@@ -8,7 +8,7 @@ from torchvision.models import densenet121, DenseNet121_Weights
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from models.base_model import BaseModel
-#from models.modules import ResidualBlock, SE, ChannelAttention, ECA
+from models.modules import *
 from torchsummary import summary
 import timm
 
@@ -29,30 +29,29 @@ class CustomModel(BaseModel):
             nn.MaxPool2d(kernel_size=2, stride=2),
             
             # Third Convolutional Block with Residual Block
-            #ResidualBlock(in_channels=128, out_channels=256, stride=1),
+            ResidualBlock(in_channels=128, out_channels=256, stride=1),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Fourth Convolutional Block with SE Module
             nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(512),
-            #SE(in_channels=512, config=ModuleConfig),
+            SE(in_channels=512, config=ModuleConfig),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Fifth Convolutional Block with Channel Attention Module
             nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(1024),
-            #ChannelAttention(in_channels=1024, reduction_ratio=16),
+            ChannelAttention(in_channels=1024, reduction_ratio=16),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Fully Connected Layers
             nn.Flatten(),
-            nn.Linear(1024 * 7 * 7, 512),
+            nn.Linear(1024 * 3 * 3, 512),  # Updated input size
             nn.Dropout(ModelConfig.dropout),
             nn.Linear(512, num_classes)
         )
 
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels)
-
 # ResNet18 Model
 class BigEarthNetResNet18ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):

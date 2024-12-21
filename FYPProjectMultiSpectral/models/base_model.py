@@ -10,10 +10,10 @@ from torchviz import make_dot
 import os
 from config.config import ModelConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from .modules.modules import *
 from contextlib import redirect_stdout
 import matplotlib.pyplot as plt
 
+# Base model class for all models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class BaseModel(pl.LightningModule):
     def __init__(self, model, num_classes, class_weights, in_channels):

@@ -128,8 +128,8 @@ def main():
     print(f"Predictions shape: {all_preds.shape}")
     print(f"Labels shape: {all_labels.shape}")
 
-    sigmoid_outputs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.all_bands)
-    print("Sigmoid Outputs for all test images:", sigmoid_outputs)
+    #sigmoid_outputs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.all_bands)
+    #print("Sigmoid Outputs for all test images:", sigmoid_outputs)
 
     # Plot confusion matrix
     plot_confusion_matrix(all_preds, all_labels, DatasetConfig)

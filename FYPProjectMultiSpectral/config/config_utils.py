@@ -1,14 +1,14 @@
 import ast
 import numpy as np
-import os
-import pandas as pd
 
+# Function to clean and parse labels from the metadata CSV
 def clean_and_parse_labels(label_string):
     if isinstance(label_string, str):
         cleaned_labels = label_string.replace(" '", ", '").replace("[", "[").replace("]", "]")
         return ast.literal_eval(cleaned_labels)
-    return label_string  # If it's already a list, return it as is
+    return label_string  
 
+# Function to calculate class weights based on the label counts of each category
 def calculate_class_weights(metadata_csv):
     metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
 
@@ -23,6 +23,7 @@ def calculate_class_weights(metadata_csv):
 
     return class_weights, class_weights_array
 
+# Function used to calculate the class labels within the metadata
 def calculate_class_labels(metadata_csv):
     metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
 

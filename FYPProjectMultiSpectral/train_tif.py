@@ -1,19 +1,23 @@
+# Standard library imports
 import json
 import os
 import time
-
-from matplotlib import pyplot as plt
-import pandas as pd
-from config.config import DatasetConfig, ModelConfig, calculate_class_weights
-from dataloader_tif import BigEarthNetTIFDataModule
-import torch
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 import subprocess
 import sys
-from utils.helper_functions import save_tensorboard_graphs, extract_number, set_random_seeds
 
+# Third-party imports
+import pandas as pd
+import torch
+import pytorch_lightning as pl
+from matplotlib import pyplot as plt
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+
+# Local application imports
+from config.config import DatasetConfig, ModelConfig, calculate_class_weights
+from dataloader_tif import BigEarthNetTIFDataModule
+from utils.helper_functions import save_tensorboard_graphs, extract_number, set_random_seeds
+from utils.visualisation import *
 from models.models import *
 
 # Training the model
@@ -169,7 +173,7 @@ def main():
 
     # Save Tensorboard graphs as images
     #output_dir = os.path.join('FYPProjectMultiSpectral/experiments/results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
-    output_dir = os.path.join('C:\Users\isaac\Desktop\experiments\results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
+    output_dir = os.path.join(r'C:\Users\isaac\Desktop\experiments\results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
     save_tensorboard_graphs(logger.log_dir, output_dir)
 
     # Start TensorBoard

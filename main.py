@@ -4,7 +4,9 @@ from tkinter import ttk, messagebox
 from tkinter import Toplevel
 from threading import Thread  
 
+# Function to choose and run the model
 def choose_and_run_model_gui():
+    # Define the models, band selection, and dataset selection
     models = {
         '1': 'custom_model',
         '2': 'ResNet18',
@@ -74,6 +76,7 @@ def choose_and_run_model_gui():
     for idx, (key, dataset) in enumerate(dataset_selection.items(), start=1):
         ttk.Radiobutton(dataset_frame, text=dataset, variable=dataset_var, value=key).grid(row=idx, column=0, sticky='w', padx=10)
 
+    # Function to run the model
     def run_model():
         model_choice = model_var.get()
         model_name = models.get(model_choice)
@@ -113,6 +116,7 @@ def choose_and_run_model_gui():
         thread = Thread(target=model_training_thread)
         thread.start()
 
+    # Function to reset the selections
     def reset_selections():
         model_var.set('1')
         weights_var.set('1')

@@ -4,7 +4,9 @@ import os
 import torch.nn as nn
 from .config_utils import *
 
-# Description: Configuration file for the project
+# Configuration file for the project
+
+# Dataclass for the dataset configuration
 @dataclass
 class DatasetConfig:
     metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\50%_BigEarthNet\\metadata_50_percent.csv"
@@ -75,9 +77,10 @@ class DatasetConfig:
         }
     }
 
+# Dataclass for the model configuration
 @dataclass
 class ModelConfig:
-    num_epochs: int = 10
+    num_epochs: int = 3
     batch_size: int = 64
     num_workers: int = os.cpu_count() // 2
     learning_rate: float = 0.0001
@@ -104,6 +107,7 @@ class ModelConfig:
         'vgg19'
     ])
 
+# Dataclass for the module configuration
 @dataclass
 class ModuleConfig:
     reduction: int = 16

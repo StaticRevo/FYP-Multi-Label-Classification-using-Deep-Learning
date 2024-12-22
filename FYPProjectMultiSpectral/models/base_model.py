@@ -20,10 +20,10 @@ class BaseModel(pl.LightningModule):
         super(BaseModel, self).__init__()
         # Model 
         self.model = model
+        self.model.to(device)
         self.num_classes = num_classes
-        self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
+        self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
         
-        self.sigmoid = nn.Sigmoid() # Initialize Sigmoid layer
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) # Define loss function
 
         # Accuracy metrics
@@ -78,31 +78,21 @@ class BaseModel(pl.LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
+
+        # Calculate metrics
         acc = getattr(self, f'{phase}_acc')(logits, y)
         recall = getattr(self, f'{phase}_recall')(logits, y)
         f1 = getattr(self, f'{phase}_f1')(logits, y)
         precision = getattr(self, f'{phase}_precision')(logits, y)
 
-        self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True)
-        self.log(f'{phase}_acc', acc, on_epoch=True, prog_bar=True)
-        self.log(f'{phase}_recall', recall, on_epoch=True, prog_bar=True)
-        self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True)
-        self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True)
-
+        # Log metrics
+        self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True, batch_size=len(x))
+        self.log(f'{phase}_acc', acc, on_epoch=True, prog_bar=True, batch_size=len(x))
+        self.log(f'{phase}_recall', recall, on_epoch=True, prog_bar=True, batch_size=len(x))
+        self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True, batch_size=len(x))
+        self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True, batch_size=len(x))
+        
         return loss
-
-    def on_epoch_end(self, phase):
-        self.log(f'{phase}_acc_epoch', getattr(self, f'{phase}_acc').compute())
-        self.log(f'{phase}_recall_epoch', getattr(self, f'{phase}_recall').compute())
-        self.log(f'{phase}_f1_epoch', getattr(self, f'{phase}_f1').compute())
-        self.log(f'{phase}_precision_epoch', getattr(self, f'{phase}_precision').compute())
-
-        # Reset metrics
-        getattr(self, f'{phase}_acc').reset()
-        getattr(self, f'{phase}_recall').reset()
-        getattr(self, f'{phase}_f1').reset()
-        getattr(self, f'{phase}_precision').reset()
-
    
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()

@@ -30,7 +30,7 @@ def test_model(checkpoint_path, metadata_path, dataset_dir, model_class, model_n
 
     # Initialize the data module
     data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
-    data_module.setup(stage=None)
+    data_module.setup(stage='test')
 
     class_weights, class_weights_array = calculate_class_weights(metadata_csv)
     class_weights = class_weights_array
@@ -59,9 +59,9 @@ def test_model(checkpoint_path, metadata_path, dataset_dir, model_class, model_n
 
         with torch.no_grad():
             logits = model(inputs)  
-            #print(f"Raw logits: {logits}")  
+            print(f"Raw logits: {logits}")  
             preds = torch.sigmoid(logits) > 0.5
-            #print(f"Sigmoid outputs: {torch.sigmoid(logits)}")  
+            print(f"Sigmoid outputs: {torch.sigmoid(logits)}")  
 
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
@@ -75,12 +75,12 @@ def test_model(checkpoint_path, metadata_path, dataset_dir, model_class, model_n
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
 if __name__ == "__main__":
-    checkpoint_path = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_0.5%_BigEarthNet\last.ckpt'
-    metadata_path = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\metadata_0.5_percent.csv'
-    dataset_dir = DatasetConfig.dataset_paths["0.5"]
+    checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\epoch=09-val_loss=3.45.ckpt'
+    metadata_path = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
+    dataset_dir = DatasetConfig.dataset_paths["1"]
     model_class = BigEarthNetResNet18ModelTIF
     model_name = "ResNet18"
-    dataset_name = "0.5%_BigEarthNet"
+    dataset_name = "1%_BigEarthNet"
     bands = DatasetConfig.all_bands
     num_classes = 19
     in_channels = 12

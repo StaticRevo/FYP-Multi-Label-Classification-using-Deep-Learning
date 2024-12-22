@@ -72,7 +72,6 @@ def get_band_indices(band_names, all_band_names):
     return [all_band_names.index(band) for band in band_names]
 
 
-
 def get_labels_for_image(image_path, model, transform, patch_to_labels):
     # Load and preprocess the image
     with rasterio.open(image_path) as src:

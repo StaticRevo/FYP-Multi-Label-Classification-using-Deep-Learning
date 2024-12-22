@@ -8,10 +8,11 @@ from utils.helper_functions import encode_label, get_band_indices
 
 # Dataset class for BigEarthNet dataset
 class BigEarthNetDatasetTIF(Dataset):
-    def __init__(self, *, df, root_dir, transforms=None, is_test=False, selected_bands=None, metadata_csv=None):
+    def __init__(self, *, df, root_dir, transforms=None, normalisation=None, is_test=False, selected_bands=None, metadata_csv=None):
         self.df = df
         self.root_dir = root_dir
         self.transforms = transforms
+        self.normalisation = normalisation
         self.is_test = is_test
         self.selected_bands = selected_bands if selected_bands is not None else DatasetConfig.rgb_bands
         self.metadata = metadata_csv
@@ -32,11 +33,16 @@ class BigEarthNetDatasetTIF(Dataset):
             image = src.read()  
             image = image[self.selected_band_indices, :, :]
         
-        # Image is convered to a tensor before applying transforms
+        # Image is transformed before normalisation
+        #if self.transforms:
+            #image = self.transforms(image)
+
+        # Image is convered to a tensor before applying normalisation
         image = torch.tensor(image, dtype=torch.float32)
 
-        if self.transforms:
-            image = self.transforms(image)
+        # Image is normalised
+        if self.normalisation:
+            image = self.normalisation(image)
 
         label = self.get_label(image_path)
 

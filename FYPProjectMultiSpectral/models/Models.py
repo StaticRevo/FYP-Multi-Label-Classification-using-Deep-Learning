@@ -52,6 +52,7 @@ class CustomModel(BaseModel):
         )
 
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels)
+        
 # ResNet18 Model
 class BigEarthNetResNet18ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):

@@ -12,6 +12,7 @@ from config.config import ModelConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from contextlib import redirect_stdout
 import matplotlib.pyplot as plt
+from prettytable import PrettyTable 
 
 # Base model class for all models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -20,11 +21,11 @@ class BaseModel(pl.LightningModule):
         super(BaseModel, self).__init__()
         # Model 
         self.model = model
-        self.model.to(device)
         self.num_classes = num_classes
         self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
         
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) # Define loss function
+        # Loss function
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
 
         # Accuracy metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
@@ -43,7 +44,8 @@ class BaseModel(pl.LightningModule):
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
 
-        self.gradients = None
+        # Storage for per-class metrics
+        self.per_class_metrics = {}
 
     def forward(self, x):
         x = self.model(x)
@@ -92,8 +94,34 @@ class BaseModel(pl.LightningModule):
         self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True, batch_size=len(x))
         
+        # # Store per-class metrics during testing
+        # if phase == 'test':
+        #     self.per_class_metrics = {
+        #         "f1": self.test_f1(logits, y).cpu().tolist(),
+        #         "precision": self.test_precision(logits, y).cpu().tolist(),
+        #         "recall": self.test_recall(logits, y).cpu().tolist(),
+        #         "accuracy": self.test_acc(logits, y).cpu().tolist()
+        #     }
         return loss
    
+    def on_test_epoch_end(self):
+        if not self.per_class_metrics:
+            return
+        
+        table = PrettyTable()
+        table.field_names = ["Class", "F1 Score", "Precision", "Recall", "Accuracy"]
+
+        for i in range(self.num_classes):
+            table.add_row([
+                f"Class {i}",
+                round(self.per_class_metrics["f1"][i], 4),
+                round(self.per_class_metrics["precision"][i], 4),
+                round(self.per_class_metrics["recall"][i], 4),
+                round(self.per_class_metrics["accuracy"][i], 4),
+            ])
+
+        print(f"\nTest Metrics per Class:\n{table}")
+    
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()
         save_dir = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', filename)

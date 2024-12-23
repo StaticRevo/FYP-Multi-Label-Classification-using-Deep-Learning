@@ -16,37 +16,43 @@ import timm
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         custom_model = nn.Sequential(
-            # First Convolutional Block
+            # -- Block 1 --
             nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(inplace=True),
 
-            # Second Convolutional Block
+            # Residual Block (64->64)
+            ResidualBlock(in_channels=64, out_channels=64, stride=1),
+
+            # -- Block 2 --
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(inplace=True),
             
-            # Third Convolutional Block with Residual Block
-            ResidualBlock(in_channels=128, out_channels=256, stride=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            # Residual Block (128->128) and SE Module
+            ResidualBlock(in_channels=128, out_channels=128, stride=1),
+            SE(in_channels=128, config=ModuleConfig),
 
-            # Fourth Convolutional Block with SE Module
-            nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1),
+            # -- BLock 3 -- 
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+
+            # Residual Block (128->256) and ChannelAttention Module
+            ResidualBlock(in_channels=256, out_channels=256, stride=1),
+            ChannelAttention(in_channels=256, reduction_ratio=16),
+
+            # -- Block 4 -- 
+            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(512),
-            SE(in_channels=512, config=ModuleConfig),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(inplace=True),
 
-            # Fifth Convolutional Block with Channel Attention Module
-            nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(1024),
-            ChannelAttention(in_channels=1024, reduction_ratio=16),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            # Residual Block (512->512) and ECA Module
+            ResidualBlock(in_channels=512, out_channels=512, stride=1),
 
-            # Fully Connected Layers
+            # Global Pool and Classifier
+            nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(1024 * 3 * 3, 512),  # Updated input size
             nn.Dropout(ModelConfig.dropout),
             nn.Linear(512, num_classes)
         )
@@ -58,17 +64,20 @@ class BigEarthNetResNet18ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         resnet_model = resnet18(weights=model_weights)
 
-        # Modify first convolution layer to accept multiple channels
-        original_conv1 = resnet_model.conv1
-        resnet_model.conv1 = nn.Conv2d(
-            in_channels=in_channels,  
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=original_conv1.bias,
-        )
-        nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify first convolution layer to accept multiple channels
+            original_conv1 = resnet_model.conv1
+            resnet_model.conv1 = nn.Conv2d(
+                in_channels=in_channels,  
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+             bias=original_conv1.bias,
+            )
+            nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer
         resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
@@ -78,7 +87,7 @@ class BigEarthNetResNet18ModelTIF(BaseModel):
 # ResNet50 Model
 class BigEarthNetResNet50ModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
-        resnet_model = resnet50(weights=ResNet50_Weights.DEFAULT)
+        resnet_model = resnet50(weights=model_weights)
 
         # Modify first convolution layer to accept multiple channels
         original_conv1 = resnet_model.conv1

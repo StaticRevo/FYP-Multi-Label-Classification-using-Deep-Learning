@@ -23,8 +23,9 @@ from config.config import DatasetConfig
 from torchcam.methods import GradCAM
 from torchcam.utils import overlay_mask
 from torchvision.transforms.functional import to_pil_image
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import *
 from sklearn.preprocessing import label_binarize
+import math
 
 def decode_target(
     target: list,
@@ -420,8 +421,8 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
     
     sigmoid_outputs_list = []
 
-    # Iterate over all test images with a progress bar
-    for image_file in tqdm(test_metadata['patch_id'].apply(lambda x: f"{x}.tif").tolist(), desc="Processing Images"):
+    # Process only the first 10 test images
+    for image_file in tqdm(test_metadata['patch_id'].iloc[:10].apply(lambda x: f"{x}.tif").tolist(), desc="Processing Images"):
         image_path = os.path.join(dataset_dir, image_file)
         with rasterio.open(image_path) as src:
             # Read all bands
@@ -447,3 +448,103 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
 
     return np.array(sigmoid_outputs_list)
 
+def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=None, cols=4):
+    mcm = multilabel_confusion_matrix(all_labels, all_preds)
+    n_labels = len(mcm)
+
+    # Determine how many rows we need
+    rows = math.ceil(n_labels / cols)
+
+    # Create a figure with (rows x cols) subplots
+    fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 3 * rows))
+    # If there's only 1 row, axes is not a 2D array; make it a list for consistency
+    axes = axes if isinstance(axes, np.ndarray) else np.array([axes])
+    axes = axes.flatten()  # flatten in case we have multiple rows
+
+    for i, matrix in enumerate(mcm):
+        # Flatten the 2x2 matrix into TN, FP, FN, TP
+        tn, fp, fn, tp = matrix.ravel()
+        label_name = class_names[i] if class_names else f"Label {i}"
+
+        # Plot a heatmap for this label's 2x2 matrix on the i-th subplot
+        ax = axes[i]
+        sns.heatmap(
+            matrix,
+            annot=True,
+            fmt='d',
+            cmap='Blues',
+            cbar=False,
+            xticklabels=['Pred 0', 'Pred 1'],
+            yticklabels=['True 0', 'True 1'],
+            ax=ax
+        )
+        ax.set_title(f'{label_name}\n(TN={tn}, FP={fp}, FN={fn}, TP={tp})')
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('True')
+
+    # If there are leftover subplots (in case cols*rows > n_labels), hide them
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.4, hspace=0.6)  # Adjust space between subplots
+    plt.show()
+
+
+def compute_aggregated_metrics(all_labels, all_preds):
+    metrics_dict = {}
+    
+    # Micro-average: aggregates the contributions of all classes 
+    # to compute the average metric
+    metrics_dict['precision_micro'] = precision_score(all_labels, all_preds, average='micro', zero_division=0)
+    metrics_dict['recall_micro'] = recall_score(all_labels, all_preds, average='micro', zero_division=0)
+    metrics_dict['f1_micro'] = f1_score(all_labels, all_preds, average='micro', zero_division=0)
+
+    # Macro-average: computes metric independently for each class 
+    # and then takes the average
+    metrics_dict['precision_macro'] = precision_score(all_labels, all_preds, average='macro', zero_division=0)
+    metrics_dict['recall_macro'] = recall_score(all_labels, all_preds, average='macro', zero_division=0)
+    metrics_dict['f1_macro'] = f1_score(all_labels, all_preds, average='macro', zero_division=0)
+
+    # Hamming loss: fraction of labels incorrectly predicted
+    metrics_dict['hamming_loss'] = hamming_loss(all_labels, all_preds)
+
+    # Subset accuracy: only 1 if *all* labels match exactly
+    metrics_dict['subset_accuracy'] = accuracy_score(all_labels, all_preds)
+
+    return metrics_dict
+
+def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None):
+    num_classes = all_labels.shape[1]
+    cooccur = np.zeros((num_classes, num_classes), dtype=int)
+
+    # For each sample
+    for n in range(all_labels.shape[0]):
+        # find all true labels
+        true_idxs = np.where(all_labels[n] == 1)[0]
+        # find all predicted labels
+        pred_idxs = np.where(all_preds[n] == 1)[0]
+        # increment co-occurrences
+        for i in true_idxs:
+            for j in pred_idxs:
+                cooccur[i, j] += 1
+
+    plt.figure(figsize=(14, 12))
+    sns.heatmap(
+        cooccur,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=class_names if class_names else range(num_classes),
+        yticklabels=class_names if class_names else range(num_classes),
+        cbar_kws={'shrink': 0.75}
+    )
+    plt.xlabel("Predicted Label", fontsize=12)
+    plt.ylabel("True Label", fontsize=12)
+    plt.title("Multi-label Co-occurrence Matrix", fontsize=15)
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    plt.tight_layout(pad=2.0)
+    plt.show()
+
+    return cooccur

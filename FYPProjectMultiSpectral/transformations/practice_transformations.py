@@ -6,7 +6,7 @@ from PIL import Image
 from transformations.transforms import TransformsConfig
 from config.config import DatasetConfig
 import torch
-from dataset_tif import BigEarthNetDatasetTIF
+from FYPProjectMultiSpectral.dataset import BigEarthNetDatasetTIF
 
 root_dir = DatasetConfig.dataset_path
 metadata_csv = DatasetConfig.metadata_csv

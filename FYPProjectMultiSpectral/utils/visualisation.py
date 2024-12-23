@@ -1,37 +1,39 @@
-import numpy as np
+import torch
+import math
 import matplotlib.pyplot as plt
 
-# Define the hook function
 activations = {}
 
-def get_activation(name):
-    def hook(model, input, output):
-        activations[name] = output.detach()
-    return hook
+def forward_hook(module, input, output):
+    activations[module] = output
 
-# Visualize activations function
-def visualize_activations(layer_names, activations):
-    images_per_row = 16
-    for layer_name in layer_names:
-        layer_activation = activations[layer_name].squeeze().cpu().numpy()
-        n_features = layer_activation.shape[0] 
-        size = layer_activation.shape[1] 
-        n_cols = n_features // images_per_row  
-        display_grid = np.zeros((size * n_cols, images_per_row * size))
-        for col in range(n_cols):  
-            for row in range(images_per_row):
-                channel_image = layer_activation[col * images_per_row + row]
-                channel_image -= channel_image.mean() 
-                channel_image /= channel_image.std()
-                channel_image *= 64
-                channel_image += 128
-                channel_image = np.clip(channel_image, 0, 255).astype('uint8')
-                display_grid[col * size : (col + 1) * size,  
-                             row * size : (row + 1) * size] = channel_image
-        scale = 1. / size
-        plt.figure(figsize=(scale * display_grid.shape[1],
-                            scale * display_grid.shape[0]))
-        plt.title(layer_name)
-        plt.grid(False)
-        plt.imshow(display_grid, aspect='auto', cmap='viridis')
+def register_hooks(model):
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            module.register_forward_hook(forward_hook)
+
+def clear_activations():
+    activations.clear()
+
+def visualize_activations(num_filters=8):
+    for layer_module, activation in activations.items():
+        # shape: [batch_size, n_channels, height, width]
+        # For a single-image batch, squeeze out the batch dimension
+        act = activation.squeeze(0).detach().cpu().numpy()  # shape: [n_channels, height, width]
+
+        n_filters = min(num_filters, act.shape[0])
+        grid_size = int(math.ceil(math.sqrt(n_filters)))
+
+        fig, axes = plt.subplots(grid_size, grid_size, figsize=(12, 12))
+        axes = axes.flatten()
+
+        for i in range(grid_size * grid_size):
+            if i < n_filters:
+                axes[i].imshow(act[i], cmap='viridis')
+                axes[i].axis('off')
+            else:
+                axes[i].remove()
+
+        plt.suptitle(f"Activations from layer: {layer_module}", fontsize=16)
+        plt.tight_layout()
         plt.show()

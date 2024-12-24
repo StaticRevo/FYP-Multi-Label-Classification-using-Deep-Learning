@@ -1,6 +1,7 @@
 import torch
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 
 activations = {}
 
@@ -17,8 +18,6 @@ def clear_activations():
 
 def visualize_activations(num_filters=8):
     for layer_module, activation in activations.items():
-        # shape: [batch_size, n_channels, height, width]
-        # For a single-image batch, squeeze out the batch dimension
         act = activation.squeeze(0).detach().cpu().numpy()  # shape: [n_channels, height, width]
 
         n_filters = min(num_filters, act.shape[0])
@@ -37,3 +36,24 @@ def visualize_activations(num_filters=8):
         plt.suptitle(f"Activations from layer: {layer_module}", fontsize=16)
         plt.tight_layout()
         plt.show()
+
+def show_rgb_from_batch(image_tensor):
+    image_cpu = image_tensor.detach().cpu().numpy()
+
+    red = image_cpu[3]
+    green = image_cpu[2]
+    blue = image_cpu[1]
+
+    red = (red - red.min()) / (red.max() - red.min() + 1e-8)
+    green = (green - green.min()) / (green.max() - green.min() + 1e-8)
+    blue = (blue - blue.min()) / (blue.max() - blue.min() + 1e-8)
+
+    # Stack into an RGB image
+    rgb_image = np.stack([red, green, blue], axis=-1)
+
+    # Plot
+    plt.figure(figsize=(6, 6))
+    plt.imshow(rgb_image)
+    plt.title("RGB Visualization of Multi-Spectral Image")
+    plt.axis('off')
+    plt.show()

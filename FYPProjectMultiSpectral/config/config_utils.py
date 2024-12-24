@@ -17,9 +17,7 @@ def normalize_class_weights(class_weights):
 def calculate_class_weights(metadata_csv):
     metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
 
-    class_labels = set()
-    for labels in metadata_csv['labels']:
-        class_labels.update(labels)
+    class_labels = calculate_class_labels(metadata_csv)
 
     label_counts = metadata_csv['labels'].explode().value_counts()
     total_counts = label_counts.sum()
@@ -33,10 +31,15 @@ def calculate_class_weights(metadata_csv):
 
 # Function used to calculate the class labels within the metadata
 def calculate_class_labels(metadata_csv):
+    # Apply the cleaning and parsing function to the 'labels' column
     metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels)
 
+    # Initialize an empty set to collect unique class labels
     class_labels = set()
     for labels in metadata_csv['labels']:
         class_labels.update(labels)
+
+    # Convert the set to a sorted list
+    class_labels = sorted(class_labels)
 
     return class_labels

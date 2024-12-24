@@ -46,7 +46,7 @@ def choose_and_run_model_gui():
     style.configure("TButton", padding=5, width=15, font=('Arial', 10, 'bold'))
 
     # Set minimum size for the window
-    root.geometry("450x700")
+    root.geometry("450x750")
     
     # Model selection
     model_frame = ttk.LabelFrame(root, text="Choose a model to run", padding="10")
@@ -76,6 +76,13 @@ def choose_and_run_model_gui():
     for idx, (key, dataset) in enumerate(dataset_selection.items(), start=1):
         ttk.Radiobutton(dataset_frame, text=dataset, variable=dataset_var, value=key).grid(row=idx, column=0, sticky='w', padx=10)
 
+    # Train/Test selection
+    train_test_frame = ttk.LabelFrame(root, text="Choose to Train or Train and Test", padding="10")
+    train_test_frame.grid(row=2, column=0, columnspan=2, padx=20, pady=10, sticky='ew')
+    train_test_var = tk.StringVar(value='train')
+    ttk.Radiobutton(train_test_frame, text="Train Only", variable=train_test_var, value='train').grid(row=1, column=0, sticky='w', padx=10)
+    ttk.Radiobutton(train_test_frame, text="Train and Test", variable=train_test_var, value='train_test').grid(row=2, column=0, sticky='w', padx=10)
+
     # Function to run the model
     def run_model():
         model_choice = model_var.get()
@@ -89,6 +96,9 @@ def choose_and_run_model_gui():
 
         dataset_choice = dataset_var.get()
         selected_dataset = dataset_selection.get(dataset_choice)
+
+        train_test_choice = train_test_var.get()
+        test = 'True' if train_test_choice == 'train_test' else 'False'
 
         # Show loading dialog with progress bar
         loading_window = Toplevel(root)
@@ -105,7 +115,7 @@ def choose_and_run_model_gui():
 
         def model_training_thread():
             try:
-                subprocess.run(['python', 'FYPProjectMultiSpectral\\trainer.py', model_name, weights, selected_bands, selected_dataset])
+                subprocess.run(['python', 'FYPProjectMultiSpectral\\trainer.py', model_name, weights, selected_bands, selected_dataset, test])
                 messagebox.showinfo("Success", f"Model {model_name} with {selected_bands} and {selected_dataset} dataset is running.")
             except Exception as e:
                 messagebox.showerror("Error", f"An error occurred: {e}")
@@ -122,14 +132,15 @@ def choose_and_run_model_gui():
         weights_var.set('1')
         band_var.set('1')
         dataset_var.set('1')
+        train_test_var.set('train')
 
     # Run button
     run_button = ttk.Button(root, text="Run Model", command=run_model)
-    run_button.grid(row=2, column=0, columnspan=2, pady=20)
+    run_button.grid(row=3, column=0, columnspan=2, pady=20)
 
     # Reset button
     reset_button = ttk.Button(root, text="Reset", command=reset_selections)
-    reset_button.grid(row=3, column=0, columnspan=2, pady=10)
+    reset_button.grid(row=4, column=0, columnspan=2, pady=10)
 
     root.mainloop()
 

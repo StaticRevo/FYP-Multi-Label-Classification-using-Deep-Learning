@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from utils.helper_functions import *
 from utils.test_functions import *
+from utils.visualisation import *
 from models.models import *
 
 # Testing the model
@@ -53,7 +54,7 @@ def main():
 
     # Initialize the data module
     data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
-    data_module.setup(stage=None)
+    data_module.setup(stage='test')
 
     model_mapping = {
         'custom_model': (CustomModel, 'custom_model'),
@@ -85,8 +86,11 @@ def main():
     else:
         raise ValueError(f"Model {model_name} not recognized.")
     
+    class_labels = DatasetConfig.class_labels
     model.eval()
 
+    register_hooks(model)
+    
     # Model Testing with mixed precision
     trainer = pl.Trainer(
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
@@ -126,28 +130,22 @@ def main():
     all_preds = data['all_preds']
     all_labels = data['all_labels']
 
-    # Check the shapes
-    print(f"Predictions shape: {all_preds.shape}")
-    print(f"Labels shape: {all_labels.shape}")
-
-    sigmoid_outputs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.all_bands)
-    print("Sigmoid Outputs for all test images:", sigmoid_outputs)
-
-    # Plot confusion matrix
-    plot_confusion_matrix(all_preds, all_labels, DatasetConfig)
-    plot_normalized_confusion_matrix(all_preds, all_labels, DatasetConfig)
-
-    # Predict and display a random image
-    predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.7, bands=bands)
-
-    # Get the target layer for the selected model
-    if model_name in model_layer_mapping:
-        selected_layer = model_layer_mapping[model_name]
+    per_class_metrics_path = f'test_per_class_metrics_ResNet.json'
+    if os.path.exists(per_class_metrics_path):
+        with open(per_class_metrics_path, 'r') as f:
+            per_class_metrics = json.load(f)
+        
+        # Print per-class metrics with class labels
+        print("\nPer-Class Metrics:")
+        for metric, values in per_class_metrics.items():
+            if metric == 'class_labels':
+                continue  # Skip class_labels key
+            print(f"\n{metric.capitalize()}:")
+            for i, val in enumerate(values):
+                class_name = class_labels[i] if i < len(class_labels) else f"Class {i}"
+                print(f"  {i} ({class_name}): {val:.4f}")
     else:
-        raise ValueError(f"Model {model_name} not recognized.")
-
-    # Plot ROC AUC curve
-    plot_roc_auc(all_labels, all_preds, DatasetConfig.class_labels)
+        print(f"\nPer-class metrics file not found at {per_class_metrics_path}")
     
 if __name__ == "__main__":
     main()

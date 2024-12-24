@@ -8,48 +8,64 @@ from torchmetrics.classification import (
 from torchsummary import summary
 from torchviz import make_dot
 import os
-from config.config import ModelConfig
+from config.config import ModelConfig, DatasetConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from contextlib import redirect_stdout
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable 
+from .metrics import SubsetAccuracy
+import numpy as np
+import json
 
 # Base model class for all models
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class BaseModel(pl.LightningModule):
     def __init__(self, model, num_classes, class_weights, in_channels):
         super(BaseModel, self).__init__()
-        # Model 
         self.model = model
         self.num_classes = num_classes
         self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+        self.class_labels = DatasetConfig.class_labels  
         
-        # Loss function
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
 
-        # Accuracy metrics
+        # Aggregate Metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.test_acc = MultilabelAccuracy(num_labels=self.num_classes)
-        # Recall metrics
+
         self.train_recall = MultilabelRecall(num_labels=self.num_classes)
         self.val_recall = MultilabelRecall(num_labels=self.num_classes)
         self.test_recall = MultilabelRecall(num_labels=self.num_classes)
-        # Precision metrics
+
         self.train_precision = MultilabelPrecision(num_labels=self.num_classes)
         self.val_precision = MultilabelPrecision(num_labels=self.num_classes)
         self.test_precision = MultilabelPrecision(num_labels=self.num_classes)
-        # F1 Score metrics
+
         self.train_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.val_f1 = MultilabelF1Score(num_labels=self.num_classes)
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
 
+        self.hamming_loss = MultilabelHammingDistance(num_labels=self.num_classes)
+        self.subset_accuracy = SubsetAccuracy()
+
+        # Per-Class Metrics for Testing Only
+        self.test_precision_per_class = MultilabelPrecision(num_labels=self.num_classes, average='none')
+        self.test_recall_per_class = MultilabelRecall(num_labels=self.num_classes, average='none')
+        self.test_f1_per_class = MultilabelF1Score(num_labels=self.num_classes, average='none')
+        self.test_acc_per_class = MultilabelAccuracy(num_labels=self.num_classes, average='none')
+
         # Storage for per-class metrics
-        self.per_class_metrics = {}
+        self.per_class_metrics = {
+            'precision': [],
+            'recall': [],
+            'f1': [],
+            'accuracy': []
+        }
 
     def forward(self, x):
-        x = self.model(x)
-        return x
+        return self.model(x)
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
@@ -81,51 +97,102 @@ class BaseModel(pl.LightningModule):
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
 
-        # Calculate metrics
-        acc = getattr(self, f'{phase}_acc')(logits, y)
-        recall = getattr(self, f'{phase}_recall')(logits, y)
-        f1 = getattr(self, f'{phase}_f1')(logits, y)
-        precision = getattr(self, f'{phase}_precision')(logits, y)
+        # Convert logits to binary predictions
+        probs = torch.sigmoid(logits)
+        preds = probs > 0.5
 
-        # Log metrics
+        # Convert to int for metrics calculation
+        preds = preds.int()
+        y = y.int()
+
+        # Calculate aggregate metrics
+        acc = getattr(self, f'{phase}_acc')(preds, y)
+        recall = getattr(self, f'{phase}_recall')(preds, y)
+        f1 = getattr(self, f'{phase}_f1')(preds, y)
+        precision = getattr(self, f'{phase}_precision')(preds, y)
+        hamming_distance = self.hamming_loss(preds, y)
+        hamming_loss_val = hamming_distance / y.size(1)
+        self.subset_accuracy.update(preds, y)
+
+        # Log aggregate metrics
         self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_acc', acc, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_recall', recall, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True, batch_size=len(x))
-        
-        # # Store per-class metrics during testing
-        # if phase == 'test':
-        #     self.per_class_metrics = {
-        #         "f1": self.test_f1(logits, y).cpu().tolist(),
-        #         "precision": self.test_precision(logits, y).cpu().tolist(),
-        #         "recall": self.test_recall(logits, y).cpu().tolist(),
-        #         "accuracy": self.test_acc(logits, y).cpu().tolist()
-        #     }
+        self.log(f'{phase}_hamming_loss', hamming_loss_val, on_epoch=True, prog_bar=True, batch_size=len(x))
+        self.log(f'{phase}_subset_accuracy', self.subset_accuracy, on_epoch=True, prog_bar=True, batch_size=len(x))
+
+        # Compute and log per-class metrics only during testing
+        if phase == 'test':
+            # Compute per-class metrics
+            per_class_precision = self.test_precision_per_class(preds, y).cpu().tolist()
+            per_class_recall = self.test_recall_per_class(preds, y).cpu().tolist()
+            per_class_f1 = self.test_f1_per_class(preds, y).cpu().tolist()
+            per_class_acc = self.test_acc_per_class(preds, y).cpu().tolist()
+
+            # Store metrics
+            self.per_class_metrics['precision'].append(per_class_precision)
+            self.per_class_metrics['recall'].append(per_class_recall)
+            self.per_class_metrics['f1'].append(per_class_f1)
+            self.per_class_metrics['accuracy'].append(per_class_acc)
+
+            # Log per-class metrics to the logger (e.g., TensorBoard)
+            for i in range(self.num_classes):
+                class_name = self.class_labels[i] if i < len(self.class_labels) else f"Class {i}"
+                self.log(f'test_precision_class_{i}', per_class_precision[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'test_recall_class_{i}', per_class_recall[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'test_f1_class_{i}', per_class_f1[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'test_acc_class_{i}', per_class_acc[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+
         return loss
    
     def on_test_epoch_end(self):
-        if not self.per_class_metrics:
+        # Check if per-class metrics have been collected
+        if not any(self.per_class_metrics.values()):
+            print("No per-class metrics were collected during testing.")
             return
-        
+
+        # Aggregate per-class metrics by averaging over batches
+        avg_precision = np.mean(self.per_class_metrics['precision'], axis=0)
+        avg_recall = np.mean(self.per_class_metrics['recall'], axis=0)
+        avg_f1 = np.mean(self.per_class_metrics['f1'], axis=0)
+        avg_acc = np.mean(self.per_class_metrics['accuracy'], axis=0)
+
+        # Create a PrettyTable for displaying per-class metrics with labels
         table = PrettyTable()
-        table.field_names = ["Class", "F1 Score", "Precision", "Recall", "Accuracy"]
+        table.field_names = ["Class Index", "Class Name", "Precision", "Recall", "F1 Score", "Accuracy"]
 
         for i in range(self.num_classes):
+            class_name = self.class_labels[i] if i < len(self.class_labels) else f"Class {i}"
             table.add_row([
-                f"Class {i}",
-                round(self.per_class_metrics["f1"][i], 4),
-                round(self.per_class_metrics["precision"][i], 4),
-                round(self.per_class_metrics["recall"][i], 4),
-                round(self.per_class_metrics["accuracy"][i], 4),
+                f"{i}", 
+                class_name,
+                round(avg_precision[i], 4),
+                round(avg_recall[i], 4),
+                round(avg_f1[i], 4),
+                round(avg_acc[i], 4)
             ])
 
         print(f"\nTest Metrics per Class:\n{table}")
-    
+
+        # Save these metrics to a JSON file with class labels
+        metrics_to_save = {
+            'precision': avg_precision.tolist(),
+            'recall': avg_recall.tolist(),
+            'f1': avg_f1.tolist(),
+            'accuracy': avg_acc.tolist(),
+            'class_labels': self.class_labels  # Include class labels for reference
+        }
+        save_path = f'test_per_class_metrics_{self.model.__class__.__name__}.json'
+        with open(save_path, 'w') as f:
+            json.dump(metrics_to_save, f, indent=4)
+        print(f"Per-class metrics saved to {save_path}")
+
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()
         save_dir = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', filename)
-        save_path = os.path.join(save_dir, f'{filename}_summary.txt)')
+        save_path = os.path.join(save_dir, f'{filename}_summary.txt')
         os.makedirs(save_dir, exist_ok=True)  
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -264,16 +264,26 @@ def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_band
 def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
 
+    # Map band names to indices
+    band_indices = {"B02": 1, "B03": 2, "B04": 3}  
+    rgb_band_indices = [band_indices["B04"], band_indices["B03"], band_indices["B02"]]  # Red, Green, Blue
+
     for i, (pred, true) in enumerate(zip(all_preds, all_true_labels)):
         # Convert numeric predicted labels to text
         predicted_labels_indices = [idx for idx, value in enumerate(pred) if value == 1]
         true_labels_indices = [idx for idx, value in enumerate(true) if value == 1]
 
+        # Get the image and select RGB bands for visualization
+        image_tensor = dataloader.dataset[i][0]  #
+        image_rgb = image_tensor[rgb_band_indices, :, :]  # Select RGB bands
+        image_rgb = image_rgb.permute(1, 2, 0).numpy()  
+
+        # Normalize RGB bands for visualization
+        image_rgb = (image_rgb - image_rgb.min()) / (image_rgb.max() - image_rgb.min() + 1e-8)
+
         # Display the image, true labels, and predicted labels
         plt.figure(figsize=(10, 10))
-        image = dataloader.dataset[i][0]
-        image = image.permute(1, 2, 0).numpy()  # Convert to (H, W, C) format
-        plt.imshow(image)
+        plt.imshow(image_rgb)
         plt.title(
             f"Image {i}\n"
             f"True Labels: {true_labels_indices}\n"
@@ -362,7 +372,6 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
     plt.tight_layout()
     plt.subplots_adjust(wspace=0.4, hspace=0.6)  
     plt.show()
-
 
 def compute_aggregated_metrics(all_labels, all_preds):
     metrics_dict = {}

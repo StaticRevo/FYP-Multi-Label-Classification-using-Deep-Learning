@@ -2,9 +2,12 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import torch.nn as nn
+from PIL import Image
 
 activations = {}
 
+# Visualisation functions for activations within the model
 def forward_hook(module, input, output):
     activations[module] = output
 
@@ -18,7 +21,7 @@ def clear_activations():
 
 def visualize_activations(num_filters=8):
     for layer_module, activation in activations.items():
-        act = activation.squeeze(0).detach().cpu().numpy()  # shape: [n_channels, height, width]
+        act = activation.squeeze(0).detach().cpu().numpy()  
 
         n_filters = min(num_filters, act.shape[0])
         grid_size = int(math.ceil(math.sqrt(n_filters)))
@@ -57,3 +60,4 @@ def show_rgb_from_batch(image_tensor):
     plt.title("RGB Visualization of Multi-Spectral Image")
     plt.axis('off')
     plt.show()
+

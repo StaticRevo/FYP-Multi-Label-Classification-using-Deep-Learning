@@ -108,8 +108,8 @@ class BigEarthNetResNet50ModelTIF(BaseModel):
 
 # VGG16 Model
 class BigEarthNetVGG16ModelTIF(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels, weights):
-        vgg_model = vgg16(weights=weights)
+    def __init__(self, class_weights, num_classes, in_channels, model_weights):
+        vgg_model = vgg16(weights=model_weights)
 
         # Modify the first convolutional layer
         original_conv1 = vgg_model.features[0] 
@@ -133,8 +133,8 @@ class BigEarthNetVGG16ModelTIF(BaseModel):
 
 # VGG19 Model
 class BigEarthNetVGG19ModelTIF(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels, weights):
-        vgg_model = vgg19(weights=weights)
+    def __init__(self, class_weights, num_classes, in_channels, model_weights):
+        vgg_model = vgg19(weights=model_weights)
 
         # Modify the first convolutional layer
         original_conv1 = vgg_model.features[0]  # Access the first Conv2d layer
@@ -187,9 +187,8 @@ class BigEarthNetEfficientNetV2MModelTIF(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights):
         efficientnet_model = efficientnet_v2_m(weights=model_weights)
 
-        # Modify the first convolutional layer
-        original_conv1 = efficientnet_model.conv_stem
-        efficientnet_model.conv_stem = nn.Conv2d(
+        original_conv1 = efficientnet_model.features[0][0]  
+        efficientnet_model.features[0][0] = nn.Conv2d(
             in_channels=in_channels,  
             out_channels=original_conv1.out_channels,
             kernel_size=original_conv1.kernel_size,
@@ -197,11 +196,11 @@ class BigEarthNetEfficientNetV2MModelTIF(BaseModel):
             padding=original_conv1.padding,
             bias=original_conv1.bias
         )
-        nn.init.kaiming_normal_(efficientnet_model.conv_stem.weight, mode='fan_out', nonlinearity='relu')
+        nn.init.kaiming_normal_(efficientnet_model.features[0][0].weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer
-        efficientnet_model.classifier = nn.Linear(
-            efficientnet_model.classifier.in_features, num_classes
+        efficientnet_model.classifier[1] = nn.Linear(
+            efficientnet_model.classifier[1].in_features, num_classes
         )
 
         super(BigEarthNetEfficientNetV2MModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels)

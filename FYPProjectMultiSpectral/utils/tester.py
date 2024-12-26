@@ -68,17 +68,6 @@ def main():
         'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer'),
         'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer')
     }
-    model_layer_mapping = {
-        'custom_model': '0',
-        'ResNet18': 'layer4',
-        'ResNet50': 'layer4',
-        'VGG16': 'features.29',
-        'VGG19': 'features.35',
-        'DenseNet121': 'features.denseblock4',
-        'EfficientNetB0': 'features.7',
-        'Vit-Transformer': 'blocks.11',  
-        'Swin-Transformer': 'layers.3'
-    }
 
     if model_name in model_mapping:
         model_class, _ = model_mapping[model_name]  

@@ -158,7 +158,7 @@ def main():
     metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_precision', 'val_recall', 'val_subset_accuracy', 'val_hamming_loss']
     best_metrics_path = os.path.join(checkpoint_dir, 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
-
+    
     # Model Training with custom callbacks
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
@@ -212,7 +212,7 @@ def main():
 
     if test_variable == 'True':
         # Run test
-        subprocess.run([
+        args = [
             'python', 
             'FYPProjectMultiSpectral\\tester.py', 
             model_name, 
@@ -227,7 +227,15 @@ def main():
             metadata_path, 
             dataset_dir, 
             json.dumps(bands)
-        ])
+        ]
+
+    # Print the arguments
+    print("Arguments to subprocess.run:")
+    for arg in args:
+        print(arg)
+
+    # Run the subprocess
+    #subprocess.run(args)
 
 
 if __name__ == "__main__":

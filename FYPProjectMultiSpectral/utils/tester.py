@@ -23,7 +23,7 @@ def main():
     # Parse command-line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
-    selected_bands = sys.argv[3]
+    selected_bands = sys.argv[3] # string of selected bands ex. all_labels
     selected_dataset = sys.argv[4]
     acc_checkpoint_path = sys.argv[5]
     loss_checkpoint_path = sys.argv[6]
@@ -32,10 +32,11 @@ def main():
     class_weights = json.loads(sys.argv[9])
     metadata_csv = pd.read_csv(sys.argv[10])
     dataset_dir = sys.argv[11]
-    bands = json.loads(sys.argv[12])
+    bands = json.loads(sys.argv[12]) # List of selected bands
 
     if weights == 'None':
         weights = None
+
     # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\n3. Final ({last_checkpoint_path})\nChoice [1/2/3]: ")
     if checkpoint_choice == "1":
@@ -87,54 +88,6 @@ def main():
         precision='16-mixed'  
     )
 
-    # Run test
-    trainer.test(model, datamodule=data_module)
 
-    # Collect predictions and true labels
-    all_preds = []
-    all_labels = []
-
-    # Add progress bar using tqdm
-    for batch in tqdm(data_module.test_dataloader(), desc="Processing Batches"):
-        inputs, labels = batch
-        inputs = inputs.to(model.device)  
-        labels = labels.to(model.device)  
-        preds = model(inputs).sigmoid() > 0.5  
-        all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(labels.cpu().numpy())
-
-    # Convert lists to numpy arrays
-    all_preds = np.array(all_preds)
-    all_labels = np.array(all_labels)
-
-    results_dir = f"FYPProjectMultiSpectral/experiments/results/{model_name}_{selected_bands}_{weights}_{selected_dataset}"
-    os.makedirs(results_dir, exist_ok=True)
-
-    # Save predictions and true labels in an npz file
-    save_path = os.path.join(results_dir, 'test_predictions.npz')
-    np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
-
-    # Load predictions and true labels
-    data = np.load(save_path)
-    all_preds = data['all_preds']
-    all_labels = data['all_labels']
-
-    per_class_metrics_path = f'test_per_class_metrics_ResNet.json'
-    if os.path.exists(per_class_metrics_path):
-        with open(per_class_metrics_path, 'r') as f:
-            per_class_metrics = json.load(f)
-        
-        # Print per-class metrics with class labels
-        print("\nPer-Class Metrics:")
-        for metric, values in per_class_metrics.items():
-            if metric == 'class_labels':
-                continue  # Skip class_labels key
-            print(f"\n{metric.capitalize()}:")
-            for i, val in enumerate(values):
-                class_name = class_labels[i] if i < len(class_labels) else f"Class {i}"
-                print(f"  {i} ({class_name}): {val:.4f}")
-    else:
-        print(f"\nPer-class metrics file not found at {per_class_metrics_path}")
-    
 if __name__ == "__main__":
     main()

@@ -24,6 +24,74 @@ from torchvision.transforms.functional import to_pil_image
 from sklearn.metrics import *
 from sklearn.preprocessing import label_binarize
 import math
+from config.config_utils import calculate_class_weights
+from ..dataloader import BigEarthNetTIFDataModule
+
+def load_model_and_data(checkpoint_path, metadata_csv, dataset_dir, model_class, 
+                        model_name, bands, num_classes, in_channels, model_weights):
+    # Initialize data module
+    data_module = BigEarthNetTIFDataModule(bands, dataset_dir, metadata_csv)
+    data_module.setup(stage='test')
+
+    # Calculate class weights
+    class_weights, _ = calculate_class_weights(metadata_csv)
+
+    # Load model from checkpoint
+    model = model_class.load_from_checkpoint(
+        checkpoint_path, class_weights=class_weights, 
+        num_classes=num_classes, in_channels=in_channels, 
+        model_weights=model_weights
+    )
+    model.eval()  # Set model to evaluation mode
+    return model, data_module, DatasetConfig.class_labels
+
+def calculate_and_save_metrics(model, data_module, model_name, dataset_name, class_labels):
+    """Calculates predictions, true labels, and saves metrics."""
+    all_preds, all_labels = [], []
+    test_loader = data_module.test_dataloader()
+
+    # Iterate through batches
+    for batch in tqdm(test_loader, desc="Processing Batches"):
+        inputs, labels = batch
+        inputs, labels = inputs.to(model.device), labels.to(model.device)
+
+        # Generate predictions
+        with torch.no_grad():
+            logits = model(inputs)
+            preds = torch.sigmoid(logits) > 0.5
+
+        all_preds.extend(preds.cpu().numpy().astype(int))
+        all_labels.extend(labels.cpu().numpy().astype(int))
+
+    # Convert lists to numpy arrays
+    all_preds, all_labels = np.array(all_preds), np.array(all_labels)
+
+    # Save predictions and labels
+    save_path = f'test_predictions_{model_name}_{dataset_name}.npz'
+    np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
+
+    return all_preds, all_labels
+
+def visualize_predictions_and_heatmaps(
+    model, data_module, predictions, true_labels, class_labels, model_name
+):
+    """Handles predictions, confusion matrices, and co-occurrence matrix visualization."""
+    # Display batch predictions
+    display_batch_predictions(
+        model, data_module.test_dataloader(), threshold=0.6, bands=DatasetConfig.all_bands
+    )
+
+    # Plot per-label confusion matrices
+    plot_per_label_confusion_matrices_grid(
+        true_labels, predictions, class_names=class_labels
+    )
+
+    # Compute and print aggregated metrics
+    scores = compute_aggregated_metrics(true_labels, predictions)
+    print("\nAggregated Metrics:\n", scores)
+
+    # Plot co-occurrence matrix
+    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels)
 
 def decode_target(
     target: list,
@@ -47,9 +115,6 @@ def encode_label(label: list, num_classes=DatasetConfig.num_classes):
             target[DatasetConfig.class_labels_dict[l]] = 1.0
     return target
 
-def select_random_img(metadata_csv, split='test'):
-    return random.choice(metadata_csv[metadata_csv['split'] == split]['patch_id'].apply(lambda x: f"{x}.tif").tolist())
-    
 def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, bands=DatasetConfig.rgb_bands):
     class_labels_dict = DatasetConfig.class_labels_dict
     reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict
@@ -157,7 +222,7 @@ def plot_roc_auc(all_labels, all_probs, class_labels):
         label=f'Micro-average (area = {roc_auc["micro"]:0.2f})'
     )
 
-    plt.plot([0, 1], [0, 1], 'k--', lw=2)  # diagonal line
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)  
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')

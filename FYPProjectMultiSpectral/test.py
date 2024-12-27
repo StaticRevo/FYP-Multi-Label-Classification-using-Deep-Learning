@@ -92,53 +92,53 @@ def test_model(
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
-    # Save predictions and true labels (if needed)
-    save_path = f'test_predictions_{model_name}_{selected_dataset}.npz'
-    np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
+    # # Save predictions and true labels (if needed)
+    # save_path = f'test_predictions_{model_name}_{selected_dataset}.npz'
+    # np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
-    per_class_metrics_path = f'test_per_class_metrics_ResNet.json'
-    if os.path.exists(per_class_metrics_path):
-        with open(per_class_metrics_path, 'r') as f:
-            per_class_metrics = json.load(f)
+    # per_class_metrics_path = f'test_per_class_metrics_ResNet.json'
+    # if os.path.exists(per_class_metrics_path):
+    #     with open(per_class_metrics_path, 'r') as f:
+    #         per_class_metrics = json.load(f)
         
-        # Print per-class metrics with class labels
-        print("\nPer-Class Metrics:")
-        for metric, values in per_class_metrics.items():
-            if metric == 'class_labels':
-                continue  # Skip class_labels key
-            print(f"\n{metric.capitalize()}:")
-            for i, val in enumerate(values):
-                class_name = class_labels[i] if i < len(class_labels) else f"Class {i}"
-                print(f"  {i} ({class_name}): {val:.4f}")
-    else:
-        print(f"\nPer-class metrics file not found at {per_class_metrics_path}")
+    #     # Print per-class metrics with class labels
+    #     print("\nPer-Class Metrics:")
+    #     for metric, values in per_class_metrics.items():
+    #         if metric == 'class_labels':
+    #             continue  # Skip class_labels key
+    #         print(f"\n{metric.capitalize()}:")
+    #         for i, val in enumerate(values):
+    #             class_name = class_labels[i] if i < len(class_labels) else f"Class {i}"
+    #             print(f"  {i} ({class_name}): {val:.4f}")
+    # else:
+    #     print(f"\nPer-class metrics file not found at {per_class_metrics_path}")
 
     test_loader = data_module.test_dataloader()
     test_dataset = test_loader.dataset
 
-    # Call the function to display predictions
-    display_batch_predictions(model, test_loader, threshold=0.6, bands=DatasetConfig.all_bands)
+    # # Call the function to display predictions
+    # display_batch_predictions(model, test_loader, threshold=0.6, bands=DatasetConfig.all_bands)
     
-    # Visualize activations
-    test_loader = data_module.test_dataloader()
-    example_batch = next(iter(test_loader))
-    example_imgs, example_lbls = example_batch
-    show_rgb_from_batch(example_imgs[0])
-    example_imgs = example_imgs.to(model.device)
-    clear_activations()
-    with torch.no_grad():
-        _ = model(example_imgs[0].unsqueeze(0))
-    visualize_activations(num_filters=16)  
+    # # Visualize activations
+    # test_loader = data_module.test_dataloader()
+    # example_batch = next(iter(test_loader))
+    # example_imgs, example_lbls = example_batch
+    # show_rgb_from_batch(example_imgs[0])
+    # example_imgs = example_imgs.to(model.device)
+    # clear_activations()
+    # with torch.no_grad():
+    #     _ = model(example_imgs[0].unsqueeze(0))
+    # visualize_activations(num_filters=16)  
 
-    # Plot label confusion matrices
-    plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=class_labels)
+    # # Plot label confusion matrices
+    # plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=class_labels)
 
-    # Plot aggregated confusion matrices
-    scores = compute_aggregated_metrics(all_labels, all_preds)
-    print(scores)
+    # # Plot aggregated confusion matrices
+    # scores = compute_aggregated_metrics(all_labels, all_preds)
+    # print(scores)
     
-    # Plot co-occurrence matrix
-    plot_cooccurrence_matrix(all_labels, all_preds, class_names=class_labels)
+    # # Plot co-occurrence matrix
+    # plot_cooccurrence_matrix(all_labels, all_preds, class_names=class_labels)
 
     model_name = model_name.toLower()
     target_layer = ModelConfig.gradcam_target_layers[model_name]

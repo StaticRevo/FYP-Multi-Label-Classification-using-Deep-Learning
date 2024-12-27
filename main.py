@@ -82,6 +82,7 @@ def choose_and_run_model_gui():
     train_test_var = tk.StringVar(value='train')
     ttk.Radiobutton(train_test_frame, text="Train Only", variable=train_test_var, value='train').grid(row=1, column=0, sticky='w', padx=10)
     ttk.Radiobutton(train_test_frame, text="Train and Test", variable=train_test_var, value='train_test').grid(row=2, column=0, sticky='w', padx=10)
+    ttk.Radiobutton(train_test_frame, text="Test Only", variable=train_test_var, value='test').grid(row=3, column=0, sticky='w', padx=10)
 
     # Function to run the model
     def run_model():

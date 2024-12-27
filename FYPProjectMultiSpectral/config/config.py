@@ -108,8 +108,8 @@ class ModelConfig:
     ])
 
     gradcam_target_layers = {
-        'ressnet18': 'model.model.layer3[-1].conv2 ',
-        'ressnet50': 'model.model.layer3[-1].conv2',
+        'resnet18': 'model.model.layer3[-1].conv2 ',
+        'resnet50': 'model.model.layer3[-1].conv2',
         'vgg16': 'model.model.features.28',
         'vgg19': 'model.model.features.34',
         'densenet121': 'model.model.features.norm5',

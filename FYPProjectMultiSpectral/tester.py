@@ -34,6 +34,21 @@ def main():
     dataset_dir = sys.argv[11]
     bands = json.loads(sys.argv[12]) # List of selected bands
 
+    print()
+    print("Parsed command-line arguments:")
+    print(f"model_name: {model_name}")
+    print(f"weights: {weights}")
+    print(f"selected_bands: {selected_bands}")
+    print(f"selected_dataset: {selected_dataset}")
+    print(f"acc_checkpoint_path: {acc_checkpoint_path}")
+    print(f"loss_checkpoint_path: {loss_checkpoint_path}")
+    print(f"last_checkpoint_path: {last_checkpoint_path}")
+    print(f"in_channels: {in_channels}")
+    print(f"class_weights: {class_weights}")
+    print(f"metadata_csv: {metadata_csv.head()}")  # Print the first few rows of the CSV
+    print(f"dataset_dir: {dataset_dir}")
+    print(f"bands: {bands}")
+    
    # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n"
                               f"1. Best Accuracy ({acc_checkpoint_path})\n"
@@ -68,38 +83,57 @@ def main():
     if model_name in model_mapping:
         model_class, _ = model_mapping[model_name]  
         model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights)
+        model.eval()
+        register_hooks(model)
     else:
         raise ValueError(f"Model {model_name} not recognized.")
     
-    # Load model and data
-    model, data_module, class_labels = load_model_and_data(
-        checkpoint_path=checkpoint_path,
-        metadata_csv=metadata_csv,
-        dataset_dir=dataset_dir,
-        model_class=model_class,
-        bands=bands,
-        in_channels=in_channels,
-        model_weights=weights if weights != 'None' else None,
-        num_classes=DatasetConfig.num_classes
+    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
+    data_module.setup(stage='test')
+
+    class_labels = DatasetConfig.class_labels
+
+    # Set up Trainer for testing
+    trainer = pl.Trainer(
+        accelerator='gpu' if torch.cuda.is_available() else 'cpu',
+        devices=1 if torch.cuda.is_available() else None,
+        precision='16-mixed',
+        deterministic=True,
     )
 
+    # Run the testing phase
+    trainer.test(model, datamodule=data_module) # This saves the metrics as a json file
+
     # Calculate metrics and save results
-    all_preds, all_labels = calculate_metrics_and_save_results(
+    all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
         model=model,
         data_module=data_module,
         model_name=model_name,
-        dataset_name=selected_dataset
+        dataset_name=selected_dataset,
+        class_labels=class_labels
     )
+
     # Visualize predictions and results
     visualize_predictions_and_heatmaps(
         model=model,
         data_module=data_module,
-        all_preds=all_preds,
-        all_labels=all_labels,
+        predictions=all_preds,
+        true_labels=all_labels,
         class_labels=class_labels,
         model_name=model_name
     )
 
+    # Visualize activations
+    test_loader = data_module.test_dataloader()
+    example_batch = next(iter(test_loader))
+    example_imgs, example_lbls = example_batch
+    show_rgb_from_batch(example_imgs[0])
+    example_imgs = example_imgs.to(model.device)
+    clear_activations()
+    with torch.no_grad():
+        _ = model(example_imgs[0].unsqueeze(0))
+    visualize_activations(num_filters=16)  
+    
     # Generate Grad-CAM visualizations
     generate_gradcam_visualizations(
         model=model,

@@ -1,50 +1,20 @@
-import pandas as pd
+import os
+from config.config import DatasetConfig, ModelConfig
+import torch
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from models.models import *
 from PIL import Image
 from torchvision import transforms
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import multilabel_confusion_matrix
-from tqdm import tqdm
-from utils.helper_functions import get_labels_for_image, display_image
-from torchvision.transforms.functional import to_pil_image
-from utils.helper_functions import decode_target
-from utils.gradcam import GradCAM, save_gradcam_visualizations
-import random
-import os
-import torch
-import rasterio
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import multilabel_confusion_matrix
-from config.config import DatasetConfig, ModelConfig
-from torchcam.methods import GradCAM
-from torchcam.utils import overlay_mask
-from torchvision.transforms.functional import to_pil_image
-from sklearn.metrics import *
-from sklearn.preprocessing import label_binarize
+import torch.nn.functional as F
+from sklearn.metrics import roc_curve, auc, precision_score, recall_score, f1_score, hamming_loss, accuracy_score, multilabel_confusion_matrix
 import math
+import random
+import rasterio
+from utils.gradcam import GradCAM, save_gradcam_visualizations
 from config.config_utils import calculate_class_weights
-from ..dataloader import BigEarthNetTIFDataModule
-
-def load_model_and_data(checkpoint_path, metadata_csv, dataset_dir, model_class, 
-                        model_name, bands, num_classes, in_channels, model_weights):
-    # Initialize data module
-    data_module = BigEarthNetTIFDataModule(bands, dataset_dir, metadata_csv)
-    data_module.setup(stage='test')
-
-    # Calculate class weights
-    class_weights, _ = calculate_class_weights(metadata_csv)
-
-    # Load model from checkpoint
-    model = model_class.load_from_checkpoint(
-        checkpoint_path, class_weights=class_weights, 
-        num_classes=num_classes, in_channels=in_channels, 
-        model_weights=model_weights
-    )
-    model.eval()  # Set model to evaluation mode
-    return model, data_module, DatasetConfig.class_labels
 
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels):
     """Calculates predictions, true labels, and saves metrics."""
@@ -73,10 +43,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
 
     return all_preds, all_labels
 
-def visualize_predictions_and_heatmaps(
-    model, data_module, predictions, true_labels, class_labels, model_name
-):
-    """Handles predictions, confusion matrices, and co-occurrence matrix visualization."""
+def visualize_predictions_and_heatmaps(model, data_module, predictions, true_labels, class_labels, model_name):
     # Display batch predictions
     display_batch_predictions(
         model, data_module.test_dataloader(), threshold=0.6, bands=DatasetConfig.all_bands
@@ -95,15 +62,20 @@ def visualize_predictions_and_heatmaps(
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels)
 
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name):
-    """Generates Grad-CAM visualizations for selected test images."""
     gradcam_save_dir = 'gradcam_results'
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
     # Identify target layer for Grad-CAM
     model_name_lower = model_name.lower()
-    target_layer = ModelConfig.gradcam_target_layers.get(model_name_lower)
-    if target_layer is None:
+    target_layer_path = ModelConfig.gradcam_target_layers.get(model_name_lower)
+    if target_layer_path is None:
         raise ValueError(f"Target layer for Grad-CAM is not defined for model: {model_name}")
+
+    # Dynamically resolve the target layer object
+    try:
+        target_layer = eval(target_layer_path)
+    except AttributeError:
+        raise ValueError(f"Invalid layer path: {target_layer_path}")
 
     # Initialize Grad-CAM
     grad_cam = GradCAM(model, target_layer)
@@ -129,6 +101,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             save_gradcam_visualizations(input_image, heatmaps, class_labels, idx, gradcam_save_dir)
         except IndexError:
             print(f"Index {idx} is out of bounds for the test dataset.")
+
 
 def decode_target(
     target: list,
@@ -363,26 +336,35 @@ def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_band
 
     return np.array(all_preds), np.array(all_true_labels)
 
-def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
+def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10):
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
-
+    
+    dataset_size = len(dataloader.dataset)
+    num_images = min(num_images, dataset_size)  # Ensure we don't exceed the dataset size
+    
+    # Randomly select unique indices
+    random_indices = random.sample(range(dataset_size), num_images)
+    
     # Map band names to indices
     band_indices = {"B02": 1, "B03": 2, "B04": 3}  
     rgb_band_indices = [band_indices["B04"], band_indices["B03"], band_indices["B02"]]  # Red, Green, Blue
-
-    for i, (pred, true) in enumerate(zip(all_preds, all_true_labels)):
+    
+    for i in random_indices:
+        pred = all_preds[i]
+        true = all_true_labels[i]
+        
         # Convert numeric predicted labels to text
         predicted_labels_indices = [idx for idx, value in enumerate(pred) if value == 1]
         true_labels_indices = [idx for idx, value in enumerate(true) if value == 1]
-
+    
         # Get the image and select RGB bands for visualization
-        image_tensor = dataloader.dataset[i][0]  #
+        image_tensor = dataloader.dataset[i][0]  # Assuming the first element is the image
         image_rgb = image_tensor[rgb_band_indices, :, :]  # Select RGB bands
         image_rgb = image_rgb.permute(1, 2, 0).numpy()  
-
+    
         # Normalize RGB bands for visualization
         image_rgb = (image_rgb - image_rgb.min()) / (image_rgb.max() - image_rgb.min() + 1e-8)
-
+    
         # Display the image, true labels, and predicted labels
         plt.figure(figsize=(10, 10))
         plt.imshow(image_rgb)

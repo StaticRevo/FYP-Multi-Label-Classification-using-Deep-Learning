@@ -34,11 +34,12 @@ def main():
     dataset_dir = sys.argv[11]
     bands = json.loads(sys.argv[12]) # List of selected bands
 
-    if weights == 'None':
-        weights = None
-
-    # Allow user to choose checkpoint
-    checkpoint_choice = input(f"Select checkpoint to test:\n1. Best Accuracy ({acc_checkpoint_path})\n2. Best Loss ({loss_checkpoint_path})\n3. Final ({last_checkpoint_path})\nChoice [1/2/3]: ")
+   # Allow user to choose checkpoint
+    checkpoint_choice = input(f"Select checkpoint to test:\n"
+                              f"1. Best Accuracy ({acc_checkpoint_path})\n"
+                              f"2. Best Loss ({loss_checkpoint_path})\n"
+                              f"3. Final ({last_checkpoint_path})\n"
+                              f"Choice [1/2/3]: ")
     if checkpoint_choice == "1":
         checkpoint_path = acc_checkpoint_path
     elif checkpoint_choice == "2":
@@ -49,13 +50,7 @@ def main():
         print("Invalid choice. Defaulting to Last Saved checkpoint.")
         checkpoint_path = last_checkpoint_path
 
-    print()
-    print(f"Using checkpoint: {checkpoint_path}")
-    print()
-
-    # Initialize the data module
-    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
-    data_module.setup(stage='test')
+    print(f"\nUsing checkpoint: {checkpoint_path}\n")
 
     model_mapping = {
         'custom_model': (CustomModel, 'custom_model'),
@@ -76,18 +71,42 @@ def main():
     else:
         raise ValueError(f"Model {model_name} not recognized.")
     
-    class_labels = DatasetConfig.class_labels
-    model.eval()
-
-    register_hooks(model)
-    
-    # Model Testing with mixed precision
-    trainer = pl.Trainer(
-        accelerator='gpu' if torch.cuda.is_available() else 'cpu',
-        devices=1 if torch.cuda.is_available() else None,
-        precision='16-mixed'  
+    # Load model and data
+    model, data_module, class_labels = load_model_and_data(
+        checkpoint_path=checkpoint_path,
+        metadata_csv=metadata_csv,
+        dataset_dir=dataset_dir,
+        model_class=model_class,
+        bands=bands,
+        in_channels=in_channels,
+        model_weights=weights if weights != 'None' else None,
+        num_classes=DatasetConfig.num_classes
     )
 
+    # Calculate metrics and save results
+    all_preds, all_labels = calculate_metrics_and_save_results(
+        model=model,
+        data_module=data_module,
+        model_name=model_name,
+        dataset_name=selected_dataset
+    )
+    # Visualize predictions and results
+    visualize_predictions_and_heatmaps(
+        model=model,
+        data_module=data_module,
+        all_preds=all_preds,
+        all_labels=all_labels,
+        class_labels=class_labels,
+        model_name=model_name
+    )
+
+    # Generate Grad-CAM visualizations
+    generate_gradcam_visualizations(
+        model=model,
+        data_module=data_module,
+        class_labels=class_labels,
+        model_name=model_name
+    )
 
 if __name__ == "__main__":
     main()

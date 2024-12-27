@@ -19,7 +19,6 @@ from models.models import *
 from utils.visualisation import *
 import json  
 from utils.gradcam import GradCAM, overlay_heatmap
-from utils.test_functions import *
 
 # Set float32 matmul precision to 'high' to utilize Tensor Cores
 torch.set_float32_matmul_precision('high')
@@ -40,16 +39,27 @@ def test_model(
         bands
     ):
     
-    model, data_module, class_labels = load_model_and_data(last_checkpoint_path, 
-                                                           metadata_csv,
-                                                           dataset_dir,
-                                                           model_class,
-                                                           model_name,
-                                                           bands,
-                                                           num_classes=19,
-                                                           in_channels=len(bands),
-                                                           model_weights=model_weights)
-                                                        
+    # Load metadata
+    metadata_csv = pd.read_csv(metadata_path)
+    class_labels = DatasetConfig.class_labels
+
+    # Initialize the data module
+    data_module = BigEarthNetTIFDataModule(
+        bands=bands, 
+        dataset_dir=dataset_dir, 
+        metadata_csv=metadata_csv
+    )
+    data_module.setup(stage='test')
+
+    # Load your trained model
+    model = model_class.load_from_checkpoint(
+        last_checkpoint_path, 
+        class_weights=class_weights, 
+        num_classes=num_classes, 
+        in_channels=in_channels, 
+        model_weights=model_weights
+    )
+    model.eval()
     register_hooks(model)
 
     # Set up Trainer for testing
@@ -63,8 +73,24 @@ def test_model(
     # Run the testing phase
     trainer.test(model, datamodule=data_module)
 
-   
-    all_preds, all_labels = calculate_and_save_metrics(model, data_module, model_name, selected_dataset, class_labels)
+    all_preds = []
+    all_labels = []
+            
+    for batch in tqdm(data_module.test_dataloader(), desc="Processing Batches"):
+        inputs, labels = batch
+        inputs = inputs.to(model.device)
+        labels = labels.to(model.device)
+
+        with torch.no_grad():
+            logits = model(inputs)
+            preds = torch.sigmoid(logits) > 0.5
+
+        all_preds.extend(preds.cpu().numpy().astype(int))  # Convert boolean to int
+        all_labels.extend(labels.cpu().numpy().astype(int))  # Ensure labels are int
+
+    # Convert lists to numpy arrays
+    all_preds = np.array(all_preds)
+    all_labels = np.array(all_labels)
 
     # Save predictions and true labels (if needed)
     save_path = f'test_predictions_{model_name}_{selected_dataset}.npz'

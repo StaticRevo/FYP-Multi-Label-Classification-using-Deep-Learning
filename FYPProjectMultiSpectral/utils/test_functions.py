@@ -9,6 +9,7 @@ from tqdm import tqdm
 from utils.helper_functions import get_labels_for_image, display_image
 from torchvision.transforms.functional import to_pil_image
 from utils.helper_functions import decode_target
+from utils.gradcam import GradCAM, save_gradcam_visualizations
 import random
 import os
 import torch
@@ -17,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import multilabel_confusion_matrix
-from config.config import DatasetConfig
+from config.config import DatasetConfig, ModelConfig
 from torchcam.methods import GradCAM
 from torchcam.utils import overlay_mask
 from torchvision.transforms.functional import to_pil_image
@@ -45,7 +46,7 @@ def load_model_and_data(checkpoint_path, metadata_csv, dataset_dir, model_class,
     model.eval()  # Set model to evaluation mode
     return model, data_module, DatasetConfig.class_labels
 
-def calculate_and_save_metrics(model, data_module, model_name, dataset_name, class_labels):
+def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels):
     """Calculates predictions, true labels, and saves metrics."""
     all_preds, all_labels = [], []
     test_loader = data_module.test_dataloader()
@@ -92,6 +93,42 @@ def visualize_predictions_and_heatmaps(
 
     # Plot co-occurrence matrix
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels)
+
+def generate_gradcam_visualizations(model, data_module, class_labels, model_name):
+    """Generates Grad-CAM visualizations for selected test images."""
+    gradcam_save_dir = 'gradcam_results'
+    os.makedirs(gradcam_save_dir, exist_ok=True)
+
+    # Identify target layer for Grad-CAM
+    model_name_lower = model_name.lower()
+    target_layer = ModelConfig.gradcam_target_layers.get(model_name_lower)
+    if target_layer is None:
+        raise ValueError(f"Target layer for Grad-CAM is not defined for model: {model_name}")
+
+    # Initialize Grad-CAM
+    grad_cam = GradCAM(model, target_layer)
+    test_dataset = data_module.test_dataloader().dataset
+    num_images = len(test_dataset)
+    target_indices = [random.randint(0, num_images - 1) for _ in range(5)]  # Select 5 random images
+
+    for idx in target_indices:
+        try:
+            img_tensor, _ = test_dataset[idx]
+            input_image = img_tensor.unsqueeze(0).to(model.device)
+
+            # Forward pass and generate heatmaps
+            output = model(input_image)
+            threshold = 0.5
+            target_classes = torch.where(output[0] > threshold)[0].tolist()
+            heatmaps = {}
+            for target_class in target_classes:
+                cam, _ = grad_cam.generate_heatmap(input_image, target_class=target_class)
+                heatmaps[class_labels[target_class]] = cam
+
+            # Save Grad-CAM visualizations
+            save_gradcam_visualizations(input_image, heatmaps, class_labels, idx, gradcam_save_dir)
+        except IndexError:
+            print(f"Index {idx} is out of bounds for the test dataset.")
 
 def decode_target(
     target: list,

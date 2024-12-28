@@ -13,11 +13,10 @@ from sklearn.metrics import roc_curve, auc, precision_score, recall_score, f1_sc
 import math
 import random
 import rasterio
-from utils.gradcam import GradCAM, save_gradcam_visualizations
+from utils.gradcam import GradCAM, overlay_heatmap
 from config.config_utils import calculate_class_weights
 
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels):
-    """Calculates predictions, true labels, and saves metrics."""
     all_preds, all_labels = [], []
     test_loader = data_module.test_dataloader()
 
@@ -62,69 +61,108 @@ def visualize_predictions_and_heatmaps(model, data_module, predictions, true_lab
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels)
 
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name):
-    gradcam_save_dir = 'gradcam_results'
+    gradcam_save_dir = r'C:\Users\isaac\Desktop\experiments'
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
-    # Identify target layer for Grad-CAM
-    model_name_lower = model_name.lower()
-    target_layer_path = ModelConfig.gradcam_target_layers.get(model_name_lower)
-    if target_layer_path is None:
-        raise ValueError(f"Target layer for Grad-CAM is not defined for model: {model_name}")
+    if model_name == 'ResNet18':
+        target_layer = model.model.layer3[-1].conv2
+    elif model_name == 'ResNet50':
+        target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'VGG16':
+        target_layer = model.model.features[28]
+    elif model_name == 'VGG19':
+        target_layer = model.model.features[34]
+    elif model_name == 'EfficientNetB0':
+        target_layer = model.model.features[8][0]
+    elif model_name == 'EfficientNet_v2':
+        target_layer = model.modelfeatures[7][4].block[3]
+    elif model_name == 'Swin-Transformer':
+        target_layer = model.model.stages[3].blocks[-1].norm1
+    elif model_name == 'Vit-Transformer':
+        target_layer = model.model.layers[-1].attention
 
-    # Dynamically resolve the target layer object
-    try:
-        target_layer = eval(target_layer_path)
-    except AttributeError:
-        raise ValueError(f"Invalid layer path: {target_layer_path}")
-
-    # Initialize Grad-CAM
     grad_cam = GradCAM(model, target_layer)
+
     test_dataset = data_module.test_dataloader().dataset
     num_images = len(test_dataset)
     target_indices = [random.randint(0, num_images - 1) for _ in range(5)]  # Select 5 random images
 
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(model.device)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(model.device)
+
     for idx in target_indices:
         try:
-            img_tensor, _ = test_dataset[idx]
-            input_image = img_tensor.unsqueeze(0).to(model.device)
-
-            # Forward pass and generate heatmaps
-            output = model(input_image)
-            threshold = 0.5
-            target_classes = torch.where(output[0] > threshold)[0].tolist()
-            heatmaps = {}
-            for target_class in target_classes:
-                cam, _ = grad_cam.generate_heatmap(input_image, target_class=target_class)
-                heatmaps[class_labels[target_class]] = cam
-
-            # Save Grad-CAM visualizations
-            save_gradcam_visualizations(input_image, heatmaps, class_labels, idx, gradcam_save_dir)
+            # Retrieve the image and label from the Dataset
+            img_tensor, label = test_dataset[idx]
         except IndexError:
             print(f"Index {idx} is out of bounds for the test dataset.")
+            continue
 
+        input_image = img_tensor.unsqueeze(0).to(model.device)  
 
-def decode_target(
-    target: list,
-    text_labels: bool = False,
-    threshold: float = 0.4,
-    cls_labels: dict = None,
-):
-    result = []
-    for i, x in enumerate(target):
-        if x >= threshold:
-            if text_labels:
-                result.append(cls_labels[i] + "(" + str(i) + ")")
-            else:
-                result.append(str(i))
-    return " ".join(result)
+        # Forward pass to get predictions
+        output = model(input_image)
 
-def encode_label(label: list, num_classes=DatasetConfig.num_classes):
-    target = torch.zeros(num_classes)
-    for l in label:
-        if l in DatasetConfig.class_labels_dict:
-            target[DatasetConfig.class_labels_dict[l]] = 1.0
-    return target
+        # Get relevant classes for multi-label classification
+        threshold = 0.5  
+        target_classes = torch.where(output[0] > threshold)[0].tolist()
 
+        # Generate heatmaps for each relevant class
+        heatmaps = {}
+        for target_class in target_classes:
+            cam, _ = grad_cam.generate_heatmap(input_image, target_class=target_class)
+            heatmaps[class_labels[target_class]] = cam
+
+        # Convert the input tensor to a PIL image for visualization
+        img = input_image.squeeze()  # Remove batch dimension
+        rgb_channels = [3, 2, 1]  
+        img = img[rgb_channels, :, :] 
+
+        # Normalize each channel
+        img_cpu = img.detach().cpu().numpy()
+        red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+        green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
+        blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
+
+        # Stack into an RGB image
+        rgb_image = np.stack([red, green, blue], axis=-1)
+
+        # Convert to PIL Image
+        img = Image.fromarray((rgb_image * 255).astype(np.uint8))
+
+        # Display and save heatmaps for each class
+        for class_name, heatmap in heatmaps.items():
+            # Overlay heatmap on image
+            overlay = overlay_heatmap(img, heatmap, alpha=0.5)
+
+            # Plot the results
+            plt.figure(figsize=(15, 5))
+
+            # Original Image
+            plt.subplot(1, 3, 1)
+            plt.title('Original Image')
+            plt.imshow(img)
+            plt.axis('off')
+
+            # Grad-CAM Heatmap
+            plt.subplot(1, 3, 2)
+            plt.title(f'Heatmap for Class: {class_name}')
+            plt.imshow(heatmap, cmap='jet')
+            plt.axis('off')
+
+            # Overlayed Heatmap
+            plt.subplot(1, 3, 3)
+            plt.title(f'Overlay for Class: {class_name}')
+            plt.imshow(overlay)
+            plt.axis('off')
+
+            # Save and display the visualization
+            plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16)
+            plt.tight_layout()
+            plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
+            plt.show()
+
+           
 def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, bands=DatasetConfig.rgb_bands):
     class_labels_dict = DatasetConfig.class_labels_dict
     reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict

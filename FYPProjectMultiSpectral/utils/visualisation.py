@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
 from PIL import Image
+from matplotlib.backends.backend_pdf import PdfPages
 
 activations = {}
 
@@ -20,25 +21,28 @@ def clear_activations():
     activations.clear()
 
 def visualize_activations(num_filters=8):
-    for layer_module, activation in activations.items():
-        act = activation.squeeze(0).detach().cpu().numpy()  
+    with PdfPages('activations.pdf') as pdf:
+        for layer_module, activation in activations.items():
+            act = activation.squeeze(0).detach().cpu().numpy()
+            n_filters = min(num_filters, act.shape[0])
+            grid_size = int(math.ceil(math.sqrt(n_filters)))
 
-        n_filters = min(num_filters, act.shape[0])
-        grid_size = int(math.ceil(math.sqrt(n_filters)))
+            fig, axes = plt.subplots(grid_size, grid_size, figsize=(grid_size * 3, grid_size * 3))
+            axes = axes.flatten()
 
-        fig, axes = plt.subplots(grid_size, grid_size, figsize=(12, 12))
-        axes = axes.flatten()
+            for i in range(grid_size * grid_size):
+                if i < n_filters:
+                    axes[i].imshow(act[i], cmap='viridis')
+                    axes[i].axis('off')
+                else:
+                    axes[i].remove()
 
-        for i in range(grid_size * grid_size):
-            if i < n_filters:
-                axes[i].imshow(act[i], cmap='viridis')
-                axes[i].axis('off')
-            else:
-                axes[i].remove()
+            plt.suptitle(f"Activations from layer: {layer_module}", fontsize=16)
+            plt.tight_layout()
+            pdf.savefig(fig)
+            plt.close(fig)
 
-        plt.suptitle(f"Activations from layer: {layer_module}", fontsize=16)
-        plt.tight_layout()
-        plt.show()
+    print("Activations saved to activations.pdf")
 
 def show_rgb_from_batch(image_tensor):
     image_cpu = image_tensor.detach().cpu().numpy()
@@ -60,4 +64,3 @@ def show_rgb_from_batch(image_tensor):
     plt.title("RGB Visualization of Multi-Spectral Image")
     plt.axis('off')
     plt.show()
-

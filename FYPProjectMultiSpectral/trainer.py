@@ -33,8 +33,10 @@ def main():
     selected_dataset = sys.argv[4]
     test_variable = sys.argv[5]
 
-    print(test_variable)
-    print(type(test_variable))
+    epochs = ModelConfig.num_epochs
+    main_path = fr'C:\Users\isaac\Desktop\experiments\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs_'
+    if not os.path.exists(main_path):
+        os.makedirs(main_path)
 
     # Determine the number of input channels based on the selected bands
     if selected_bands == 'all_bands':
@@ -112,12 +114,10 @@ def main():
     print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
 
     # Initialize the logger
-    #log_dir = r'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\logs'
-    log_dir = r'C:\Users\isaac\Desktop\experiments\logs'
-    logger = TensorBoardLogger(log_dir, name=f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}")
+    log_dir = os.path.join(main_path, 'logs')
+    logger = TensorBoardLogger(log_dir)
 
-    #checkpoint_dir = fr'C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\experiments\checkpoints\{model_name}_{weights}_{selected_bands}_{selected_dataset}'
-    checkpoint_dir = fr'C:\Users\isaac\Desktop\experiments\checkpoints\{model_name}_{weights}_{selected_bands}_{selected_dataset}'
+    checkpoint_dir = os.path.join(main_path, 'checkpoints')
 
     # Checkpoint callback for val_loss
     checkpoint_callback_loss = ModelCheckpoint(
@@ -186,8 +186,11 @@ def main():
     last_checkpoint_path = final_checkpoint.best_model_path
 
     # Save Tensorboard graphs as images
-    output_dir = os.path.join(r'C:\Users\isaac\Desktop\experiments\results', f"{model_name}_{weights}_{selected_bands}_experiment_{selected_dataset}_graphs")
+    output_dir = os.path.join(main_path, 'results', 'tensorboard_graphs')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     save_tensorboard_graphs(logger.log_dir, output_dir)
+
     # Start TensorBoard
     subprocess.Popen(['tensorboard', '--logdir', log_dir])
 
@@ -214,7 +217,7 @@ def main():
         # Run test
         args = [
             'python', 
-            'FYPProjectMultiSpectral\\tester.py', 
+            'FYPProjectMultiSpectral\\tester_runner.py', 
             model_name, 
             weights, 
             selected_bands, 
@@ -229,14 +232,13 @@ def main():
             json.dumps(bands)
         ]
 
-    # Print the arguments
-    print("Arguments to subprocess.run:")
-    for arg in args:
-        print(arg)
+        # Print the arguments
+        print("Arguments to subprocess.run:")
+        for arg in args:
+            print(arg)
 
-    # Run the subprocess
-    #subprocess.run(args)
-
+        # Run the subprocess
+        subprocess.run(args)
 
 if __name__ == "__main__":
     main()

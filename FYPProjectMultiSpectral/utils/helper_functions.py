@@ -48,8 +48,20 @@ def decode_target(
                 result.append(str(i))
     return " ".join(result)
 
+
 def get_band_indices(band_names, all_band_names):
     return [all_band_names.index(band) for band in band_names]
+
+# Function to derive bands based on selected_bands
+def get_bands(selected_bands):
+    band_options = {
+        'all_bands': ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12"],
+        'rgb_bands': ["B04", "B03", "B02"],
+        'rgb_nir_bands': ["B04", "B03", "B02", "B08"],
+        'rgb_swir_bands': ["B04", "B03", "B02", "B11", "B12"],
+        'rgb_nir_swir_bands': ["B04", "B03", "B02", "B08", "B11", "B12"]
+    }
+    return band_options.get(selected_bands, [])
 
 def get_labels_for_image(image_path, model, transform, patch_to_labels):
     # Load and preprocess the image

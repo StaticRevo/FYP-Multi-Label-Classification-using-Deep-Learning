@@ -116,8 +116,12 @@ def choose_and_run_model_gui():
 
         def model_training_thread():
             try:
-                subprocess.run(['python', 'FYPProjectMultiSpectral\\trainer.py', model_name, weights, selected_bands, selected_dataset, test])
-                messagebox.showinfo("Success", f"Model {model_name} with {selected_bands} and {selected_dataset} dataset is running.")
+                if train_test_choice == 'test':
+                    subprocess.run(['python', 'FYPProjectMultiSpectral\\tester_runner.py', model_name, weights, selected_bands, selected_dataset])
+                    messagebox.showinfo("Success", f"Testing {model_name} with {selected_bands} and {selected_dataset} dataset.")
+                else:
+                    subprocess.run(['python', 'FYPProjectMultiSpectral\\trainer.py', model_name, weights, selected_bands, selected_dataset, test])
+                    messagebox.showinfo("Success", f"Model {model_name} with {selected_bands} and {selected_dataset} dataset is running.")
             except Exception as e:
                 messagebox.showerror("Error", f"An error occurred: {e}")
             finally:

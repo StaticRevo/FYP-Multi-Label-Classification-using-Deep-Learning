@@ -1,60 +1,52 @@
 import os
-import subprocess
-import pandas as pd
-from config.config import DatasetConfig, ModelConfig
-from dataloader import BigEarthNetTIFDataModule
-import torch
-import pytorch_lightning as pl
-from sklearn.metrics import confusion_matrix
 import numpy as np
-import seaborn as sns
+import pandas as pd
+import torch
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-import ast
-from sklearn.metrics import multilabel_confusion_matrix
-from utils.helper_functions import *
-from config.config import clean_and_parse_labels, calculate_class_weights
+from torchvision import transforms
+from PIL import Image
+import random
+
+from config.config import DatasetConfig
+from config.config_utils import calculate_class_weights
 from utils.test_functions import *
-from models.models import *
-from utils.visualisation import *
-import json  
+from utils.helper_functions import *
 from utils.gradcam import GradCAM, overlay_heatmap
+from utils.visualisation import *
+from models.models import *
+from dataloader import BigEarthNetTIFDataModule
+import torch.nn.functional as F
 
-# Set float32 matmul precision to 'high' to utilize Tensor Cores
-torch.set_float32_matmul_precision('high')
-set_random_seeds()
-
-def test_model(
-        model_name, 
-        model_weights,
-        selected_bands,
-        selected_dataset,
-        acc_checkpoint_path,
-        loss_checkpoint_path,
-        last_checkpoint_path, 
-        in_channels,
-        class_weights,
-        metadata_csv, 
-        dataset_dir, 
-        bands
-    ):
-    
-    # Load metadata
+if __name__ == "__main__":
+    # Paths and configurations
+    metadata_path = DatasetConfig.metadata_paths["1"]
     metadata_csv = pd.read_csv(metadata_path)
+    dataset_dir = DatasetConfig.dataset_paths['1']
     class_labels = DatasetConfig.class_labels
+    bands = DatasetConfig.all_bands
 
-    # Initialize the data module
+    # Calculate class weights
+    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
+    class_weights = class_weights_array
+
+    num_classes = DatasetConfig.num_classes
+    in_channels = len(bands)
+    model_weights = 'ResNet18_Weights.DEFAULT'
+
+    # Initialize the DataModule
     data_module = BigEarthNetTIFDataModule(
-        bands=bands, 
+        bands=bands,
         dataset_dir=dataset_dir, 
         metadata_csv=metadata_csv
     )
     data_module.setup(stage='test')
 
-    # Load your trained model
-    model = model_class.load_from_checkpoint(
-        last_checkpoint_path, 
-        class_weights=class_weights, 
+    # Load the trained model
+    model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
+
+    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(
+        model_checkpoint_path,
+        class_weights=class_weights,
         num_classes=num_classes, 
         in_channels=in_channels, 
         model_weights=model_weights
@@ -62,198 +54,116 @@ def test_model(
     model.eval()
     register_hooks(model)
 
-    # Set up Trainer for testing
-    trainer = pl.Trainer(
-        accelerator='gpu' if torch.cuda.is_available() else 'cpu',
-        devices=1 if torch.cuda.is_available() else None,
-        precision='16-mixed',
-        deterministic=True,
-    )
-
-    # Run the testing phase
-    trainer.test(model, datamodule=data_module)
-
-    all_preds = []
-    all_labels = []
-            
-    for batch in tqdm(data_module.test_dataloader(), desc="Processing Batches"):
-        inputs, labels = batch
-        inputs = inputs.to(model.device)
-        labels = labels.to(model.device)
-
-        with torch.no_grad():
-            logits = model(inputs)
-            preds = torch.sigmoid(logits) > 0.5
-
-        all_preds.extend(preds.cpu().numpy().astype(int))  # Convert boolean to int
-        all_labels.extend(labels.cpu().numpy().astype(int))  # Ensure labels are int
-
-    # Convert lists to numpy arrays
-    all_preds = np.array(all_preds)
-    all_labels = np.array(all_labels)
-
-    # # Save predictions and true labels (if needed)
-    # save_path = f'test_predictions_{model_name}_{selected_dataset}.npz'
-    # np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
-
-    # per_class_metrics_path = f'test_per_class_metrics_ResNet.json'
-    # if os.path.exists(per_class_metrics_path):
-    #     with open(per_class_metrics_path, 'r') as f:
-    #         per_class_metrics = json.load(f)
-        
-    #     # Print per-class metrics with class labels
-    #     print("\nPer-Class Metrics:")
-    #     for metric, values in per_class_metrics.items():
-    #         if metric == 'class_labels':
-    #             continue  # Skip class_labels key
-    #         print(f"\n{metric.capitalize()}:")
-    #         for i, val in enumerate(values):
-    #             class_name = class_labels[i] if i < len(class_labels) else f"Class {i}"
-    #             print(f"  {i} ({class_name}): {val:.4f}")
-    # else:
-    #     print(f"\nPer-class metrics file not found at {per_class_metrics_path}")
-
+    # Visualize activations
     test_loader = data_module.test_dataloader()
-    test_dataset = test_loader.dataset
+    example_batch = next(iter(test_loader))
+    example_imgs, example_lbls = example_batch
+    show_rgb_from_batch(example_imgs[0])
+    example_imgs = example_imgs.to(model.device)
+    clear_activations()
+    with torch.no_grad():
+        _ = model(example_imgs[0].unsqueeze(0))
+    visualize_activations(num_filters=16)  
 
-    # # Call the function to display predictions
-    # display_batch_predictions(model, test_loader, threshold=0.6, bands=DatasetConfig.all_bands)
+    # model_name =  'ResNet18'
+    # model_name = model_name.lower()
+    # print(f"Model name: {model_name}")
+    # target = ModelConfig.gradcam_target_layers[model_name]
+    # print(f"Grad-CAM target layer: {target}")
     
-    # # Visualize activations
+    # # Identify the target convolutional layer for Grad-CAM
+    # try:
+    #     target_layer = model.model.layer3[-1].conv2 
+    # except AttributeError:
+    #     target_layer = model.layer3[-1].conv2
+
+    # # Initialize Grad-CAM
+    # grad_cam = GradCAM(model, target_layer)
+
+    # # Access the underlying test dataset from the DataLoader
     # test_loader = data_module.test_dataloader()
-    # example_batch = next(iter(test_loader))
-    # example_imgs, example_lbls = example_batch
-    # show_rgb_from_batch(example_imgs[0])
-    # example_imgs = example_imgs.to(model.device)
-    # clear_activations()
-    # with torch.no_grad():
-    #     _ = model(example_imgs[0].unsqueeze(0))
-    # visualize_activations(num_filters=16)  
+    # test_dataset = test_loader.dataset
 
-    # # Plot label confusion matrices
-    # plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=class_labels)
+    # # Generate a random index for target_image_indices
+    # num_images = len(test_dataset)
+    # target_image_indices = [random.randint(0, num_images - 1)]
 
-    # # Plot aggregated confusion matrices
-    # scores = compute_aggregated_metrics(all_labels, all_preds)
-    # print(scores)
-    
-    # # Plot co-occurrence matrix
-    # plot_cooccurrence_matrix(all_labels, all_preds, class_names=class_labels)
+    # # Create directory to save Grad-CAM results
+    # save_dir = 'gradcam_results'
+    # os.makedirs(save_dir, exist_ok=True)
 
-    model_name = model_name.toLower()
-    target_layer = ModelConfig.gradcam_target_layers[model_name]
+    # # Define normalization parameters on the correct device
+    # mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(model.device)
+    # std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(model.device)
 
-    if target_layer is None:
-        raise ValueError(f"Target layer for Grad-CAM is not defined for model: {model_name}")
+    # for idx in target_image_indices:
+    #     try:
+    #         # Retrieve the image and label from the Dataset
+    #         img_tensor, label = test_dataset[idx]
+    #     except IndexError:
+    #         print(f"Index {idx} is out of bounds for the test dataset.")
+    #         continue
 
-    # Initialize Grad-CAM
-    grad_cam = GradCAM(model, target_layer)
-    save_dir = 'gradcam_results'
-    os.makedirs(save_dir, exist_ok=True)
+    #     input_image = img_tensor.unsqueeze(0).to(model.device)  
 
-    # Generate a random index for target_image_indices
-    num_images = len(test_dataset)
-    target_image_indices = [random.randint(0, num_images - 1)]
+    #     # Forward pass to get predictions
+    #     output = model(input_image)
 
-       # Define normalization parameters on the correct device
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(model.device)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(model.device)
+    #     # Get relevant classes for multi-label classification
+    #     threshold = 0.5  
+    #     target_classes = torch.where(output[0] > threshold)[0].tolist()
 
-    for idx in target_image_indices:
-        try:
-            # Retrieve the image and label from the Dataset
-            img_tensor, label = test_dataset[idx]
-        except IndexError:
-            print(f"Index {idx} is out of bounds for the test dataset.")
-            continue
+    #     # Generate heatmaps for each relevant class
+    #     heatmaps = {}
+    #     for target_class in target_classes:
+    #         cam, _ = grad_cam.generate_heatmap(input_image, target_class=target_class)
+    #         heatmaps[class_labels[target_class]] = cam
 
-        input_image = img_tensor.unsqueeze(0).to(model.device)  
+    #     # Convert the input tensor to a PIL image for visualization
+    #     img = input_image.squeeze()  # Remove batch dimension
+    #     rgb_channels = [3, 2, 1]  
+    #     img = img[rgb_channels, :, :] 
 
-        # Forward pass to get predictions
-        output = model(input_image)
+    #     # Normalize each channel
+    #     img_cpu = img.detach().cpu().numpy()
+    #     red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+    #     green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
+    #     blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
 
-        # Get relevant classes for multi-label classification
-        threshold = 0.5  
-        target_classes = torch.where(output[0] > threshold)[0].tolist()
+    #     # Stack into an RGB image
+    #     rgb_image = np.stack([red, green, blue], axis=-1)
 
-        # Generate heatmaps for each relevant class
-        heatmaps = {}
-        for target_class in target_classes:
-            cam, _ = grad_cam.generate_heatmap(input_image, target_class=target_class)
-            heatmaps[class_labels[target_class]] = cam
+    #     # Convert to PIL Image
+    #     img = Image.fromarray((rgb_image * 255).astype(np.uint8))
 
-        # Convert the input tensor to a PIL image for visualization
-        img = input_image.squeeze()  # Remove batch dimension
-        rgb_channels = [1, 2, 3]  
-        img = img[rgb_channels, :, :] 
-        img = img * std + mean  # Unnormalize
-        img = torch.clamp(img, 0, 1)
-        img = img.cpu()  # Move to CPU after unnormalization
-        img = transforms.ToPILImage()(img)
+    #     # Display and save heatmaps for each class
+    #     for class_name, heatmap in heatmaps.items():
+    #         # Overlay heatmap on image
+    #         overlay = overlay_heatmap(img, heatmap, alpha=0.5)
 
-        # Display and save heatmaps for each class
-        for class_name, heatmap in heatmaps.items():
-            # Overlay heatmap on image
-            overlay = overlay_heatmap(img, heatmap, alpha=0.5)
+    #         # Plot the results
+    #         plt.figure(figsize=(15, 5))
 
-            # Plot the results
-            plt.figure(figsize=(15, 5))
+    #         # Original Image
+    #         plt.subplot(1, 3, 1)
+    #         plt.title('Original Image')
+    #         plt.imshow(img)
+    #         plt.axis('off')
 
-            # Original Image
-            plt.subplot(1, 3, 1)
-            plt.title('Original Image')
-            plt.imshow(img)
-            plt.axis('off')
+    #         # Grad-CAM Heatmap
+    #         plt.subplot(1, 3, 2)
+    #         plt.title(f'Heatmap for Class: {class_name}')
+    #         plt.imshow(heatmap, cmap='jet')
+    #         plt.axis('off')
 
-            # Grad-CAM Heatmap
-            plt.subplot(1, 3, 2)
-            plt.title(f'Heatmap for Class: {class_name}')
-            plt.imshow(heatmap, cmap='jet')
-            plt.axis('off')
+    #         # Overlayed Heatmap
+    #         plt.subplot(1, 3, 3)
+    #         plt.title(f'Overlay for Class: {class_name}')
+    #         plt.imshow(overlay)
+    #         plt.axis('off')
 
-            # Overlayed Heatmap
-            plt.subplot(1, 3, 3)
-            plt.title(f'Overlay for Class: {class_name}')
-            plt.imshow(overlay)
-            plt.axis('off')
-
-            # Save and display the visualization
-            plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16)
-            plt.tight_layout()
-            plt.savefig(os.path.join(save_dir, f'gradcam_{idx}_{class_name}.png'))
-            plt.show()
-
-if __name__ == "__main__":
-    last_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
-    loss_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
-    acc_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
-    metadata_path = r'C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\metadata_1_percent.csv'
-    metadata_csv = pd.read_csv(metadata_path)
-    dataset_dir = DatasetConfig.dataset_paths["1"]
-    model_class = BigEarthNetResNet18ModelTIF
-    model_name = "ResNet18"
-    selected_dataset = "1%_BigEarthNet"
-    selected_bands = 'all_bands'
-    bands = DatasetConfig.all_bands
-    num_classes = 19
-    in_channels = 12
-    model_weights = 'ResNet18_Weights.DEFAULT'
-
-    # Calculate class weights
-    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
-    class_weights = class_weights_array
-
-    test_model(
-        model_name, 
-        model_weights,
-        selected_bands,
-        selected_dataset,
-        acc_checkpoint_path,
-        loss_checkpoint_path,
-        last_checkpoint_path, 
-        in_channels,
-        class_weights,
-        metadata_csv, 
-        dataset_dir, 
-        bands
-    )
+    #         # Save and display the visualization
+    #         plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16)
+    #         plt.tight_layout()
+    #         plt.savefig(os.path.join(save_dir, f'gradcam_{idx}_{class_name}.png'))
+    #         plt.show()

@@ -108,16 +108,15 @@ class ModelConfig:
     ])
 
     gradcam_target_layers = {
-        'resnet18': 'model.model.layer3[-1].conv2 ',
-        'resnet50': 'model.model.layer3[-1].conv2',
-        'vgg16': 'model.model.features.28',
-        'vgg19': 'model.model.features.34',
-        'densenet121': 'model.model.features.norm5',
-        'efficientnet-b0': 'model.model.features[8][0]',
-        'efficientnet-v2': 'model.model.features[7][4].block[3]',
-        'swin_transformer': 'model.model.features[-1]',
-        'vit_transformer': 'model.encoder.layers[-1].attention'
-
+        'resnet18': 'layer3[-1].conv2',
+        'resnet50': 'layer3[-1].conv2',
+        'vgg16': 'features.28',
+        'vgg19': 'features.34',
+        'densenet121': 'features.norm5',
+        'efficientnet-b0': 'features[8][0]',
+        'efficientnet-v2': 'features[7][4].block[3]',
+        'swin_transformer': 'features[-1]',
+        'vit_transformer': 'layers[-1].attention'
     }
        
 # Dataclass for the module configuration

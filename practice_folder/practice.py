@@ -7,14 +7,14 @@ from torchvision import transforms
 from PIL import Image
 import random
 
-from ..FYPProjectMultiSpectral.config.config import DatasetConfig
-from ..FYPProjectMultiSpectral.config.config_utils import calculate_class_weights
-from ..FYPProjectMultiSpectral.utils.test_functions import *
-from ..FYPProjectMultiSpectral.utils.helper_functions import *
-from ..FYPProjectMultiSpectral.utils.gradcam import GradCAM
-from ..FYPProjectMultiSpectral.utils.visualisation import overlay_heatmap
-from ..FYPProjectMultiSpectral.models.models import *
-from ..FYPProjectMultiSpectral.dataloader import BigEarthNetTIFDataModule
+from config.config import DatasetConfig
+from config.config_utils import calculate_class_weights
+from utils.test_functions import *
+from utils.helper_functions import *
+from utils.gradcam import GradCAM
+from utils.visualisation import overlay_heatmap
+from models.models import *
+from dataloader import BigEarthNetTIFDataModule
 import torch.nn.functional as F
 
 if __name__ == "__main__":

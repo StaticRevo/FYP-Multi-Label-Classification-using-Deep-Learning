@@ -18,7 +18,7 @@ import numpy as np
 import json
 
 # Base model class for all models
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = ModelConfig.device
 
 class BaseModel(pl.LightningModule):
     def __init__(self, model, num_classes, class_weights, in_channels):
@@ -195,7 +195,7 @@ class BaseModel(pl.LightningModule):
         save_path = os.path.join(save_dir, f'{filename}_summary.txt')
         os.makedirs(save_dir, exist_ok=True)  
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = ModelConfig.device
         self.model.to(device)
 
         # Create a dummy input tensor with the specified input size

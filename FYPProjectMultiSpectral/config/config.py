@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import torch.nn as nn
 from .config_utils import *
+import torch
 
 # Configuration file for the project
 
@@ -91,6 +92,7 @@ class ModelConfig:
     patience: int = 5
     lr_patience: int = 5
     dropout: float = 0.5
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
 
     model_names: list = field(default_factory=lambda: [
         'resnet18', 

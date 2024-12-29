@@ -34,36 +34,36 @@ if __name__ == "__main__":
     model_weights = 'ResNet18_Weights.DEFAULT'
 
     # Initialize the DataModule
-    data_module = BigEarthNetTIFDataModule(
-        bands=bands,
-        dataset_dir=dataset_dir, 
-        metadata_csv=metadata_csv
-    )
-    data_module.setup(stage='test')
+    # data_module = BigEarthNetTIFDataModule(
+    #     bands=bands,
+    #     dataset_dir=dataset_dir, 
+    #     metadata_csv=metadata_csv
+    # )
+    # data_module.setup(stage='test')
 
-    # Load the trained model
-    model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
+    # # Load the trained model
+    # model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
 
-    model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(
-        model_checkpoint_path,
-        class_weights=class_weights,
-        num_classes=num_classes, 
-        in_channels=in_channels, 
-        model_weights=model_weights
-    )
-    model.eval()
-    register_hooks(model)
+    # model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(
+    #     model_checkpoint_path,
+    #     class_weights=class_weights,
+    #     num_classes=num_classes, 
+    #     in_channels=in_channels, 
+    #     model_weights=model_weights
+    # )
+    # model.eval()
+    # register_hooks(model)
 
-    # Visualize activations
-    test_loader = data_module.test_dataloader()
-    example_batch = next(iter(test_loader))
-    example_imgs, example_lbls = example_batch
-    show_rgb_from_batch(example_imgs[0])
-    example_imgs = example_imgs.to(model.device)
-    clear_activations()
-    with torch.no_grad():
-        _ = model(example_imgs[0].unsqueeze(0))
-    visualize_activations(num_filters=16)  
+    # # Visualize activations
+    # test_loader = data_module.test_dataloader()
+    # example_batch = next(iter(test_loader))
+    # example_imgs, example_lbls = example_batch
+    # show_rgb_from_batch(example_imgs[0])
+    # example_imgs = example_imgs.to(model.device)
+    # clear_activations()
+    # with torch.no_grad():
+    #     _ = model(example_imgs[0].unsqueeze(0))
+    # visualize_activations(num_filters=16)  
 
     # model_name =  'ResNet18'
     # model_name = model_name.lower()

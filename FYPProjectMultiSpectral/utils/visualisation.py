@@ -17,7 +17,7 @@ def register_hooks(model):
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
             module.register_forward_hook(forward_hook)
-
+        
 def clear_activations():
     activations.clear()
 

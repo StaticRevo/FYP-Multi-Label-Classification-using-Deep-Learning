@@ -41,12 +41,8 @@ if __name__ == "__main__":
     # )
     # data_module.setup(stage='test')
 
-<<<<<<< Updated upstream
-    # # Load the trained model
-    # model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
-=======
     # Load the trained model
-    model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
+    model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\ResNet18_ResNet18_Weights.DEFAULT_all_bands_0.5%_BigEarthNet_2epochs\checkpoints\final.ckpt'
 
     # model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(
     #     model_checkpoint_path,

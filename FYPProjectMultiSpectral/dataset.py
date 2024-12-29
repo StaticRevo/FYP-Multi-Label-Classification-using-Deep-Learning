@@ -19,7 +19,6 @@ class BigEarthNetDatasetTIF(Dataset):
 
         self.image_paths = list(Path(root_dir).rglob("*.tif"))
         self.patch_to_labels = dict(zip(self.metadata['patch_id'], self.metadata['labels']))
-        self.image_paths = list(Path(root_dir).rglob("*.tif"))
 
         self.selected_band_indices = get_band_indices(self.selected_bands, DatasetConfig.all_bands)
 

@@ -30,6 +30,8 @@ class DatasetConfig:
     unwanted_metadata_file: str = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet'
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
 
+    experiment_path = r'C:\Users\isaac\Desktop\experiments'
+    
     class_labels = calculate_class_labels(pd.read_csv(metadata_path))
     class_labels = class_labels
     class_labels_dict = {label: idx for idx, label in enumerate(class_labels)}

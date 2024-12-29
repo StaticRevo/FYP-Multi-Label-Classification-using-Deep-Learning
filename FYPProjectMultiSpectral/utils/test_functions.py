@@ -16,7 +16,7 @@ import rasterio
 from utils.gradcam import GradCAM, overlay_heatmap
 from config.config_utils import calculate_class_weights
 
-def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels):
+def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path):
     all_preds, all_labels = [], []
     test_loader = data_module.test_dataloader()
 
@@ -37,7 +37,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     all_preds, all_labels = np.array(all_preds), np.array(all_labels)
 
     # Save predictions and labels
-    save_path = f'test_predictions_{model_name}_{dataset_name}.npz'
+    save_path = os.path.join(result_path, f'test_predictions_{model_name}_{dataset_name}.npz')
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
     return all_preds, all_labels
@@ -60,8 +60,8 @@ def visualize_predictions_and_heatmaps(model, data_module, predictions, true_lab
     # Plot co-occurrence matrix
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels)
 
-def generate_gradcam_visualizations(model, data_module, class_labels, model_name):
-    gradcam_save_dir = r'C:\Users\isaac\Desktop\experiments'
+def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path):
+    gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
     if model_name == 'ResNet18':

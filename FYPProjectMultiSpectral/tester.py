@@ -33,21 +33,6 @@ def main():
     metadata_csv = pd.read_csv(sys.argv[10])
     dataset_dir = sys.argv[11]
     bands = json.loads(sys.argv[12]) # List of selected bands
-
-    print()
-    print("Parsed command-line arguments:")
-    print(f"model_name: {model_name}")
-    print(f"weights: {weights}")
-    print(f"selected_bands: {selected_bands}")
-    print(f"selected_dataset: {selected_dataset}")
-    print(f"acc_checkpoint_path: {acc_checkpoint_path}")
-    print(f"loss_checkpoint_path: {loss_checkpoint_path}")
-    print(f"last_checkpoint_path: {last_checkpoint_path}")
-    print(f"in_channels: {in_channels}")
-    print(f"class_weights: {class_weights}")
-    print(f"metadata_csv: {metadata_csv.head()}")  # Print the first few rows of the CSV
-    print(f"dataset_dir: {dataset_dir}")
-    print(f"bands: {bands}")
     
    # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n"
@@ -102,7 +87,9 @@ def main():
     )
 
     # Run the testing phase
-    trainer.test(model, datamodule=data_module) # This saves the metrics as a json file
+    trainer.test(model, datamodule=data_module) 
+
+    result_path = os.path.join(DatasetConfig.experiment_path, model_name + "_" + weights + "_" + selected_bands + "_" + selected_dataset + "_" + str(ModelConfig.num_epochs) + "epochs", "results")
 
     # Calculate metrics and save results
     all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
@@ -110,7 +97,8 @@ def main():
         data_module=data_module,
         model_name=model_name,
         dataset_name=selected_dataset,
-        class_labels=class_labels
+        class_labels=class_labels,
+        result_path=result_path
     )
 
     # Visualize predictions and results
@@ -132,14 +120,15 @@ def main():
     clear_activations()
     with torch.no_grad():
         _ = model(example_imgs[0].unsqueeze(0))
-    visualize_activations(num_filters=16)  
+    visualize_activations(result_path=result_path, num_filters=16)  
     
     # Generate Grad-CAM visualizations
     generate_gradcam_visualizations(
         model=model,
         data_module=data_module,
         class_labels=class_labels,
-        model_name=model_name
+        model_name=model_name,
+        result_path=result_path
     )
 
 if __name__ == "__main__":

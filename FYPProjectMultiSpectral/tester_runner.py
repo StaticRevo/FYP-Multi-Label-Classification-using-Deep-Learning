@@ -90,11 +90,6 @@ def main():
     selected_bands = sys.argv[3]
     selected_dataset = sys.argv[4]
 
-    print(f"Model name: {model_name}")
-    print(f"Weights: {weights}")
-    print(f"Selected bands: {selected_bands}")
-    print(f"Selected dataset: {selected_dataset}")
-
     num = str(extract_number(selected_dataset))
 
     metadata_path = DatasetConfig.metadata_paths[num]
@@ -140,10 +135,6 @@ def main():
         print("Error: All checkpoint files must be selected.")
         sys.exit(1)
 
-    print(f"Selected Best Accuracy Checkpoint: {best_acc_checkpoint_path}")
-    print(f"Selected Best Loss Checkpoint: {best_loss_checkpoint_path}")
-    print(f"Selected Last Checkpoint: {last_checkpoint_path}")
-
     # Prepare the arguments for the subprocess
     args = [
         'python', 
@@ -162,10 +153,10 @@ def main():
         json.dumps(bands)
     ]
 
-    # Print the arguments for debugging
-    print("Arguments to subprocess.run:")
-    for arg in args:
-        print(arg)
+    # # Print the arguments for debugging
+    # print("Arguments to subprocess.run:")
+    # for arg in args:
+    #     print(arg)
 
     # Run the subprocess
     subprocess.run(args)

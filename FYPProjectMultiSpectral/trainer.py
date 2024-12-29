@@ -33,8 +33,9 @@ def main():
     selected_dataset = sys.argv[4]
     test_variable = sys.argv[5]
 
+    experiment_path = DatasetConfig.experiment_path
     epochs = ModelConfig.num_epochs
-    main_path = fr'C:\Users\isaac\Desktop\experiments\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs_'
+    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
     if not os.path.exists(main_path):
         os.makedirs(main_path)
 
@@ -156,7 +157,7 @@ def main():
 
     # Initialize the BestMetricsCallback
     metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_precision', 'val_recall', 'val_subset_accuracy', 'val_hamming_loss']
-    best_metrics_path = os.path.join(checkpoint_dir, 'best_metrics.json')
+    best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     
     # Model Training with custom callbacks

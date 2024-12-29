@@ -41,8 +41,13 @@ if __name__ == "__main__":
     # )
     # data_module.setup(stage='test')
 
+<<<<<<< Updated upstream
     # # Load the trained model
     # model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\checkpoints\ResNet18_ResNet18_Weights.DEFAULT_all_bands_1%_BigEarthNet\final.ckpt'
+=======
+    # Load the trained model
+    model_checkpoint_path = r'C:\Users\isaac\Desktop\experiments\ResNet18_ResNet18_Weights.DEFAULT_all_bands_0.5%_BigEarthNet_2epochs\checkpoints\final.ckpt'
+>>>>>>> Stashed changes
 
     # model = BigEarthNetResNet18ModelTIF.load_from_checkpoint(
     #     model_checkpoint_path,
@@ -54,6 +59,7 @@ if __name__ == "__main__":
     # model.eval()
     # register_hooks(model)
 
+<<<<<<< Updated upstream
     # # Visualize activations
     # test_loader = data_module.test_dataloader()
     # example_batch = next(iter(test_loader))
@@ -64,6 +70,19 @@ if __name__ == "__main__":
     # with torch.no_grad():
     #     _ = model(example_imgs[0].unsqueeze(0))
     # visualize_activations(num_filters=16)  
+=======
+    result = os.getcwd()
+    # Visualize activations
+    test_loader = data_module.test_dataloader()
+    example_batch = next(iter(test_loader))
+    example_imgs, example_lbls = example_batch
+    show_rgb_from_batch(example_imgs[0])
+    example_imgs = example_imgs.to(model.device)
+    clear_activations()
+    with torch.no_grad():
+        _ = model(example_imgs[0].unsqueeze(0))
+    visualize_activations(result, num_filters=16)  
+>>>>>>> Stashed changes
 
     # model_name =  'ResNet18'
     # model_name = model_name.lower()

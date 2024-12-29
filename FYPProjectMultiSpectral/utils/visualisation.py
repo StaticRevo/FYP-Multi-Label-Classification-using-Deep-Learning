@@ -1,3 +1,4 @@
+import os
 import torch
 import math
 import matplotlib.pyplot as plt
@@ -20,14 +21,17 @@ def register_hooks(model):
 def clear_activations():
     activations.clear()
 
-def visualize_activations(num_filters=8):
-    with PdfPages('activations.pdf') as pdf:
+def visualize_activations(result_path, num_filters=8):
+    pdf_path = os.path.join(result_path, "activations.pdf")
+    with PdfPages(pdf_path) as pdf:
         for layer_module, activation in activations.items():
             act = activation.squeeze(0).detach().cpu().numpy()
             n_filters = min(num_filters, act.shape[0])
             grid_size = int(math.ceil(math.sqrt(n_filters)))
 
-            fig, axes = plt.subplots(grid_size, grid_size, figsize=(grid_size * 3, grid_size * 3))
+            fig, axes = plt.subplots(
+                grid_size, 
+                grid_size, figsize=(grid_size * 3, grid_size * 3))
             axes = axes.flatten()
 
             for i in range(grid_size * grid_size):

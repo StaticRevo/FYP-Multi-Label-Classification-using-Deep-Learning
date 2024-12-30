@@ -42,10 +42,10 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
 
     return all_preds, all_labels
 
-def visualize_predictions_and_heatmaps(model, data_module, predictions, true_labels, class_labels, model_name):
+def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name):
     # Display batch predictions
     display_batch_predictions(
-        model, data_module.test_dataloader(), threshold=0.6, bands=DatasetConfig.all_bands
+        model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands
     )
 
     # Plot per-label confusion matrices
@@ -60,7 +60,7 @@ def visualize_predictions_and_heatmaps(model, data_module, predictions, true_lab
     # Plot co-occurrence matrix
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels)
 
-def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path):
+def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
@@ -115,7 +115,11 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
 
         # Convert the input tensor to a PIL image for visualization
         img = input_image.squeeze()  # Remove batch dimension
-        rgb_channels = [3, 2, 1]  
+        if in_channels == 12:
+            rgb_channels = [3, 2, 1]  
+        else:
+            rgb_channels = [2, 1, 0]
+     
         img = img[rgb_channels, :, :] 
 
         # Normalize each channel
@@ -374,18 +378,20 @@ def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_band
 
     return np.array(all_preds), np.array(all_true_labels)
 
-def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10):
+def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10):
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
     
     dataset_size = len(dataloader.dataset)
-    num_images = min(num_images, dataset_size)  # Ensure we don't exceed the dataset size
+    num_images = min(num_images, dataset_size)  
     
     # Randomly select unique indices
     random_indices = random.sample(range(dataset_size), num_images)
     
-    # Map band names to indices
-    band_indices = {"B02": 1, "B03": 2, "B04": 3}  
-    rgb_band_indices = [band_indices["B04"], band_indices["B03"], band_indices["B02"]]  # Red, Green, Blue
+    if in_channels == 12:
+        rg = [3, 2, 1]
+    else:
+        rgb_channels  = [2, 1, 0]
+
     
     for i in random_indices:
         pred = all_preds[i]
@@ -397,11 +403,19 @@ def display_batch_predictions(model, dataloader, threshold=0.6, bands=DatasetCon
     
         # Get the image and select RGB bands for visualization
         image_tensor = dataloader.dataset[i][0]  # Assuming the first element is the image
-        image_rgb = image_tensor[rgb_band_indices, :, :]  # Select RGB bands
-        image_rgb = image_rgb.permute(1, 2, 0).numpy()  
-    
-        # Normalize RGB bands for visualization
-        image_rgb = (image_rgb - image_rgb.min()) / (image_rgb.max() - image_rgb.min() + 1e-8)
+        img = image_tensor[rgb_channels , :, :] 
+
+        # Normalize each channel
+        img_cpu = img.detach().cpu().numpy()
+        red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+        green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
+        blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
+
+        # Stack into an RGB image
+        rgb_image = np.stack([red, green, blue], axis=-1)
+
+        # Convert to PIL Image
+        image_rgb = Image.fromarray((rgb_image * 255).astype(np.uint8))
     
         # Display the image, true labels, and predicted labels
         plt.figure(figsize=(10, 10))

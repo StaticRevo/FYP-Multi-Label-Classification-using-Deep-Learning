@@ -32,12 +32,12 @@ class BigEarthNetDatasetTIF(Dataset):
             image = src.read()  
             image = image[self.selected_band_indices, :, :]
         
-        # Image is transformed before normalisation
-        #if self.transforms:
-            #image = self.transforms(image)
-
-        # Image is convered to a tensor before applying normalisation
+        # Image is convered to a tensor before applying normalisation or transformations
         image = torch.tensor(image, dtype=torch.float32)
+
+        # Image is transformed before normalisation
+        if self.transforms:
+            image = self.transforms(image)
 
         # Image is normalised
         if self.normalisation:

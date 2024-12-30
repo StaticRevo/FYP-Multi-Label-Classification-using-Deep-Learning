@@ -1,7 +1,7 @@
 ----------------------------------------------------------------
         Layer (type)               Output Shape         Param #
 ================================================================
-            Conv2d-1           [-1, 64, 60, 60]          18,816
+            Conv2d-1           [-1, 64, 60, 60]          12,544
        BatchNorm2d-2           [-1, 64, 60, 60]             128
               ReLU-3           [-1, 64, 60, 60]               0
          MaxPool2d-4           [-1, 64, 30, 30]               0
@@ -70,12 +70,12 @@
 AdaptiveAvgPool2d-67            [-1, 512, 1, 1]               0
            Linear-68                   [-1, 19]           9,747
 ================================================================
-Total params: 11,195,667
-Trainable params: 11,195,667
+Total params: 11,189,395
+Trainable params: 11,189,395
 Non-trainable params: 0
 ----------------------------------------------------------------
-Input size (MB): 0.33
+Input size (MB): 0.22
 Forward/backward pass size (MB): 18.38
-Params size (MB): 42.71
-Estimated Total Size (MB): 61.42
+Params size (MB): 42.68
+Estimated Total Size (MB): 61.29
 ----------------------------------------------------------------

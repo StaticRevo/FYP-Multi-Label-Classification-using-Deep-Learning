@@ -19,7 +19,7 @@ def main():
     # Parse command-line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
-    selected_bands = sys.argv[3] # string of selected bands ex. all_labels
+    selected_bands = sys.argv[3] 
     selected_dataset = sys.argv[4]
     acc_checkpoint_path = sys.argv[5]
     loss_checkpoint_path = sys.argv[6]
@@ -67,7 +67,8 @@ def main():
 
     if model_name in model_mapping:
         model_class, _ = model_mapping[model_name]  
-        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights, main_path=main_path)
+        model_weights = None if weights == 'None' else weights
+        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
         model.eval()
         register_hooks(model)
     else:
@@ -87,7 +88,7 @@ def main():
     )
 
     # Run the testing phase
-    trainer.test(model, datamodule=data_module) 
+    #trainer.test(model, datamodule=data_module) 
 
     result_path = os.path.join(DatasetConfig.experiment_path, model_name + "_" + weights + "_" + selected_bands + "_" + selected_dataset + "_" + str(ModelConfig.num_epochs) + "epochs", "results")
 
@@ -105,17 +106,18 @@ def main():
     visualize_predictions_and_heatmaps(
         model=model,
         data_module=data_module,
+        in_channels=in_channels,
         predictions=all_preds,
         true_labels=all_labels,
         class_labels=class_labels,
-        model_name=model_name
+        model_name=model_name,
     )
 
     # Visualize activations
     test_loader = data_module.test_dataloader()
     example_batch = next(iter(test_loader))
     example_imgs, example_lbls = example_batch
-    show_rgb_from_batch(example_imgs[0])
+    show_rgb_from_batch(example_imgs[0], in_channels)
     example_imgs = example_imgs.to(model.device)
     clear_activations()
     with torch.no_grad():
@@ -128,7 +130,8 @@ def main():
         data_module=data_module,
         class_labels=class_labels,
         model_name=model_name,
-        result_path=result_path
+        result_path=result_path,
+        in_channels=in_channels
     )
 
 if __name__ == "__main__":

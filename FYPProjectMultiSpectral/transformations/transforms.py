@@ -9,11 +9,9 @@ from .normalisation import BandNormalisation
 @dataclass
 class TransformsConfig:
     train_transforms = transforms.Compose([
-        #transforms.RandomResizedCrop(size=(120, 120), scale=(0.8, 1.0)),
+        transforms.Resize((120, 120)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        #transforms.RandomAffine(degrees=15, translate=(0.1, 0.1)),
-        transforms.RandomErasing(p=0.5, scale=(0.02, 0.33))
     ])
 
     val_transforms = transforms.Compose([

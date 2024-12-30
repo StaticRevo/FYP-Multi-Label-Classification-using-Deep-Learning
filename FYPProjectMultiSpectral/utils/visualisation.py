@@ -48,12 +48,17 @@ def visualize_activations(result_path, num_filters=8):
 
     print("Activations saved to activations.pdf")
 
-def show_rgb_from_batch(image_tensor):
+def show_rgb_from_batch(image_tensor, in_channels):
     image_cpu = image_tensor.detach().cpu().numpy()
 
-    red = image_cpu[3]
-    green = image_cpu[2]
-    blue = image_cpu[1]
+    if in_channels == 12:
+        red = image_cpu[3]
+        green = image_cpu[2]
+        blue = image_cpu[1]
+    else:
+        red = image_cpu[0]
+        green = image_cpu[1]
+        blue = image_cpu[2]
 
     red = (red - red.min()) / (red.max() - red.min() + 1e-8)
     green = (green - green.min()) / (green.max() - green.min() + 1e-8)

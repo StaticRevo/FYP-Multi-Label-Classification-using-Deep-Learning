@@ -8,6 +8,8 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 import pandas as pd
 import random
 from config.config import DatasetConfig
+from tqdm import tqdm
+from PIL import Image
 
 def set_random_seeds(seed=42):
     random.seed(seed)
@@ -109,10 +111,13 @@ def save_tensorboard_graphs(log_dir, output_dir):
     event_acc.Reload()
 
     # Get the list of tags (metrics) in the logs
-    tags = event_acc.Tags()['scalars']
+    tags = event_acc.Tags().get('scalars', [])
 
-    # Filter tags
-    filtered_tags = [tag for tag in tags if '_epoch' in tag or tag.startswith('val_')]
+    # Filter tags: include tags with '_epoch' or starting with 'val_', exclude 'class' in name
+    filtered_tags = [
+        tag for tag in tags 
+        if ('_epoch' in tag or tag.startswith('val_')) and 'class' not in tag
+    ]
 
     # Iterate over each tag and plot the graph
     for tag in filtered_tags:
@@ -122,14 +127,15 @@ def save_tensorboard_graphs(log_dir, output_dir):
 
         # Plot the graph
         plt.figure()
-        plt.plot(steps, values)
-        plt.xlabel('Steps')
+        plt.plot(steps, values, marker='o', linestyle='-')
+        plt.xlabel('Epoch')
         plt.ylabel(tag)
-        plt.title(tag)
+        plt.title(tag.replace('_', ' ').capitalize())
         plt.grid(True)
 
         # Save the graph as an image
-        output_path = os.path.join(output_dir, f"{tag.replace('/', '_')}.png")
+        sanitized_tag = tag.replace('/', '_').replace(' ', '_')
+        output_path = os.path.join(output_dir, f"{sanitized_tag}.png")
         plt.savefig(output_path)
         plt.close()
 
@@ -172,3 +178,45 @@ def display_rgb_image_from_tiff(tiff_file_path):
         plt.axis('off')
         plt.show()
 
+def calculate_band_stats(root_dir, num_bands):
+    band_means = np.zeros(num_bands)
+    band_stds = np.zeros(num_bands)
+    pixel_counts = np.zeros(num_bands)
+
+    # Get the total number of files for the progress bar
+    total_files = sum(os.path.isfile(os.path.join(root_dir, file)) for file in os.listdir(root_dir))
+
+    # Iterate through each file in the root directory with a progress bar
+    with tqdm(total=total_files, desc="Processing files", unit="file") as pbar:
+        for file in os.listdir(root_dir):
+            file_path = os.path.join(root_dir, file)
+            if os.path.isfile(file_path) and file_path.endswith('.tif'):
+                with rasterio.open(file_path) as src:
+                    for band in range(1, num_bands + 1):
+                        band_data = src.read(band).astype(np.float32)
+                        band_means[band - 1] += band_data.sum()
+                        band_stds[band - 1] += (band_data ** 2).sum()
+                        pixel_counts[band - 1] += band_data.size
+                pbar.update(1)
+
+    # Calculate means and standard deviations
+    band_means /= pixel_counts
+    band_stds = np.sqrt(band_stds / pixel_counts - band_means ** 2)
+
+    return band_means, band_stds
+
+def convert_tif_to_jpg(root_dir, output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        
+    for subdir, _, files in os.walk(root_dir):
+        for file in files:
+            if file.lower().endswith('.tif'):
+                tif_path = os.path.join(subdir, file)
+                relative_path = os.path.relpath(tif_path, root_dir)
+                jpg_path = os.path.join(output_dir, os.path.splitext(relative_path)[0] + '.jpg')
+                
+                os.makedirs(os.path.dirname(jpg_path), exist_ok=True)
+                
+                with Image.open(tif_path) as img:
+                    img.convert('RGB').save(jpg_path, 'JPEG')

@@ -105,7 +105,7 @@ def main():
     if model_name in model_mapping:
         model_class, filename = model_mapping[model_name]
         model_weights = None if weights == 'None' else weights
-        model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights)
+        model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights, main_path)
         model.print_summary((in_channels, 120, 120), filename) 
         model.visualize_model((in_channels, 120, 120), filename)
     else:

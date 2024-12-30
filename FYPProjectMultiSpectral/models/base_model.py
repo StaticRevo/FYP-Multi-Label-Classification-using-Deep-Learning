@@ -21,13 +21,14 @@ import json
 device = ModelConfig.device
 
 class BaseModel(pl.LightningModule):
-    def __init__(self, model, num_classes, class_weights, in_channels):
+    def __init__(self, model, num_classes, class_weights, in_channels, metrics_save_dir):
         super(BaseModel, self).__init__()
         self.model = model
         self.num_classes = num_classes
         self.class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
         self.class_labels = DatasetConfig.class_labels  
-        
+        self.metrics_save_dir = metrics_save_dir
+
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
 
         # Aggregate Metrics
@@ -56,14 +57,39 @@ class BaseModel(pl.LightningModule):
         self.test_f1_per_class = MultilabelF1Score(num_labels=self.num_classes, average='none')
         self.test_acc_per_class = MultilabelAccuracy(num_labels=self.num_classes, average='none')
 
-        # Storage for per-class metrics
-        self.per_class_metrics = {
-            'precision': [],
-            'recall': [],
-            'f1': [],
-            'accuracy': []
-        }
+        # Per-Class Metrics for Training Only
+        self.train_precision_per_class = MultilabelPrecision(num_labels=self.num_classes, average='none')
+        self.train_recall_per_class = MultilabelRecall(num_labels=self.num_classes, average='none')
+        self.train_f1_per_class = MultilabelF1Score(num_labels=self.num_classes, average='none')
+        self.train_acc_per_class = MultilabelAccuracy(num_labels=self.num_classes, average='none')
 
+        # Per-Class Metrics for Validation Only
+        self.val_precision_per_class = MultilabelPrecision(num_labels=self.num_classes, average='none')
+        self.val_recall_per_class = MultilabelRecall(num_labels=self.num_classes, average='none')
+        self.val_f1_per_class = MultilabelF1Score(num_labels=self.num_classes, average='none')
+        self.val_acc_per_class = MultilabelAccuracy(num_labels=self.num_classes, average='none')
+
+        # Initialize per-class metrics storage for all phases
+        self.per_class_metrics = {
+            'train': {
+                'precision': [],
+                'recall': [],
+                'f1': [],
+                'accuracy': []
+            },
+            'val': {
+                'precision': [],
+                'recall': [],
+                'f1': [],
+                'accuracy': []
+            },
+            'test': {
+                'precision': [],
+                'recall': [],
+                'f1': [],
+                'accuracy': []
+            }
+        }
     def forward(self, x):
         return self.model(x)
 
@@ -123,41 +149,60 @@ class BaseModel(pl.LightningModule):
         self.log(f'{phase}_hamming_loss', hamming_loss_val, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_subset_accuracy', subset_acc, on_epoch=True, prog_bar=True, batch_size=len(x))
 
-        # Compute and log per-class metrics only during testing
-        if phase == 'test':
-            # Compute per-class metrics
-            per_class_precision = self.test_precision_per_class(preds, y).cpu().tolist()
-            per_class_recall = self.test_recall_per_class(preds, y).cpu().tolist()
-            per_class_f1 = self.test_f1_per_class(preds, y).cpu().tolist()
-            per_class_acc = self.test_acc_per_class(preds, y).cpu().tolist()
+        # Compute and log per-class metrics
+        if phase in ['train', 'val', 'test']:
+            if phase == 'test':
+                per_class_precision = self.test_precision_per_class(preds, y).cpu().tolist()
+                per_class_recall = self.test_recall_per_class(preds, y).cpu().tolist()
+                per_class_f1 = self.test_f1_per_class(preds, y).cpu().tolist()
+                per_class_acc = self.test_acc_per_class(preds, y).cpu().tolist()
+            elif phase == 'val':
+                per_class_precision = self.val_precision_per_class(preds, y).cpu().tolist()
+                per_class_recall = self.val_recall_per_class(preds, y).cpu().tolist()
+                per_class_f1 = self.val_f1_per_class(preds, y).cpu().tolist()
+                per_class_acc = self.val_acc_per_class(preds, y).cpu().tolist()
+            elif phase == 'train':
+                per_class_precision = self.train_precision_per_class(preds, y).cpu().tolist()
+                per_class_recall = self.train_recall_per_class(preds, y).cpu().tolist()
+                per_class_f1 = self.train_f1_per_class(preds, y).cpu().tolist()
+                per_class_acc = self.train_acc_per_class(preds, y).cpu().tolist()
 
             # Store metrics
-            self.per_class_metrics['precision'].append(per_class_precision)
-            self.per_class_metrics['recall'].append(per_class_recall)
-            self.per_class_metrics['f1'].append(per_class_f1)
-            self.per_class_metrics['accuracy'].append(per_class_acc)
+            self.per_class_metrics[phase]['precision'].append(per_class_precision)
+            self.per_class_metrics[phase]['recall'].append(per_class_recall)
+            self.per_class_metrics[phase]['f1'].append(per_class_f1)
+            self.per_class_metrics[phase]['accuracy'].append(per_class_acc)
 
             # Log per-class metrics to the logger (e.g., TensorBoard)
             for i in range(self.num_classes):
                 class_name = self.class_labels[i] if i < len(self.class_labels) else f"Class {i}"
-                self.log(f'test_precision_class_{i}', per_class_precision[i], on_epoch=True, prog_bar=False, batch_size=len(x))
-                self.log(f'test_recall_class_{i}', per_class_recall[i], on_epoch=True, prog_bar=False, batch_size=len(x))
-                self.log(f'test_f1_class_{i}', per_class_f1[i], on_epoch=True, prog_bar=False, batch_size=len(x))
-                self.log(f'test_acc_class_{i}', per_class_acc[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'{phase}_precision_class_{i}', per_class_precision[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'{phase}_recall_class_{i}', per_class_recall[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'{phase}_f1_class_{i}', per_class_f1[i], on_epoch=True, prog_bar=False, batch_size=len(x))
+                self.log(f'{phase}_acc_class_{i}', per_class_acc[i], on_epoch=True, prog_bar=False, batch_size=len(x))
 
         return loss
-   
-    def on_test_epoch_end(self):
-        # Check if per-class metrics have been collected
-        if not any(self.per_class_metrics.values()):
-            print("No per-class metrics were collected during testing.")
-            return
+    
+    def on_train_epoch_end(self):
+        self._save_epoch_metrics('train')
 
+    def on_validation_epoch_end(self):
+        self._save_epoch_metrics('val')
+
+    def on_test_epoch_end(self):
+        self._save_epoch_metrics('test')
+
+    def _save_epoch_metrics(self, phase):
+        # Check if per-class metrics have been collected
+        if not any(self.per_class_metrics[phase].values()):
+            print(f"No per-class metrics were collected during {phase}ing.")
+            return
+        
         # Aggregate per-class metrics by averaging over batches
-        avg_precision = np.mean(self.per_class_metrics['precision'], axis=0)
-        avg_recall = np.mean(self.per_class_metrics['recall'], axis=0)
-        avg_f1 = np.mean(self.per_class_metrics['f1'], axis=0)
-        avg_acc = np.mean(self.per_class_metrics['accuracy'], axis=0)
+        avg_precision = np.mean(self.per_class_metrics[phase]['precision'], axis=0)
+        avg_recall = np.mean(self.per_class_metrics[phase]['recall'], axis=0)
+        avg_f1 = np.mean(self.per_class_metrics[phase]['f1'], axis=0)
+        avg_acc = np.mean(self.per_class_metrics[phase]['accuracy'], axis=0)
 
         # Create a PrettyTable for displaying per-class metrics with labels
         table = PrettyTable()
@@ -174,7 +219,7 @@ class BaseModel(pl.LightningModule):
                 round(avg_acc[i], 4)
             ])
 
-        print(f"\nTest Metrics per Class:\n{table}")
+        print(f"\n{phase.capitalize()} Metrics per Class:\n{table}")
 
         # Save these metrics to a JSON file with class labels
         metrics_to_save = {
@@ -184,10 +229,20 @@ class BaseModel(pl.LightningModule):
             'accuracy': avg_acc.tolist(),
             'class_labels': self.class_labels  # Include class labels for reference
         }
-        save_path = f'test_per_class_metrics_{self.model.__class__.__name__}.json'
+        save_path = os.path.join(self.metrics_save_dir, 'results', f'{phase}_per_class_metrics_{self.model.__class__.__name__}.json')
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, 'w') as f:
             json.dump(metrics_to_save, f, indent=4)
-        print(f"Per-class metrics saved to {save_path}")
+        print(f"{phase.capitalize()} per-class metrics saved to {save_path}")
+
+        # Reset the metrics storage for the next epoch
+        self.per_class_metrics[phase] = {
+            'precision': [],
+            'recall': [],
+            'f1': [],
+            'accuracy': []
+        }
+   
 
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()

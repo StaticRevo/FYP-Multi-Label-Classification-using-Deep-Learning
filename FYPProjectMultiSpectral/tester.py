@@ -6,10 +6,6 @@ from config.config import DatasetConfig, ModelConfig
 from dataloader import BigEarthNetTIFDataModule
 import torch
 import pytorch_lightning as pl
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 from utils.helper_functions import *
 from utils.test_functions import *
 from utils.visualisation import *
@@ -65,9 +61,13 @@ def main():
         'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer')
     }
 
+    experiment_path = DatasetConfig.experiment_path
+    epochs = ModelConfig.num_epochs
+    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+
     if model_name in model_mapping:
         model_class, _ = model_mapping[model_name]  
-        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights)
+        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=weights, main_path=main_path)
         model.eval()
         register_hooks(model)
     else:

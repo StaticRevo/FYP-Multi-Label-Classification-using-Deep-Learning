@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import torch.nn.functional as F
 from config.config import ModuleConfig
 
@@ -109,3 +110,36 @@ class ResidualBlock(nn.Module):
         out += residual
         out = self.relu(out)
         return out
+    
+# Spectral Attention Module (SA)
+class SpectralAttention(nn.Module):
+    def __init__(self, in_channels, reduction=16):
+        super(SpectralAttention, self).__init__()
+        self.fc1 = nn.Linear(in_channels, in_channels // reduction)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Linear(in_channels // reduction, in_channels)
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        batch, channels, height, width = x.size()
+        y = x.view(batch, channels, -1).mean(dim=2)  # Global Average Pooling
+        y = self.fc1(y)
+        y = self.relu(y)
+        y = self.fc2(y)
+        y = self.sigmoid(y).view(batch, channels, 1, 1)
+        return x * y
+
+# Dual Attention Module (DA) - Combines Channel Attention and Spatial Attention
+class DualAttention(nn.Module):
+    def __init__(self, in_channels, reduction=16):
+        super(DualAttention, self).__init__()
+        # Channel Attention
+        self.channel_att = SpectralAttention(in_channels, reduction)
+        # Spatial Attention
+        self.spatial_att = SpatialAttention(kernel_size=7)
+    
+    def forward(self, x):
+        x = self.channel_att(x)
+        x = self.spatial_att(x)
+        return x
+

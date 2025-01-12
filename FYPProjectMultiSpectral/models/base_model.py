@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from contextlib import redirect_stdout
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable 
-from .metrics import SubsetAccuracy
 import numpy as np
 import json
 
@@ -49,7 +48,6 @@ class BaseModel(pl.LightningModule):
         self.test_f1 = MultilabelF1Score(num_labels=self.num_classes)
 
         self.hamming_loss = MultilabelHammingDistance(num_labels=self.num_classes)
-        self.subset_accuracy = SubsetAccuracy()
 
         # Per-Class Metrics for Testing Only
         self.test_precision_per_class = MultilabelPrecision(num_labels=self.num_classes, average='none')
@@ -138,7 +136,6 @@ class BaseModel(pl.LightningModule):
         precision = getattr(self, f'{phase}_precision')(preds, y)
         hamming_distance = self.hamming_loss(preds, y)
         hamming_loss_val = hamming_distance / y.size(1)
-        subset_acc = self.subset_accuracy(preds, y)
 
         # Log aggregate metrics
         self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True, batch_size=len(x))
@@ -147,7 +144,6 @@ class BaseModel(pl.LightningModule):
         self.log(f'{phase}_f1', f1, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_hamming_loss', hamming_loss_val, on_epoch=True, prog_bar=True, batch_size=len(x))
-        self.log(f'{phase}_subset_accuracy', subset_acc, on_epoch=True, prog_bar=True, batch_size=len(x))
 
         # Compute and log per-class metrics
         if phase in ['train', 'val', 'test']:

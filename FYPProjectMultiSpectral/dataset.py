@@ -7,7 +7,7 @@ from config.config import DatasetConfig
 from utils.helper_functions import encode_label, get_band_indices
 
 # Dataset class for BigEarthNet dataset
-class BigEarthNetDatasetTIF(Dataset):
+class BigEarthNetDataset(Dataset):
     def __init__(self, *, df, root_dir, transforms=None, normalisation=None, is_test=False, selected_bands=None, metadata_csv=None):
         super().__init__()
         self.df = df.reset_index(drop=True)  

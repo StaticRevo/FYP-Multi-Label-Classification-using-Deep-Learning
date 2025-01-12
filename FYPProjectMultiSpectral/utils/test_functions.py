@@ -44,9 +44,9 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
 
 def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name):
     # Display batch predictions
-    display_batch_predictions(
-        model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands
-    )
+    # display_batch_predictions(
+    #     model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands
+    # )
 
     # Plot per-label confusion matrices
     plot_per_label_confusion_matrices_grid(
@@ -388,7 +388,7 @@ def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, ban
     random_indices = random.sample(range(dataset_size), num_images)
     
     if in_channels == 12:
-        rg = [3, 2, 1]
+        rgb_channels = [3, 2, 1]
     else:
         rgb_channels  = [2, 1, 0]
 

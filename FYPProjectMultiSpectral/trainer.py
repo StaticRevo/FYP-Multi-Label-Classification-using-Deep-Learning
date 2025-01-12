@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
-from dataloader import BigEarthNetTIFDataModule
+from dataloader import BigEarthNetDataLoader
 from utils.helper_functions import save_tensorboard_graphs, extract_number, set_random_seeds
 from utils.visualisation import *
 from models.models import *
@@ -85,20 +85,20 @@ def main():
     class_weights = class_weights_array
 
     # Initialize the data module
-    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
+    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     model_mapping = {
         'custom_model': (CustomModel, 'custom_model'),
-        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18'),
-        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50'),
-        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16'),
-        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19'),
-        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121'),
-        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0'),
-        'EfficientNet_v2': (BigEarthNetEfficientNetV2MModelTIF, 'efficientnet_v2'),
-        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer'),
-        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer')
+        'ResNet18': (ResNet18, 'resnet18'),
+        'ResNet50': (ResNet50, 'resnet50'),
+        'VGG16': (VGG16, 'vgg16'),
+        'VGG19': (VGG19, 'vgg19'),
+        'DenseNet121': (DenseNet121, 'densenet121'),
+        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
+        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
+        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
+        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
     }
 
     # Initialize the model

@@ -66,12 +66,7 @@ def bigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
 
     # Stage 5: Combine TIFF files into a single image
     process_folders(dataset_dir, 'CombinedImages', combineTiffs, exclude_dirs=["CombinedImages"])
-
-    # Stage 7: Split the dataset into training, validation and testing sets
-    # Stage 8: Apply normalisation and data augmentation techniques
-    # Stage 9: Save the preprocessed dataset to a specified location
     
-
 ############################################################################################################
 if __name__ == '__main__':
     dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets2\50_percent'

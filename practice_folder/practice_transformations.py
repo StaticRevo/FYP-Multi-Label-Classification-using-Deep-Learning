@@ -12,10 +12,6 @@ from dataloader import BigEarthNetTIFDataModule
 
 
 def get_rgb_from_tensor(image_tensor, in_channels):
-    """
-    Convert a tensor to an RGB numpy array for visualization.
-    For multi-spectral images, select specific bands for RGB representation.
-    """
     image_cpu = image_tensor.detach().cpu().numpy()
 
     if in_channels == 12:
@@ -50,14 +46,14 @@ def main():
         dataset_dir=dataset_dir,
         metadata_csv=metadata_csv
     )
-    data_module.setup(stage='test')
+    data_module.setup(stage=None)
 
     # Get the transformation pipeline
     transform_pipeline = TransformsConfig.train_transforms
 
     # Load one batch of test data
-    test_loader = data_module.val_dataloader()
-    example_batch = next(iter(test_loader))
+    train_loader = data_module.train_dataloader()
+    example_batch = next(iter(train_loader))
     example_imgs, example_lbls = example_batch
 
     in_channels = len(bands)

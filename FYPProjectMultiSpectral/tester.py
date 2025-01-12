@@ -3,7 +3,7 @@ import sys
 import json
 import pandas as pd
 from config.config import DatasetConfig, ModelConfig
-from dataloader import BigEarthNetTIFDataModule
+from dataloader import BigEarthNetDataLoader
 import torch
 import pytorch_lightning as pl
 from utils.helper_functions import *
@@ -50,15 +50,15 @@ def main():
 
     model_mapping = {
         'custom_model': (CustomModel, 'custom_model'),
-        'ResNet18': (BigEarthNetResNet18ModelTIF, 'resnet18'),
-        'ResNet50': (BigEarthNetResNet50ModelTIF, 'resnet50'),
-        'VGG16': (BigEarthNetVGG16ModelTIF, 'vgg16'),
-        'VGG19': (BigEarthNetVGG19ModelTIF, 'vgg19'),
-        'DenseNet121': (BigEarthNetDenseNet121ModelTIF, 'densenet121'),
-        'EfficientNetB0': (BigEarthNetEfficientNetB0ModelTIF, 'efficientnetb0'),
-        'EfficientNet_v2': (BigEarthNetEfficientNetV2MModelTIF, 'efficientnet_v2'),
-        'Vit-Transformer': (BigEarthNetVitTransformerModelTIF, 'vit_transformer'),
-        'Swin-Transformer': (BigEarthNetSwinTransformerModelTIF, 'swin_transformer')
+        'ResNet18': (ResNet18, 'resnet18'),
+        'ResNet50': (ResNet50, 'resnet50'),
+        'VGG16': (VGG16, 'vgg16'),
+        'VGG19': (VGG19, 'vgg19'),
+        'DenseNet121': (DenseNet121, 'densenet121'),
+        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
+        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
+        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
+        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
     }
 
     experiment_path = DatasetConfig.experiment_path
@@ -74,7 +74,7 @@ def main():
     else:
         raise ValueError(f"Model {model_name} not recognized.")
     
-    data_module = BigEarthNetTIFDataModule(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
+    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage='test')
 
     class_labels = DatasetConfig.class_labels
@@ -88,7 +88,7 @@ def main():
     )
 
     # Run the testing phase
-    #trainer.test(model, datamodule=data_module) 
+    trainer.test(model, datamodule=data_module) 
 
     result_path = os.path.join(DatasetConfig.experiment_path, model_name + "_" + weights + "_" + selected_bands + "_" + selected_dataset + "_" + str(ModelConfig.num_epochs) + "epochs", "results")
 

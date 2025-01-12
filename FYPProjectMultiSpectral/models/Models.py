@@ -21,8 +21,9 @@ class CustomModel(BaseModel):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
 
-            # Residual Block (64->64)
+            # Residual Block (64->64) and SpectralAttention Module
             ResidualBlock(in_channels=64, out_channels=64, stride=1),
+            SpectralAttention(in_channels=64, reduction=16),
 
             # -- Block 2 --
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
@@ -38,9 +39,11 @@ class CustomModel(BaseModel):
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
 
-            # Residual Block (128->256) and ChannelAttention Module
+            # Residual Block (256->256) and ChannelAttention Module
             ResidualBlock(in_channels=256, out_channels=256, stride=1),
             ChannelAttention(in_channels=256, reduction_ratio=16),
+            ECA(in_channels=256, k_size=3),
+            SpatialAttention(kernel_size=7),
 
             # -- Block 4 -- 
             nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
@@ -49,6 +52,9 @@ class CustomModel(BaseModel):
 
             # Residual Block (512->512) and ECA Module
             ResidualBlock(in_channels=512, out_channels=512, stride=1),
+            ECA(in_channels=512, k_size=3),
+
+            DualAttention(in_channels=512, reduction=16),
 
             # Global Pool and Classifier
             nn.AdaptiveAvgPool2d(1),
@@ -60,7 +66,7 @@ class CustomModel(BaseModel):
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)
         
 # ResNet18 Model
-class BigEarthNetResNet18ModelTIF(BaseModel):
+class ResNet18(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         resnet_model = resnet18(weights=model_weights)
 
@@ -82,46 +88,52 @@ class BigEarthNetResNet18ModelTIF(BaseModel):
         # Modify the final fully connected layer
         resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
 
-        super(BigEarthNetResNet18ModelTIF, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
+        super(ResNet18, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
 
 # ResNet50 Model
-class BigEarthNetResNet50ModelTIF(BaseModel):
+class ResNet50(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         resnet_model = resnet50(weights=model_weights)
 
-        # Modify first convolution layer to accept multiple channels
-        original_conv1 = resnet_model.conv1
-        resnet_model.conv1 = nn.Conv2d(
-            in_channels=in_channels,  
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=original_conv1.bias,
-        )
-        nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify first convolution layer to accept multiple channels
+            original_conv1 = resnet_model.conv1
+            resnet_model.conv1 = nn.Conv2d(
+                in_channels=in_channels,  
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=original_conv1.bias,
+            )
+            nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
 
-        # Modify the final fully connected layer
-        resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
+            # Modify the final fully connected layer
+            resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
 
-        super(BigEarthNetResNet50ModelTIF, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
+            super(ResNet50, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
 
 # VGG16 Model
-class BigEarthNetVGG16ModelTIF(BaseModel):
+class VGG16(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         vgg_model = vgg16(weights=model_weights)
 
-        # Modify the first convolutional layer
-        original_conv1 = vgg_model.features[0] 
-        vgg_model.features[0] = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=(original_conv1.bias is not None)  
-        )
-        nn.init.kaiming_normal_(vgg_model.features[0].weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify the first convolutional layer
+            original_conv1 = vgg_model.features[0] 
+            vgg_model.features[0] = nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=(original_conv1.bias is not None)  
+            )
+            nn.init.kaiming_normal_(vgg_model.features[0].weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer in the classifier
         vgg_model.classifier[6] = nn.Linear(
@@ -129,24 +141,27 @@ class BigEarthNetVGG16ModelTIF(BaseModel):
             out_features=num_classes,
         )
 
-        super(BigEarthNetVGG16ModelTIF, self).__init__(vgg_model, num_classes, class_weights, in_channels, main_path)
+        super(VGG16, self).__init__(vgg_model, num_classes, class_weights, in_channels, main_path)
 
 # VGG19 Model
-class BigEarthNetVGG19ModelTIF(BaseModel):
+class VGG19(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         vgg_model = vgg19(weights=model_weights)
 
-        # Modify the first convolutional layer
-        original_conv1 = vgg_model.features[0]  # Access the first Conv2d layer
-        vgg_model.features[0] = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=(original_conv1.bias is not None)  
-        )
-        nn.init.kaiming_normal_(vgg_model.features[0].weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify the first convolutional layer
+            original_conv1 = vgg_model.features[0]  # Access the first Conv2d layer
+            vgg_model.features[0] = nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=(original_conv1.bias is not None)  
+            )
+            nn.init.kaiming_normal_(vgg_model.features[0].weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer in the classifier
         vgg_model.classifier[6] = nn.Linear(
@@ -154,83 +169,93 @@ class BigEarthNetVGG19ModelTIF(BaseModel):
             out_features=num_classes,
         )
 
-        super(BigEarthNetVGG19ModelTIF, self).__init__(vgg_model, num_classes, class_weights, in_channels, main_path)
+        super(VGG19, self).__init__(vgg_model, num_classes, class_weights, in_channels, main_path)
 
 # EfficientNetB0 Model
-class BigEarthNetEfficientNetB0ModelTIF(BaseModel):
+class EfficientNetB0(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         if model_weights == 'EfficientNetB0_Weights.DEFAULT':
             model_weights = EfficientNet_B0_Weights.DEFAULT
         efficientnet_model = efficientnet_b0(weights=model_weights)
 
-        # Modify the first convolutional layer
-        original_conv1 = efficientnet_model.features[0][0] 
-        efficientnet_model.features[0][0] = nn.Conv2d(
-            in_channels=in_channels,  # Adjust for custom input channels
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=original_conv1.bias
-        )
-        nn.init.kaiming_normal_(efficientnet_model.features[0][0].weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify the first convolutional layer
+            original_conv1 = efficientnet_model.features[0][0] 
+            efficientnet_model.features[0][0] = nn.Conv2d(
+                in_channels=in_channels,  # Adjust for custom input channels
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=original_conv1.bias
+            )
+            nn.init.kaiming_normal_(efficientnet_model.features[0][0].weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer
         efficientnet_model.classifier[1] = nn.Linear(
             efficientnet_model.classifier[1].in_features, num_classes
         )
 
-        super(BigEarthNetEfficientNetB0ModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels, main_path)
+        super(EfficientNetB0, self).__init__(efficientnet_model, num_classes, class_weights, in_channels, main_path)
 
 # EfficientNetV2 Model
-class BigEarthNetEfficientNetV2MModelTIF(BaseModel):
+class EfficientNetV2(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         efficientnet_model = efficientnet_v2_m(weights=model_weights)
 
-        original_conv1 = efficientnet_model.features[0][0]  
-        efficientnet_model.features[0][0] = nn.Conv2d(
-            in_channels=in_channels,  
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=original_conv1.bias
-        )
-        nn.init.kaiming_normal_(efficientnet_model.features[0][0].weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify the first convolutional layer
+            original_conv1 = efficientnet_model.features[0][0]  
+            efficientnet_model.features[0][0] = nn.Conv2d(
+                in_channels=in_channels,  
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=original_conv1.bias
+            )
+            nn.init.kaiming_normal_(efficientnet_model.features[0][0].weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer
         efficientnet_model.classifier[1] = nn.Linear(
             efficientnet_model.classifier[1].in_features, num_classes
         )
 
-        super(BigEarthNetEfficientNetV2MModelTIF, self).__init__(efficientnet_model, num_classes, class_weights, in_channels, main_path)
+        super(EfficientNetV2, self).__init__(efficientnet_model, num_classes, class_weights, in_channels, main_path)
 
 # DenseNet121 Model
-class BigEarthNetDenseNet121ModelTIF(BaseModel):
+class DenseNet121(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         densenet_model = densenet121(weights=model_weights)
 
-        # Modify the first convolutional layer to accept custom number of input channels
-        original_conv1 = densenet_model.features[0] 
-        densenet_model.features[0] = nn.Conv2d(
-            in_channels=in_channels,  
-            out_channels=original_conv1.out_channels,
-            kernel_size=original_conv1.kernel_size,
-            stride=original_conv1.stride,
-            padding=original_conv1.padding,
-            bias=original_conv1.bias
-        )
-        nn.init.kaiming_normal_(densenet_model.features[0].weight, mode='fan_out', nonlinearity='relu')
+        if in_channels == 3:
+            pass
+        else:
+            # Modify the first convolutional layer to accept custom number of input channels
+            original_conv1 = densenet_model.features[0] 
+            densenet_model.features[0] = nn.Conv2d(
+                in_channels=in_channels,  
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=original_conv1.bias
+            )
+            nn.init.kaiming_normal_(densenet_model.features[0].weight, mode='fan_out', nonlinearity='relu')
 
         # Modify the final fully connected layer
         densenet_model.classifier = nn.Linear(
             densenet_model.classifier.in_features, num_classes
         )
 
-        super(BigEarthNetDenseNet121ModelTIF, self).__init__(densenet_model, num_classes, class_weights, in_channels, main_path)   
+        super(DenseNet121, self).__init__(densenet_model, num_classes, class_weights, in_channels, main_path)   
 
 # Swin Transformer Model
-class BigEarthNetSwinTransformerModelTIF(BaseModel):
+class SwinTransformer(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         if model_weights is None:
             model_weights = False
@@ -241,10 +266,10 @@ class BigEarthNetSwinTransformerModelTIF(BaseModel):
         swin_model = timm.create_model('swin_base_patch4_window7_224', pretrained=model_weights, num_classes=num_classes, in_chans=in_channels, img_size=120)
 
         # Call the parent class constructor with the modified model
-        super(BigEarthNetSwinTransformerModelTIF, self).__init__(swin_model, num_classes, class_weights, in_channels, main_path)
+        super(SwinTransformer, self).__init__(swin_model, num_classes, class_weights, in_channels, main_path)
 
 # Vision Transformer Model
-class BigEarthNetVitTransformerModelTIF(BaseModel):
+class VitTransformer(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         if model_weights is None:
             model_weights = False
@@ -255,4 +280,4 @@ class BigEarthNetVitTransformerModelTIF(BaseModel):
         vit_model = timm.create_model('vit_base_patch16_224', pretrained=model_weights, num_classes=num_classes, in_chans=in_channels, img_size=120)
 
         # Call the parent class constructor with the modified model
-        super(BigEarthNetVitTransformerModelTIF, self).__init__(vit_model, num_classes, class_weights, in_channels, main_path)
+        super(VitTransformer, self).__init__(vit_model, num_classes, class_weights, in_channels, main_path)

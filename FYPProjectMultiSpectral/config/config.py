@@ -83,9 +83,9 @@ class DatasetConfig:
 # Dataclass for the model configuration
 @dataclass
 class ModelConfig:
-    num_epochs: int = 2
-    batch_size: int = 64
-    num_workers: int = os.cpu_count() // 2
+    num_epochs: int = 10
+    batch_size: int = 32
+    num_workers: int = os.cpu_count() // 1.5
     learning_rate: float = 0.0001
     momentum: float = 0.9
     weight_decay: float = 1e-4
@@ -131,3 +131,5 @@ class ModuleConfig:
     kernel_size: int = 3
     dropout_rt: float = 0.1
     activation: type = nn.ReLU
+
+

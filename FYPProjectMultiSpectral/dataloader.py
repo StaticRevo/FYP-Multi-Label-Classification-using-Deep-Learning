@@ -22,7 +22,7 @@ class BigEarthNetDataLoader(pl.LightningDataModule):
         self.test_dataset = BigEarthNetDataset(df=test_df, root_dir=self.dataset_dir, transforms=TransformsConfig.test_transforms, normalisation=TransformsConfig.normalisations, selected_bands=self.bands, metadata_csv=self.metadata_csv)
         
     def train_dataloader(self):
-        dataloader = DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=ModelConfig.num_workers, pin_memory=True, shuffle=True, persistent_workers=True)
+        dataloader = DataLoader(self.train_dataset, batch_size=ModelConfig.batch_size, num_workers=ModelConfig.num_workers, prefetch_factor=2, pin_memory=True, shuffle=True, persistent_workers=True)
         return dataloader
 
     def val_dataloader(self):
@@ -30,6 +30,6 @@ class BigEarthNetDataLoader(pl.LightningDataModule):
         return dataloader
 
     def test_dataloader(self):
-        dataloader = DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=6, pin_memory=True,  persistent_workers=True)
+        dataloader = DataLoader(self.test_dataset, batch_size=ModelConfig.batch_size,  num_workers=ModelConfig.num_workers, pin_memory=True,  persistent_workers=True)
         return dataloader
     

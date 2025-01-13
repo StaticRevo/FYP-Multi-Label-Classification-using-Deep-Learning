@@ -12,6 +12,7 @@ import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.profilers import PyTorchProfiler
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
@@ -36,6 +37,13 @@ def main():
     experiment_path = DatasetConfig.experiment_path
     epochs = ModelConfig.num_epochs
     main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+    if os.path.exists(main_path):
+        increment = 1
+        new_main_path = f"{main_path}_{increment}"
+        while os.path.exists(new_main_path):
+            increment += 1
+            new_main_path = f"{main_path}_{increment}"
+        main_path = new_main_path
     if not os.path.exists(main_path):
         os.makedirs(main_path)
 
@@ -160,6 +168,9 @@ def main():
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     
+    # Initialize the profiler
+    profiler = PyTorchProfiler()
+
     # Model Training with custom callbacks
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
@@ -176,10 +187,19 @@ def main():
                     best_metrics_callback,
                     final_checkpoint, 
                     early_stopping
-                ]
+                ],
+        profiler=profiler
     )
 
     trainer.fit(model, data_module)
+
+    profile_summary = profiler.summary()
+    profile_output_file = os.path.join(main_path, "profiler_output.txt")
+    # Write the profiling summary to a text file
+    with open(profile_output_file, "w") as f:
+        f.write(profile_summary)
+
+    print(f"Profiler information saved to {profile_output_file}")
 
     # Retrieve best checkpoint paths
     best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path

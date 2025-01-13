@@ -83,10 +83,10 @@ class DatasetConfig:
 # Dataclass for the model configuration
 @dataclass
 class ModelConfig:
-    num_epochs: int = 10
-    batch_size: int = 32
-    num_workers: int = os.cpu_count() // 1.5
-    learning_rate: float = 0.0001
+    num_epochs: int = 2
+    batch_size: int = 64
+    num_workers: int = 8
+    learning_rate: float = 0.001
     momentum: float = 0.9
     weight_decay: float = 1e-4
     lr_step_size: int = 7

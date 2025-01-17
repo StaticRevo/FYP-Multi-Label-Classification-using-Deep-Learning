@@ -84,7 +84,7 @@ class DatasetConfig:
 @dataclass
 class ModelConfig:
     num_epochs: int = 2
-    batch_size: int = 64
+    batch_size: int = 256
     num_workers: int = 8
     learning_rate: float = 0.001
     momentum: float = 0.9

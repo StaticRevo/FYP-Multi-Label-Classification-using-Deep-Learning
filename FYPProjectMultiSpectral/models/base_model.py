@@ -118,6 +118,8 @@ class BaseModel(pl.LightningModule):
 
     def _step(self, batch, batch_idx, phase):
         x, y = batch
+        x = x.to(device)
+        y = y.to(device)
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
 

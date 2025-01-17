@@ -6,7 +6,6 @@ from threading import Thread
 
 # Function to choose and run the model
 def choose_and_run_model_gui():
-    # Define the models, band selection, and dataset selection
     models = {
         '1': 'custom_model',
         '2': 'ResNet18',

@@ -121,7 +121,7 @@ def main():
     
     print()
     print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
-
+    print("Model parameter device:", next(model.parameters()).device)
     # Initialize the logger
     log_dir = os.path.join(main_path, 'logs')
     logger = TensorBoardLogger(log_dir)
@@ -169,7 +169,7 @@ def main():
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     
     # Initialize the profiler
-    profiler = PyTorchProfiler()
+    #profiler = PyTorchProfiler()
 
     # Model Training with custom callbacks
     trainer = pl.Trainer(
@@ -188,18 +188,18 @@ def main():
                     final_checkpoint, 
                     early_stopping
                 ],
-        profiler=profiler
+        #profiler=profiler
     )
 
     trainer.fit(model, data_module)
 
-    profile_summary = profiler.summary()
-    profile_output_file = os.path.join(main_path, "profiler_output.txt")
-    # Write the profiling summary to a text file
-    with open(profile_output_file, "w") as f:
-        f.write(profile_summary)
+    # profile_summary = profiler.summary()
+    # profile_output_file = os.path.join(main_path, "profiler_output.txt")
+    # # Write the profiling summary to a text file
+    # with open(profile_output_file, "w") as f:
+    #     f.write(profile_summary)
 
-    print(f"Profiler information saved to {profile_output_file}")
+    # print(f"Profiler information saved to {profile_output_file}")
 
     # Retrieve best checkpoint paths
     best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path

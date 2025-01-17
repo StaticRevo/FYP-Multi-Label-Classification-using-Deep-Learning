@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import rasterio
 from pathlib import Path
 import ast
-from config.config import DatasetConfig
+from config.config import DatasetConfig, ModelConfig
 from utils.helper_functions import encode_label, get_band_indices
 
 # Dataset class for BigEarthNet dataset

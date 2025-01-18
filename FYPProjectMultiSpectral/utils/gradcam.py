@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 
+# GradCAM class for generating heatmaps
 class GradCAM:
     def __init__(self, model, target_layer):
         self.model = model
@@ -15,12 +16,10 @@ class GradCAM:
         self._register_hooks()
 
     def _register_hooks(self):
-        # Forward hook to capture activations
-        def forward_hook(module, input, output):
+        def forward_hook(module, input, output): # Forward hook to capture activations
             self.activations = output.detach()
-
-        # Backward hook to capture gradients
-        def backward_hook(module, grad_in, grad_out):
+            
+        def backward_hook(module, grad_in, grad_out): # Backward hook to capture gradients
             self.gradients = grad_out[0].detach()
 
         # Register forward and full backward hooks

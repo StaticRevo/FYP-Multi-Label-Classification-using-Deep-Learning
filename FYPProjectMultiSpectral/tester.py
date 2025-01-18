@@ -30,12 +30,13 @@ def main():
     dataset_dir = sys.argv[11]
     bands = json.loads(sys.argv[12]) # List of selected bands
     
-   # Allow user to choose checkpoint
+    # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n"
                               f"1. Best Accuracy ({acc_checkpoint_path})\n"
                               f"2. Best Loss ({loss_checkpoint_path})\n"
                               f"3. Final ({last_checkpoint_path})\n"
                               f"Choice [1/2/3]: ")
+    
     if checkpoint_choice == "1":
         checkpoint_path = acc_checkpoint_path
     elif checkpoint_choice == "2":
@@ -48,32 +49,17 @@ def main():
 
     print(f"\nUsing checkpoint: {checkpoint_path}\n")
 
-    model_mapping = {
-        'custom_model': (CustomModel, 'custom_model'),
-        'ResNet18': (ResNet18, 'resnet18'),
-        'ResNet50': (ResNet50, 'resnet50'),
-        'VGG16': (VGG16, 'vgg16'),
-        'VGG19': (VGG19, 'vgg19'),
-        'DenseNet121': (DenseNet121, 'densenet121'),
-        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
-        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
-        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
-        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
-    }
 
     experiment_path = DatasetConfig.experiment_path
     epochs = ModelConfig.num_epochs
     main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
 
-    if model_name in model_mapping:
-        model_class, _ = model_mapping[model_name]  
-        model_weights = None if weights == 'None' else weights
-        model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
-        model.eval()
-        register_hooks(model)
-    else:
-        raise ValueError(f"Model {model_name} not recognized.")
-    
+    model_class, _ = get_model_class(model_name)
+    model_weights = None if weights == 'None' else weights
+    model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
+    model.eval()
+    register_hooks(model)
+
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage='test')
 

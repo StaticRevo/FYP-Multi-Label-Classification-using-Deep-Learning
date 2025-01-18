@@ -1,4 +1,3 @@
-# Standard library imports
 import json
 import subprocess
 import pandas as pd
@@ -17,6 +16,7 @@ import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+# GUI for selecting the checkpoint files
 class CheckpointSelectorGUI:
     def __init__(self, master):
         self.master = master
@@ -78,10 +78,8 @@ class CheckpointSelectorGUI:
     def get_paths(self):
         return self.paths
 
-# Training the model
 def main():
-    # Parse command-line arguments
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 5: # Parse command-line arguments
         print("Usage: python main.py <model_name> <weights> <selected_bands> <selected_dataset>")
         sys.exit(1)
 
@@ -152,11 +150,6 @@ def main():
         dataset_dir, 
         json.dumps(bands)
     ]
-
-    # # Print the arguments for debugging
-    # print("Arguments to subprocess.run:")
-    # for arg in args:
-    #     print(arg)
 
     # Run the subprocess
     subprocess.run(args)

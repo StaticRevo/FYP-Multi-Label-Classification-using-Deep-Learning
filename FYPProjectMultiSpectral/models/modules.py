@@ -6,20 +6,20 @@ from config.config import ModuleConfig
 
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
-    def __init__(self, in_channels, config: ModuleConfig):
+    def __init__(self, in_channels):
         super(SE, self).__init__()
         # Squeeze
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         # Excitation
-        self.fc1 = nn.Conv2d(in_channels, in_channels // config.reduction, kernel_size=1, padding=0)
-        self.activation = config.activation(inplace=True) if config.activation.__name__ != "Sigmoid" else config.activation()
-        self.fc2 = nn.Conv2d(in_channels // config.reduction, in_channels, kernel_size=1, padding=0)
+        self.fc1 = nn.Conv2d(in_channels, in_channels // ModuleConfig.reduction, kernel_size=1, padding=0)
+        self.activation = ModuleConfig.activation(inplace=True) if ModuleConfig.activation.__name__ != "Sigmoid" else ModuleConfig.activation()
+        self.fc2 = nn.Conv2d(in_channels // ModuleConfig.reduction, in_channels, kernel_size=1, padding=0)
         self.sigmoid = nn.Sigmoid()
 
-        self.use_dropout = config.dropout_rt is not None and config.dropout_rt > 0
+        self.use_dropout = ModuleConfig.dropout_rt is not None and ModuleConfig.dropout_rt > 0
         
         if self.use_dropout:
-            self.dropout = nn.Dropout(config.dropout_rt)
+            self.dropout = nn.Dropout(ModuleConfig.dropout_rt)
 
     def forward(self, x):
         # Squeeze
@@ -35,13 +35,13 @@ class SE(nn.Module):
 
 # Convolutional Block Attention Module (CBAM)
 class ChannelAttention(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=16):
+    def __init__(self, in_channels):
         super(ChannelAttention, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
         
-        self.fc1 = nn.Conv2d(in_channels, in_channels // reduction_ratio, kernel_size=1, padding=0)
-        self.fc2 = nn.Conv2d(in_channels // reduction_ratio, in_channels, kernel_size=1, padding=0)
+        self.fc1 = nn.Conv2d(in_channels, in_channels // ModuleConfig.reduction, kernel_size=1, padding=0)
+        self.fc2 = nn.Conv2d(in_channels // ModuleConfig.reduction, in_channels, kernel_size=1, padding=0)
         
         self.activation = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -113,11 +113,11 @@ class ResidualBlock(nn.Module):
     
 # Spectral Attention Module (SA)
 class SpectralAttention(nn.Module):
-    def __init__(self, in_channels, reduction=16):
+    def __init__(self, in_channels):
         super(SpectralAttention, self).__init__()
-        self.fc1 = nn.Linear(in_channels, in_channels // reduction)
+        self.fc1 = nn.Linear(in_channels, in_channels // ModuleConfig.reduction)
         self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(in_channels // reduction, in_channels)
+        self.fc2 = nn.Linear(in_channels // ModuleConfig.reduction, in_channels)
         self.sigmoid = nn.Sigmoid()
     
     def forward(self, x):
@@ -131,10 +131,10 @@ class SpectralAttention(nn.Module):
 
 # Dual Attention Module (DA) - Combines Channel Attention and Spatial Attention
 class DualAttention(nn.Module):
-    def __init__(self, in_channels, reduction=16):
+    def __init__(self, in_channels):
         super(DualAttention, self).__init__()
         # Channel Attention
-        self.channel_att = SpectralAttention(in_channels, reduction)
+        self.channel_att = SpectralAttention(in_channels)
         # Spatial Attention
         self.spatial_att = SpatialAttention(kernel_size=7)
     

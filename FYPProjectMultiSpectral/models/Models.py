@@ -17,50 +17,38 @@ class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         custom_model = nn.Sequential(
             # -- Block 1 --
-            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
-
-            # Residual Block (64->64) and SpectralAttention Module
-            ResidualBlock(in_channels=64, out_channels=64, stride=1),
-            SpectralAttention(in_channels=64, reduction=16),
+            ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
+            SpectralAttention(in_channels=32), # SpectralAttention Module
 
             # -- Block 2 --
-            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            
-            # Residual Block (128->128) and SE Module
-            ResidualBlock(in_channels=128, out_channels=128, stride=1),
-            SE(in_channels=128, config=ModuleConfig),
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
+            ECA(in_channels=64, k_size=3), # ECA Module
 
             # -- BLock 3 -- 
-            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-
-            # Residual Block (256->256) and ChannelAttention Module
-            ResidualBlock(in_channels=256, out_channels=256, stride=1),
-            ChannelAttention(in_channels=256, reduction_ratio=16),
-            ECA(in_channels=256, k_size=3),
-            SpatialAttention(kernel_size=7),
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
+            SE(in_channels=128), # Squeeze and Excitation Module
 
             # -- Block 4 -- 
-            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-
-            # Residual Block (512->512) and ECA Module
-            ResidualBlock(in_channels=512, out_channels=512, stride=1),
-            ECA(in_channels=512, k_size=3),
-
-            DualAttention(in_channels=512, reduction=16),
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
+            DualAttention(in_channels=256), # DualAttention Module
 
             # Global Pool and Classifier
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Dropout(ModelConfig.dropout),
-            nn.Linear(512, num_classes)
+            nn.Linear(256, num_classes)
         )
 
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)

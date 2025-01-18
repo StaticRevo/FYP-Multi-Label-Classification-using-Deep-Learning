@@ -44,9 +44,9 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
 
 def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name):
     # Display batch predictions
-    # display_batch_predictions(
-    #     model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands
-    # )
+    display_batch_predictions(
+         model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands
+    )
 
     # Plot per-label confusion matrices
     plot_per_label_confusion_matrices_grid(
@@ -92,20 +92,17 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
 
     for idx in target_indices:
         try:
-            # Retrieve the image and label from the Dataset
-            img_tensor, label = test_dataset[idx]
+            img_tensor, label = test_dataset[idx] # Retrieve the image and label from the Dataset
         except IndexError:
             print(f"Index {idx} is out of bounds for the test dataset.")
             continue
 
         input_image = img_tensor.unsqueeze(0).to(model.device)  
 
-        # Forward pass to get predictions
-        output = model(input_image)
+        output = model(input_image) # Forward pass to get predictions
 
-        # Get relevant classes for multi-label classification
-        threshold = 0.5  
-        target_classes = torch.where(output[0] > threshold)[0].tolist()
+        threshold = 0.5   
+        target_classes = torch.where(output[0] > threshold)[0].tolist() # Get relevant classes
 
         # Generate heatmaps for each relevant class
         heatmaps = {}
@@ -165,8 +162,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             plt.tight_layout()
             plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
             plt.show()
-
-           
+  
 def predict_and_display_random_image(model, dataset_dir, metadata_csv, threshold=0.6, bands=DatasetConfig.rgb_bands):
     class_labels_dict = DatasetConfig.class_labels_dict
     reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict

@@ -1,7 +1,6 @@
 # Standard library imports
 import json
 import os
-import time
 import subprocess
 import sys
 
@@ -12,12 +11,11 @@ import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from pytorch_lightning.profilers import PyTorchProfiler
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader import BigEarthNetDataLoader
-from utils.helper_functions import save_tensorboard_graphs, extract_number, set_random_seeds
+from utils.helper_functions import save_tensorboard_graphs, set_random_seeds, initialize_paths, get_dataset_info, get_model_class 
 from utils.visualisation import *
 from models.models import *
 from callbacks import BestMetricsCallback
@@ -34,61 +32,25 @@ def main():
     selected_dataset = sys.argv[4]
     test_variable = sys.argv[5]
 
-    experiment_path = DatasetConfig.experiment_path
-    epochs = ModelConfig.num_epochs
-    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
-    if os.path.exists(main_path):
-        increment = 1
-        new_main_path = f"{main_path}_{increment}"
-        while os.path.exists(new_main_path):
-            increment += 1
-            new_main_path = f"{main_path}_{increment}"
-        main_path = new_main_path
-    if not os.path.exists(main_path):
-        os.makedirs(main_path)
+    # Create the main path for the experiment
+    main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
 
     # Determine the number of input channels based on the selected bands
-    if selected_bands == 'all_bands':
-        in_channels = len(DatasetConfig.all_bands)
-        bands = DatasetConfig.all_bands
-    elif selected_bands == 'rgb_bands':
-        in_channels = len(DatasetConfig.rgb_bands)
-        bands = DatasetConfig.rgb_bands
-    elif selected_bands == 'rgb_nir_bands':
-        in_channels = len(DatasetConfig.rgb_nir_bands)
-        bands = DatasetConfig.rgb_nir_bands
-    elif selected_bands == 'rgb_swir_bands':
-        in_channels = len(DatasetConfig.rgb_swir_bands)
-        bands = DatasetConfig.rgb_swir_bands
-    elif selected_bands == 'rgb_nir_swir_bands':
-        in_channels = len(DatasetConfig.rgb_nir_swir_bands)
-        bands = DatasetConfig.rgb_nir_swir_bands
-    else:
+    bands_mapping = {
+        'all_bands': DatasetConfig.all_bands,
+        'rgb_bands': DatasetConfig.rgb_bands,
+        'rgb_nir_bands': DatasetConfig.rgb_nir_bands,
+        'rgb_swir_bands': DatasetConfig.rgb_swir_bands,
+        'rgb_nir_swir_bands': DatasetConfig.rgb_nir_swir_bands
+    }
+    bands = bands_mapping.get(selected_bands)
+    if bands is None:
         print(f"Band combination {selected_bands} is not supported.")
         sys.exit(1)
+    in_channels = len(bands)
     
-    dataset_num = extract_number(selected_dataset)
-    if dataset_num == 0.5:
-        dataset_dir = DatasetConfig.dataset_paths["0.5"]
-        metadata_path = DatasetConfig.metadata_paths["0.5"]
-        metadata_csv = pd.read_csv(metadata_path)
-    elif dataset_num == 1:
-        dataset_dir = DatasetConfig.dataset_paths["1"]
-        metadata_path = DatasetConfig.metadata_paths["1"]
-        metadata_csv = pd.read_csv(metadata_path)
-    elif dataset_num == 5:
-        dataset_dir = DatasetConfig.dataset_paths["5"]
-        metadata_path = DatasetConfig.metadata_paths["5"]
-        metadata_csv = pd.read_csv(metadata_path)
-    elif dataset_num == 10:
-        dataset_dir = DatasetConfig.dataset_paths["10"]
-        metadata_path = DatasetConfig.metadata_paths["10"]
-        metadata_csv = pd.read_csv(metadata_path)
-    elif dataset_num == 50:
-        dataset_dir = DatasetConfig.dataset_paths["50"]
-        metadata_path = DatasetConfig.metadata_paths["50"]
-        metadata_csv = pd.read_csv(metadata_path)
-    
+    # Get dataset information
+    dataset_dir, metadata_path, metadata_csv = get_dataset_info(selected_dataset)
     class_weights, class_weights_array = calculate_class_weights(metadata_csv)
     class_weights = class_weights_array
 
@@ -96,39 +58,21 @@ def main():
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
-    model_mapping = {
-        'custom_model': (CustomModel, 'custom_model'),
-        'ResNet18': (ResNet18, 'resnet18'),
-        'ResNet50': (ResNet50, 'resnet50'),
-        'VGG16': (VGG16, 'vgg16'),
-        'VGG19': (VGG19, 'vgg19'),
-        'DenseNet121': (DenseNet121, 'densenet121'),
-        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
-        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
-        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
-        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
-    }
+    model_class, filename = get_model_class(model_name)
+    model_weights = None if weights == 'None' else weights
+    model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights, main_path)
+    model.print_summary((in_channels, 120, 120), filename) 
+    model.visualize_model((in_channels, 120, 120), filename)
 
-    # Initialize the model
-    if model_name in model_mapping:
-        model_class, filename = model_mapping[model_name]
-        model_weights = None if weights == 'None' else weights
-        model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights, main_path)
-        model.print_summary((in_channels, 120, 120), filename) 
-        model.visualize_model((in_channels, 120, 120), filename)
-    else:
-        print("Invalid model name. Please try again.")
-    
-    print()
     print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
     print("Model parameter device:", next(model.parameters()).device)
+
     # Initialize the logger
     log_dir = os.path.join(main_path, 'logs')
     logger = TensorBoardLogger(log_dir)
 
+    # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
-
-    # Checkpoint callback for val_loss
     checkpoint_callback_loss = ModelCheckpoint(
         dirpath=checkpoint_dir,
         filename=f'{{epoch:02d}}-{{val_loss:.2f}}',
@@ -137,9 +81,7 @@ def main():
         monitor='val_loss',
         mode='min'
     )
-
-    # Checkpoint callback for val_acc
-    checkpoint_callback_acc = ModelCheckpoint(
+    checkpoint_callback_acc = ModelCheckpoint( # Checkpoint callback for val_acc
         dirpath=checkpoint_dir,
         filename=f'{{epoch:02d}}-{{val_acc:.2f}}',
         save_top_k=1,
@@ -147,16 +89,12 @@ def main():
         monitor='val_acc',
         mode='max'
     )
-
-    # Checkpoint callback for final model
-    final_checkpoint = ModelCheckpoint(
+    final_checkpoint = ModelCheckpoint( # Checkpoint callback for final model
         dirpath=checkpoint_dir,
         filename=f'final',
         save_last=True
     )
-
-    # Early stopping callback
-    early_stopping = EarlyStopping(
+    early_stopping = EarlyStopping( # Early stopping callback
         monitor='val_loss',
         patience=ModelConfig.patience,
         verbose=True,
@@ -168,9 +106,6 @@ def main():
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     
-    # Initialize the profiler
-    #profiler = PyTorchProfiler()
-
     # Model Training with custom callbacks
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
@@ -188,18 +123,9 @@ def main():
                     final_checkpoint, 
                     early_stopping
                 ],
-        #profiler=profiler
     )
 
     trainer.fit(model, data_module)
-
-    # profile_summary = profiler.summary()
-    # profile_output_file = os.path.join(main_path, "profiler_output.txt")
-    # # Write the profiling summary to a text file
-    # with open(profile_output_file, "w") as f:
-    #     f.write(profile_summary)
-
-    # print(f"Profiler information saved to {profile_output_file}")
 
     # Retrieve best checkpoint paths
     best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path

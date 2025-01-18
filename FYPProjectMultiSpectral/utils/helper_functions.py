@@ -6,9 +6,12 @@ import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import random
 from config.config import DatasetConfig
+from models.models import *
 from tqdm import tqdm
 from PIL import Image
+import pandas as pd
 
+# Helper functions
 def set_random_seeds(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -19,7 +22,6 @@ def set_random_seeds(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-# Helper functions
 def denormalize(tensors, *, mean, std):
     for c in range(DatasetConfig.band_channels):
         tensors[:, c, :, :].mul_(std[c]).add_(mean[c])
@@ -149,7 +151,6 @@ def extract_number(string):
     except ValueError:
         raise ValueError(f"Cannot extract a number from the string: {string}")
 
-
 def display_rgb_image_from_tiff(tiff_file_path):
     with rasterio.open(tiff_file_path) as src:
         # Read the red, green, and blue bands
@@ -218,3 +219,43 @@ def convert_tif_to_jpg(root_dir, output_dir):
                 
                 with Image.open(tif_path) as img:
                     img.convert('RGB').save(jpg_path, 'JPEG')
+
+##### Trainer helper functions
+
+# Function to initialize paths for saving results
+def initialize_paths(model_name, weights, selected_bands, selected_dataset, epochs):
+    experiment_path = DatasetConfig.experiment_path
+    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+    if os.path.exists(main_path):
+        increment = 1
+        new_main_path = f"{main_path}_{increment}"
+        while os.path.exists(new_main_path):
+            increment += 1
+            new_main_path = f"{main_path}_{increment}"
+        main_path = new_main_path
+    if not os.path.exists(main_path):
+        os.makedirs(main_path)
+    return main_path
+
+
+def get_dataset_info(selected_dataset):
+    dataset_num = extract_number(selected_dataset)
+    dataset_dir = DatasetConfig.dataset_paths[str(dataset_num)]
+    metadata_path = DatasetConfig.metadata_paths[str(dataset_num)]
+    metadata_csv = pd.read_csv(metadata_path)
+    return dataset_dir, metadata_path, metadata_csv
+
+def get_model_class(model_name):
+    model_mapping = {
+        'custom_model': (CustomModel, 'custom_model'),
+        'ResNet18': (ResNet18, 'resnet18'),
+        'ResNet50': (ResNet50, 'resnet50'),
+        'VGG16': (VGG16, 'vgg16'),
+        'VGG19': (VGG19, 'vgg19'),
+        'DenseNet121': (DenseNet121, 'densenet121'),
+        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
+        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
+        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
+        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
+    }
+    return model_mapping.get(model_name, (None, None))

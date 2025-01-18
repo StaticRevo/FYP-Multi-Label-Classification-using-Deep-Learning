@@ -44,8 +44,7 @@ class BigEarthNetDataset(Dataset):
         try:
             with rasterio.open(image_path) as src:
                 image = src.read()  # Shape: (channels, height, width)
-                # Select only the desired bands
-                image = image[self.selected_band_indices, :, :]
+                image = image[self.selected_band_indices, :, :] # Select only the desired bands
         except Exception as e:
             print(f"Error reading {image_path}: {e}. Returning a zero tensor and zero label.")
             image = torch.zeros((len(self.selected_band_indices), DatasetConfig.image_height, DatasetConfig.image_width), dtype=torch.float32)
@@ -71,13 +70,11 @@ class BigEarthNetDataset(Dataset):
     def get_label(self, patch_id):
         labels = self.patch_to_labels.get(patch_id, None)
 
-        # If no labels found, return a zero vector
-        if labels is None:
+        if labels is None: # If no labels found, return a zero vector
             print(f"No labels found for patch_id: {patch_id}. Returning zero vector.")
             return torch.zeros(DatasetConfig.num_classes, dtype=torch.float32)
 
-        # If labels are stored as a string, parse them
-        if isinstance(labels, str):
+        if isinstance(labels, str): # If labels are stored as a string, parse them
             try:
                 cleaned_labels = labels.replace(" '", ", '").replace("[", "[").replace("]", "]")
                 labels =  ast.literal_eval(cleaned_labels)

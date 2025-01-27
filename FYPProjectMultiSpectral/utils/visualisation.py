@@ -1,15 +1,17 @@
+# Standard library imports
 import os
-import torch
 import math
+
+# Third-party imports
+import torch
 import matplotlib.pyplot as plt
 import numpy as np
-import torch.nn as nn
-from PIL import Image
 from matplotlib.backends.backend_pdf import PdfPages
-
-activations = {}
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+import rasterio
 
 # Visualisation functions for activations within the model
+activations = {}
 def forward_hook(module, input, output):
     activations[module] = output
 
@@ -73,3 +75,103 @@ def show_rgb_from_batch(image_tensor, in_channels):
     plt.title("RGB Visualization of Multi-Spectral Image")
     plt.axis('off')
     plt.show()
+
+def save_tensorboard_graphs(log_dir, output_dir):
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Load the TensorBoard logs
+    event_acc = EventAccumulator(log_dir)
+    event_acc.Reload()
+
+    # Get the list of tags (metrics) in the logs
+    tags = event_acc.Tags().get('scalars', [])
+
+    # Filter tags: include tags with '_epoch' or starting with 'val_', exclude 'class' in name
+    filtered_tags = [
+        tag for tag in tags 
+        if ('_epoch' in tag or tag.startswith('val_')) and 'class' not in tag
+    ]
+
+    # Iterate over each tag and plot the graph
+    for tag in filtered_tags:
+        events = event_acc.Scalars(tag)
+        steps = [e.step for e in events]
+        values = [e.value for e in events]
+
+        # Plot the graph
+        plt.figure()
+        plt.plot(steps, values, marker='o', linestyle='-')
+        plt.xlabel('Epoch')
+        plt.ylabel(tag)
+        plt.title(tag.replace('_', ' ').capitalize())
+        plt.grid(True)
+
+        # Save the graph as an image
+        sanitized_tag = tag.replace('/', '_').replace(' ', '_')
+        output_path = os.path.join(output_dir, f"{sanitized_tag}.png")
+        plt.savefig(output_path)
+        plt.close()
+
+    print(f"Graphs saved to {output_dir}")
+
+def get_labels_for_image(image_path, model, transform, patch_to_labels):
+    with rasterio.open(image_path) as src: # Load and preprocess the image
+        bands = [2, 3, 4]  # Bands to combine for display
+        image = np.stack([src.read(band) for band in bands], axis=-1)
+        image = transform(image).unsqueeze(0).to(model.device)  # Add batch dimension and move to device
+
+    # Get the predicted labels
+    model.eval()
+    with torch.no_grad():
+        preds = model(image).sigmoid() > 0.5  # Apply sigmoid and threshold at 0.5
+        preds = preds.cpu().numpy().astype(int).flatten()
+
+    # Get the true labels
+    patch_id = os.path.basename(image_path).split('.')[0]
+    true_labels = patch_to_labels[patch_id]
+
+    return preds, true_labels, image
+
+def display_image(image_path):
+    with rasterio.open(image_path) as src:
+        bands = [2, 3, 4]  # Bands to combine for display
+        image = np.stack([src.read(band) for band in bands], axis=-1)
+        plt.imshow(image)
+        plt.title("Image with Bands 2, 3, and 4")
+        plt.show()
+
+def display_image_and_labels(image_path, model, transform, patch_to_labels):
+    # Display the image
+    display_image(image_path)
+
+    # Get predicted and true labels
+    preds, true_labels, _ = get_labels_for_image(image_path, model, transform, patch_to_labels)
+    print(f"Predicted Labels: {preds}")
+    print(f"True Labels: {true_labels}")
+
+def display_rgb_image_from_tiff(tiff_file_path):
+    with rasterio.open(tiff_file_path) as src:
+        # Read the red, green, and blue bands
+        red = src.read(4)
+        green = src.read(3)
+        blue = src.read(2)
+        
+        # Normalize each band to the range 0-1
+        red = red.astype(np.float32)
+        green = green.astype(np.float32)
+        blue = blue.astype(np.float32)
+        
+        red /= np.max(red)
+        green /= np.max(green)
+        blue /= np.max(blue)
+        
+        # Stack the bands into an RGB image
+        rgb = np.dstack((red, green, blue))
+        
+        # Display the RGB image
+        plt.figure(figsize=(10, 10))
+        plt.imshow(rgb)
+        plt.title('RGB Image')
+        plt.axis('off')
+        plt.show()

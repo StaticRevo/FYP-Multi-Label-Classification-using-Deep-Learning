@@ -1,8 +1,12 @@
+# Third-party imports
 import torch
 import torch.nn.functional as F
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+
+# Local application imports
+from utils.helper_functions import preprocess_image, deprocess_image
 
 # GradCAM class for generating heatmaps
 class GradCAM:

@@ -1,7 +1,10 @@
+# Third-party imports
 import torch
 import torch.nn as nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import torch.nn.functional as F
+
+# Local application imports
 from config.config import ModuleConfig
 
 # Squeeze and Excitation Module (SE)
@@ -133,10 +136,8 @@ class SpectralAttention(nn.Module):
 class DualAttention(nn.Module):
     def __init__(self, in_channels):
         super(DualAttention, self).__init__()
-        # Channel Attention
-        self.channel_att = SpectralAttention(in_channels)
-        # Spatial Attention
-        self.spatial_att = SpatialAttention(kernel_size=7)
+        self.channel_att = SpectralAttention(in_channels) # Channel Attention
+        self.spatial_att = SpatialAttention(kernel_size=7) # Spatial Attention
     
     def forward(self, x):
         x = self.channel_att(x)

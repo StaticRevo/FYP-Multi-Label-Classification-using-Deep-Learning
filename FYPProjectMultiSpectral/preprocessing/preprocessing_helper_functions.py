@@ -1,12 +1,15 @@
+# Standard library imports
+import os
+import random
+import shutil
+
+# Third-party imports
 import requests
 import zstandard as zstd
 from tqdm import tqdm
-import os
-import shutil
 import pandas as pd
-import random
-from rasterio.warp import calculate_default_transform, reproject, Resampling
 import rasterio
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 def downloadAndExtractDataset(dataset_dir):
     download_url = 'https://zenodo.org/records/10891137/files/BigEarthNet-S2.tar.zst?download=1'

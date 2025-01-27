@@ -1,9 +1,13 @@
+# Standard library imports
 from dataclasses import dataclass, field
+
+# Third-party imports
 import pandas as pd
-import os
-import torch.nn as nn
-from .config_utils import *
 import torch
+import torch.nn as nn
+
+# Local application imports
+from .config_utils import *
 
 # Configuration file for the project
 

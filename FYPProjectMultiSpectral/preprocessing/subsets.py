@@ -1,5 +1,8 @@
+# Standard library imports
 import os
 import shutil
+
+# Third-party imports
 import random
 import pandas as pd
 from tqdm import tqdm

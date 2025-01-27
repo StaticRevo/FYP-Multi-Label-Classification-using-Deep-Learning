@@ -1,20 +1,17 @@
+# Standard library imports
 import json
 import subprocess
-import pandas as pd
-import pytorch_lightning as pl
-from matplotlib import pyplot as plt
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from dataclasses import dataclass, field
-import torch.nn as nn
-import ast
-import numpy as np
-from utils.helper_functions import extract_number
-from config.config_utils import calculate_class_weights, clean_and_parse_labels, calculate_class_labels
-from config.config import DatasetConfig, ModelConfig
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
+
+# Third-party imports
+import pandas as pd
+
+# Local application imports
+from utils.helper_functions import extract_number
+from config.config_utils import calculate_class_weights
+from config.config import DatasetConfig
 
 # GUI for selecting the checkpoint files
 class CheckpointSelectorGUI:

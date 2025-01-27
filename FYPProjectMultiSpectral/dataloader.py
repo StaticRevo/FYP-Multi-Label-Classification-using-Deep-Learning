@@ -1,6 +1,9 @@
+# Third-party imports
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from config.config import ModelConfig, DatasetConfig
+
+# Local application imports
+from config.config import ModelConfig
 from dataset import BigEarthNetDataset
 from transformations.transforms import TransformsConfig
 

@@ -1,20 +1,27 @@
+# Standard library imports
+import os
+import json
+from contextlib import redirect_stdout
+
+# Third-party imports
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import pytorch_lightning as pl
 from torchmetrics.classification import (
-    MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy, MultilabelHammingDistance, MultilabelAveragePrecision
+    MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy, 
+    MultilabelHammingDistance, MultilabelAveragePrecision
 )
 from torchsummary import summary
 from torchviz import make_dot
-import os
-from config.config import ModelConfig, DatasetConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from contextlib import redirect_stdout
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable 
 import numpy as np
-import json
+
+# Local application imports
+from config.config import ModelConfig, DatasetConfig
+from models.modules import *
 
 # Base model class for all models
 device = ModelConfig.device

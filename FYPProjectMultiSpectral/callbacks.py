@@ -1,8 +1,11 @@
-import pytorch_lightning as pl
-import torch
+# Standard library imports
 import json
 import os
 import time
+
+# Third-party imports
+import pytorch_lightning as pl
+import torch
 
 class BestMetricsCallback(pl.Callback):
     def __init__(self, metrics_to_track, save_path='best_metrics.json'):

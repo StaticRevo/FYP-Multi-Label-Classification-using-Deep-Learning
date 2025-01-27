@@ -1,11 +1,16 @@
+# Standard library imports
 import os
 import sys
 import json
+
+# Third-party imports
 import pandas as pd
-from config.config import DatasetConfig, ModelConfig
-from dataloader import BigEarthNetDataLoader
 import torch
 import pytorch_lightning as pl
+
+# Local application imports
+from config.config import DatasetConfig, ModelConfig
+from dataloader import BigEarthNetDataLoader
 from utils.helper_functions import *
 from utils.test_functions import *
 from utils.visualisation import *

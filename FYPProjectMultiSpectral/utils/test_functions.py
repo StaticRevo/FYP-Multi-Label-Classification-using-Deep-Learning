@@ -1,20 +1,26 @@
+# Standard library imports
 import os
-from config.config import DatasetConfig, ModelConfig
+import math
+import random
+
+# Third-party imports
 import torch
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from models.models import *
 from PIL import Image
-from torchvision import transforms
 import torch.nn.functional as F
-from sklearn.metrics import roc_curve, auc, precision_score, recall_score, f1_score, hamming_loss, accuracy_score, multilabel_confusion_matrix
-import math
-import random
+from sklearn.metrics import (
+    roc_curve, auc, precision_score, recall_score, f1_score, 
+    hamming_loss, accuracy_score, multilabel_confusion_matrix
+)
 import rasterio
+
+# Local application imports
+from config.config import DatasetConfig
+from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap
-from config.config_utils import calculate_class_weights
 
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path):
     all_preds, all_labels = [], []

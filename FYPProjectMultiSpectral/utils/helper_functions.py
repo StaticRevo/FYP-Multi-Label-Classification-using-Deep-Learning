@@ -1,17 +1,62 @@
+# Standard library imports
+import os
+import random
+
+# Third-party imports
 import torch
 import numpy as np
 import rasterio
-import os
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-import random
-from config.config import DatasetConfig
-from models.models import *
 from tqdm import tqdm
 from PIL import Image
 import pandas as pd
 
+# Local application imports
+from config.config import DatasetConfig
+from models.models import *
+
 # Helper functions
+
+##### Trainer helper functions #####
+# Function to initialize paths for sa ng results
+def initialize_paths(model_name, weights, selected_bands, selected_dataset, epochs):
+    experiment_path = DatasetConfig.experiment_path
+    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+    if os.path.exists(main_path):
+        increment = 1
+        new_main_path = f"{main_path}_{increment}"
+        while os.path.exists(new_main_path):
+            increment += 1
+            new_main_path = f"{main_path}_{increment}"
+        main_path = new_main_path
+    if not os.path.exists(main_path):
+        os.makedirs(main_path)
+    return main_path
+
+def get_dataset_info(selected_dataset):
+    dataset_num = extract_number(selected_dataset)
+    dataset_dir = DatasetConfig.dataset_paths[str(dataset_num)]
+    metadata_path = DatasetConfig.metadata_paths[str(dataset_num)]
+    metadata_csv = pd.read_csv(metadata_path)
+    return dataset_dir, metadata_path, metadata_csv
+
+def get_model_class(model_name):
+    model_mapping = {
+        'custom_model': (CustomModel, 'custom_model'),
+        'ResNet18': (ResNet18, 'resnet18'),
+        'ResNet50': (ResNet50, 'resnet50'),
+        'VGG16': (VGG16, 'vgg16'),
+        'VGG19': (VGG19, 'vgg19'),
+        'DenseNet121': (DenseNet121, 'densenet121'),
+        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
+        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
+        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
+        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
+    }
+    return model_mapping.get(model_name, (None, None))
+
+##### Data processing helper functions #####
 def set_random_seeds(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -204,58 +249,4 @@ def calculate_band_stats(root_dir, num_bands):
 
     return band_means, band_stds
 
-def convert_tif_to_jpg(root_dir, output_dir):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-        
-    for subdir, _, files in os.walk(root_dir):
-        for file in files:
-            if file.lower().endswith('.tif'):
-                tif_path = os.path.join(subdir, file)
-                relative_path = os.path.relpath(tif_path, root_dir)
-                jpg_path = os.path.join(output_dir, os.path.splitext(relative_path)[0] + '.jpg')
-                
-                os.makedirs(os.path.dirname(jpg_path), exist_ok=True)
-                
-                with Image.open(tif_path) as img:
-                    img.convert('RGB').save(jpg_path, 'JPEG')
 
-##### Trainer helper functions
-
-# Function to initialize paths for saving results
-def initialize_paths(model_name, weights, selected_bands, selected_dataset, epochs):
-    experiment_path = DatasetConfig.experiment_path
-    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
-    if os.path.exists(main_path):
-        increment = 1
-        new_main_path = f"{main_path}_{increment}"
-        while os.path.exists(new_main_path):
-            increment += 1
-            new_main_path = f"{main_path}_{increment}"
-        main_path = new_main_path
-    if not os.path.exists(main_path):
-        os.makedirs(main_path)
-    return main_path
-
-
-def get_dataset_info(selected_dataset):
-    dataset_num = extract_number(selected_dataset)
-    dataset_dir = DatasetConfig.dataset_paths[str(dataset_num)]
-    metadata_path = DatasetConfig.metadata_paths[str(dataset_num)]
-    metadata_csv = pd.read_csv(metadata_path)
-    return dataset_dir, metadata_path, metadata_csv
-
-def get_model_class(model_name):
-    model_mapping = {
-        'custom_model': (CustomModel, 'custom_model'),
-        'ResNet18': (ResNet18, 'resnet18'),
-        'ResNet50': (ResNet50, 'resnet50'),
-        'VGG16': (VGG16, 'vgg16'),
-        'VGG19': (VGG19, 'vgg19'),
-        'DenseNet121': (DenseNet121, 'densenet121'),
-        'EfficientNetB0': (EfficientNetB0, 'efficientnetb0'),
-        'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
-        'Vit-Transformer': (VitTransformer, 'vit_transformer'),
-        'Swin-Transformer': (SwinTransformer, 'swin_transformer')
-    }
-    return model_mapping.get(model_name, (None, None))

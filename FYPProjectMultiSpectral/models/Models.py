@@ -1,16 +1,19 @@
+# Third-party imports
 from torch import nn
-from config.config import DatasetConfig, ModelConfig, ModuleConfig
-from torchvision.models import resnet18, ResNet18_Weights
-from torchvision.models import resnet50, ResNet50_Weights
-from torchvision.models import vgg16, VGG16_Weights
-from torchvision.models import vgg19, VGG19_Weights
-from torchvision.models import densenet121, DenseNet121_Weights
-from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
-from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
-from models.base_model import BaseModel
-from models.modules import *
 from torchsummary import summary
 import timm
+from torchvision.models import (
+    resnet18, ResNet18_Weights, resnet50, ResNet50_Weights, 
+    vgg16, VGG16_Weights, vgg19, VGG19_Weights, 
+    densenet121, DenseNet121_Weights, 
+    efficientnet_b0, EfficientNet_B0_Weights, 
+    efficientnet_v2_m, EfficientNet_V2_M_Weights
+)
+
+# Local application imports
+from config.config import ModelConfig
+from models.base_model import BaseModel
+from models.modules import *
 
 # Custom Model
 class CustomModel(BaseModel):

@@ -5,10 +5,8 @@ import subprocess
 import sys
 
 # Third-party imports
-import pandas as pd
 import torch
 import pytorch_lightning as pl
-from matplotlib import pyplot as plt
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 

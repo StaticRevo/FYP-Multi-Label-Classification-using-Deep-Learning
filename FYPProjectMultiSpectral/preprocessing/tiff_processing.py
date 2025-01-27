@@ -1,8 +1,11 @@
+# Standard library imports
+import os
+
+# Third-party imports
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
-import os
 from tqdm import tqdm
-import numpy as np
+
 
 def resizeTiffFiles(input_tiff, output_tiff, new_width, new_height):
     with rasterio.open(input_tiff) as src:

@@ -67,3 +67,9 @@ def get_bands(selected_bands):
         'rgb_nir_swir_bands': ["B04", "B03", "B02", "B08", "B11", "B12"]
     }
     return band_options.get(selected_bands, [])
+
+def denormalize(tensors, *, mean, std):
+    for c in range(DatasetConfig.band_channels):
+        tensors[:, c, :, :].mul_(std[c]).add_(mean[c])
+
+    return torch.clamp(tensors, min=0.0, max=1.0)

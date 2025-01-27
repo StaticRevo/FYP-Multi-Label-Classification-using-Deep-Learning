@@ -9,7 +9,8 @@ import rasterio
 
 # Local application imports
 from config.config import DatasetConfig
-from utils.helper_functions import encode_label, get_band_indices
+from utils.label_utils import encode_label
+from utils.data_utils import get_band_indices
 
 # Dataset class for BigEarthNet dataset
 class BigEarthNetDataset(Dataset):

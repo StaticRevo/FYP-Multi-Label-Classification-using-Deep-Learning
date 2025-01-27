@@ -11,9 +11,10 @@ import pytorch_lightning as pl
 # Local application imports
 from config.config import DatasetConfig, ModelConfig
 from dataloader import BigEarthNetDataLoader
-from utils.helper_functions import *
-from utils.test_functions import *
-from utils.visualisation import *
+from utils.setup_utils import set_random_seeds
+from utils.model_utils import get_model_class
+from utils.test_functions import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations
+from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from models.models import *
 
 # Testing the model

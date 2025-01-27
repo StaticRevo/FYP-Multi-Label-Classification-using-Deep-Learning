@@ -13,8 +13,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 # Local application imports
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader import BigEarthNetDataLoader
-from utils.helper_functions import save_tensorboard_graphs, set_random_seeds, initialize_paths, get_dataset_info, get_model_class 
-from utils.visualisation import *
+from utils.setup_utils import set_random_seeds
+from utils.file_utils import initialize_paths
+from utils.data_utils import get_dataset_info
+from utils.model_utils import get_model_class
+from utils.visualisation_utils import save_tensorboard_graphs
 from models.models import *
 from callbacks import BestMetricsCallback
 

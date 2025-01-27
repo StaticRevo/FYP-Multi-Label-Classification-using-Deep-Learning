@@ -9,7 +9,7 @@ from tkinter import filedialog, messagebox
 import pandas as pd
 
 # Local application imports
-from utils.helper_functions import extract_number
+from utils.data_utils import extract_number
 from config.config_utils import calculate_class_weights
 from config.config import DatasetConfig
 

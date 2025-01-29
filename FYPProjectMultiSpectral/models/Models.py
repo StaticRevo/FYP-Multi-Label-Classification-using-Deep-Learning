@@ -72,7 +72,7 @@ class ResNet18(BaseModel):
                 kernel_size=original_conv1.kernel_size,
                 stride=original_conv1.stride,
                 padding=original_conv1.padding,
-             bias=original_conv1.bias,
+                bias=original_conv1.bias,
             )
             nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
 

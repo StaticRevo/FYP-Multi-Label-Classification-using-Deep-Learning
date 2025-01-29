@@ -45,7 +45,7 @@ def choose_and_run_model_gui():
     style.configure("TButton", padding=5, width=15, font=('Arial', 10, 'bold'))
 
     # Set minimum size for the window
-    root.geometry("450x750")
+    root.geometry("450x850")
     
     # Model selection
     model_frame = ttk.LabelFrame(root, text="Choose a model to run", padding="10")

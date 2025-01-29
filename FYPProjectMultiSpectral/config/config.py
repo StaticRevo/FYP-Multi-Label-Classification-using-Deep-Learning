@@ -1,3 +1,5 @@
+# Configuration file for the project
+
 # Standard library imports
 from dataclasses import dataclass, field
 
@@ -8,8 +10,6 @@ import torch.nn as nn
 
 # Local application imports
 from .config_utils import *
-
-# Configuration file for the project
 
 # Dataclass for the dataset configuration
 @dataclass
@@ -95,8 +95,8 @@ class ModelConfig:
     weight_decay: float = 1e-4
     lr_step_size: int = 7
     lr_factor: float = 0.1
-    patience: int = 5
     lr_patience: int = 5
+    patience: int = 5
     dropout: float = 0.5
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
 

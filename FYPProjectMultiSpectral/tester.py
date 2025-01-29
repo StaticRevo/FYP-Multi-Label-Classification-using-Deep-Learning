@@ -13,6 +13,7 @@ from config.config import DatasetConfig, ModelConfig
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
+from utils.file_utils import initalize_paths_tester
 from utils.test_functions import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from models.models import *
@@ -34,7 +35,7 @@ def main():
     class_weights = json.loads(sys.argv[9])
     metadata_csv = pd.read_csv(sys.argv[10])
     dataset_dir = sys.argv[11]
-    bands = json.loads(sys.argv[12]) # List of selected bands
+    bands = json.loads(sys.argv[12]) 
     
     # Allow user to choose checkpoint
     checkpoint_choice = input(f"Select checkpoint to test:\n"
@@ -55,10 +56,9 @@ def main():
 
     print(f"\nUsing checkpoint: {checkpoint_path}\n")
 
-
-    experiment_path = DatasetConfig.experiment_path
-    epochs = ModelConfig.num_epochs
-    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+    # Create the main path for the experiment
+    main_path = initalize_paths_tester(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
+    print(f"Main path: {main_path}")
 
     model_class, _ = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
@@ -82,8 +82,9 @@ def main():
     # Run the testing phase
     trainer.test(model, datamodule=data_module) 
 
-    result_path = os.path.join(DatasetConfig.experiment_path, model_name + "_" + weights + "_" + selected_bands + "_" + selected_dataset + "_" + str(ModelConfig.num_epochs) + "epochs", "results")
-
+    result_path = os.path.join(main_path, "results")
+    print(f"Result Path: {result_path}")
+    
     # Calculate metrics and save results
     all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
         model=model,

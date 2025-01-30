@@ -1,0 +1,73 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import pandas as pd
+
+from models.models import *
+from config.config import ModelConfig, DatasetConfig
+from config.config_utils import calculate_class_weights
+
+class EnsembleModel(nn.Module):
+    def __init__(self, model_configs, device=ModelConfig.device):
+        super().__init__()
+        self.device = device
+        self.models = nn.ModuleList()
+
+        # Build each model based on its configuration
+        for config in model_configs:
+            arch = config['arch']
+            ckpt_path = config['ckpt_path']
+            class_weights = config.get('class_weights', None)
+            num_classes = config.get('num_classes', DatasetConfig.num_classes)
+            in_channels = config.get('in_channels', 3)
+            model_weights = config.get('model_weights', None)
+            main_path = config.get('main_path', None)
+
+            model = self._create_model(arch, class_weights, num_classes, in_channels, model_weights, main_path) # Step 1: Instantiate the model
+
+            checkpoint = torch.load(ckpt_path, map_location=self.device)
+            model.load_state_dict(checkpoint['state_dict']) # Step 2: Load the model's chekpoint
+
+            model.to(self.device)
+            model.eval() # Step 3: Set the model to evaluation mode
+
+            self.models.append(model) 
+
+    def _create_model(self, arch, class_weights, num_classes, in_channels, model_weights, main_path):
+        if arch == 'custom_model':
+            return CustomModel(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'resnet18':
+            return ResNet18(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'resnet50':
+            return ResNet50(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'vgg16':
+            return VGG16(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'vgg19':
+            return VGG19(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'densenet121':
+            return DenseNet121(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'efficientnetb0':
+            return EfficientNetB0(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'efficientnet_v2':
+            return EfficientNetV2(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'vit_transformer':
+            return VitTransformer(class_weights, num_classes, in_channels, model_weights, main_path)
+        elif arch == 'swin_transformer':
+            return SwinTransformer(class_weights, num_classes, in_channels, model_weights, main_path)
+        else:
+            raise ValueError(f"Unsupported architecture '{arch}'")
+
+    @torch.no_grad()
+    def forward(self, x):
+        # Collect outputs from each model
+        outputs = []
+        for model in self.models:
+            out = model(x.to(self.device))  # (batch_size, num_classes)
+            outputs.append(out)
+
+        # Stack into shape (num_models, batch_size, num_classes)
+        all_outputs = torch.stack(outputs, dim=0)
+        
+        # Average across the model dimension
+        avg_output = torch.mean(all_outputs, dim=0)  # (batch_size, num_classes)
+        return avg_output

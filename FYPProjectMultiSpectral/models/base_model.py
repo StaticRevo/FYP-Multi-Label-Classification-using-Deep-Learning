@@ -248,7 +248,6 @@ class BaseModel(pl.LightningModule):
             'accuracy': []
         }
    
-
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()
         save_dir = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', filename)

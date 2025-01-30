@@ -14,7 +14,7 @@ from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
 from utils.file_utils import initalize_paths_tester
-from utils.test_functions import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations
+from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from models.models import *
 

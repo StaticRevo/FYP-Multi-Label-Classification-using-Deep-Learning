@@ -5,22 +5,28 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from models.ensemble import EnsembleModel
 from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps
 from dataloader import BigEarthNetDataLoader
-from config.config import ModelConfig, DatasetConfig
-from torchmetrics import MultilabelAccuracy, MultilabelPrecision, MultilabelRecall, MultilabelF1Score, MultilabelHammingDistance
+from config.config import DatasetConfig, ModelConfig, calculate_class_weights
+from torchmetrics.classification import MultilabelAccuracy, MultilabelPrecision, MultilabelRecall, MultilabelF1Score, MultilabelHammingDistance
 import os
 import json
+from tqdm import tqdm
+import logging
 
 def run_ensemble_inference():
     device = ModelConfig.device
-    num_classes = ModelConfig.num_classes
+    num_classes = DatasetConfig.num_classes
     in_channels = 12
     model_weights = None
-    
+    metadata_csv = pd.read_csv(DatasetConfig.metadata_paths['10'])
+    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
+    class_weights = class_weights_array
+
     # Define the configurations for each trained model
     model_configs = [
         {
             'arch': 'resnet18',
             'ckpt_path': r'C:\Users\isaac\Desktop\experiments\ResNet18_None_all_bands_10%_BigEarthNet_2epochs\checkpoints\final.ckpt',
+            'class_weights': class_weights,
             'num_classes': num_classes,
             'in_channels': in_channels,
             'model_weights': model_weights,
@@ -29,6 +35,7 @@ def run_ensemble_inference():
         {
             'arch': 'resnet50',
             'ckpt_path': r'C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_10%_BigEarthNet_2epochs\checkpoints\final.ckpt',
+            'class_weights': class_weights,
             'num_classes': num_classes,
             'in_channels': in_channels,
             'model_weights': model_weights,
@@ -38,9 +45,9 @@ def run_ensemble_inference():
 
     # Build the ensemble
     ensemble = EnsembleModel(model_configs, device=device)
+    ensemble.eval()
     
     # Load the data
-    metadata_csv = pd.read_csv(DatasetConfig.metadata_paths['10'])
     dataset_dir = DatasetConfig.dataset_paths['10']
     bands = DatasetConfig.all_bands  
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
@@ -60,14 +67,18 @@ def run_ensemble_inference():
     ensemble_recall_per_class = MultilabelRecall(num_labels=num_classes, average='none').to(device)
     ensemble_accuracy_per_class = MultilabelAccuracy(num_labels=num_classes, average='none').to(device)
 
-    for batch in test_loader:
+    # Get the total number of batches for tqdm
+    total_batches = len(test_loader)
+    logging.info(f"Starting inference on {total_batches} batches.")
+
+    for batch in tqdm(test_loader, total=total_batches, desc="Inference Progress"):
         inputs, labels = batch
         inputs, labels = inputs.to(device), labels.to(device)
 
         with torch.no_grad():
             logits = ensemble(inputs)  
 
-        probs = torch.sigmoid(logits)  # Multi-label classification
+        probs = torch.sigmoid(logits)  
         preds = (probs > 0.5).int()
 
         # Update overall metrics
@@ -108,8 +119,9 @@ def run_ensemble_inference():
         class_name = DatasetConfig.class_labels[i] if i < len(DatasetConfig.class_labels) else f"Class {i}"
         print(f"Class {class_name} - Precision: {precision_per_class[i]:.4f}, Recall: {recall_per_class[i]:.4f}, F1: {f1_per_class[i]:.4f}, Accuracy: {accuracy_per_class[i]:.4f}")
 
-    # Save per-class metrics to JSON
-    metrics_save_path = os.path.join('ensemble_results', 'ensemble_per_class_metrics.json')
+    combined_arch_name = "_".join([config['arch'] for config in model_configs])
+    filename = f'ensemble_per_class_metrics_{combined_arch_name}.json'
+    metrics_save_path = os.path.join('ensemble_results', filename)
     os.makedirs(os.path.dirname(metrics_save_path), exist_ok=True)
 
     metrics_to_save = {

@@ -25,7 +25,7 @@ class EnsembleModel(nn.Module):
 
             model = self._create_model(arch, class_weights, num_classes, in_channels, model_weights, main_path) # Step 1: Instantiate the model
 
-            checkpoint = torch.load(ckpt_path, map_location=self.device)
+            checkpoint = torch.load(ckpt_path, map_location=self.device, weights_only=False)
             model.load_state_dict(checkpoint['state_dict']) # Step 2: Load the model's chekpoint
 
             model.to(self.device)

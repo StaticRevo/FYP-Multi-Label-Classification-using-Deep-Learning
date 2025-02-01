@@ -19,29 +19,37 @@ from models.modules import *
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         custom_model = nn.Sequential(
+            # Spectral Mixing 
+            nn.Conv2d(in_channels, 16, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+
             # -- Block 1 --
-            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False),
+            DepthwiseSeparableConv(16, 32, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
             SpectralAttention(in_channels=32), # SpectralAttention Module
+            CoordinateAttention(32),
 
             # -- Block 2 --
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),
+            DepthwiseSeparableConv(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
+            MultiScaleBlock(64, 64),
             ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
             ECA(in_channels=64, k_size=3), # ECA Module
 
             # -- BLock 3 -- 
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
+            DepthwiseSeparableConv(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
+            MultiScaleBlock(128, 128),
             ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
             SE(in_channels=128), # Squeeze and Excitation Module
 
             # -- Block 4 -- 
-            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
+            DepthwiseSeparableConv(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
@@ -101,10 +109,10 @@ class ResNet50(BaseModel):
             )
             nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
 
-            # Modify the final fully connected layer
-            resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
+        # Modify the final fully connected layer
+        resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
 
-            super(ResNet50, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
+        super(ResNet50, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
 
 # VGG16 Model
 class VGG16(BaseModel):

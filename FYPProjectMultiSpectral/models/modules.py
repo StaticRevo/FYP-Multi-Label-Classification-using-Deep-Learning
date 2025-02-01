@@ -143,4 +143,66 @@ class DualAttention(nn.Module):
         x = self.channel_att(x)
         x = self.spatial_att(x)
         return x
+    
+# Depthwise Separable Convolution Module (DepthwiseSeparableConv)
+class DepthwiseSeparableConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=1, bias=False):
+        super(DepthwiseSeparableConv, self).__init__()
+        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=padding, groups=in_channels, bias=bias)
+        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=bias)
+    
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        return x
 
+# Coordinate Attention Module (CA)
+class CoordinateAttention(nn.Module):
+    def __init__(self, in_channels, reduction=32):
+        super(CoordinateAttention, self).__init__()
+        mid_channels = max(8, in_channels // reduction)
+        self.conv1 = nn.Conv2d(in_channels, mid_channels, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(mid_channels)
+        self.act = nn.ReLU(inplace=True)
+        self.conv_h = nn.Conv2d(mid_channels, in_channels, kernel_size=1, bias=False)
+        self.conv_w = nn.Conv2d(mid_channels, in_channels, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        n, c, h, w = x.size()
+        # Pool along height and width separately
+        x_h = F.adaptive_avg_pool2d(x, (h, 1))  # shape: (n, c, h, 1)
+        x_w = F.adaptive_avg_pool2d(x, (1, w))  # shape: (n, c, 1, w)
+        # Permute x_w so its spatial dimensions match for concatenation
+        x_w = x_w.permute(0, 1, 3, 2)  # shape: (n, c, w, 1)
+        # Concatenate along the height dimension (dim=2)
+        y = torch.cat([x_h, x_w], dim=2)  # shape: (n, c, h+w, 1)
+        y = self.conv1(y)  # shape: (n, mid_channels, h+w, 1)
+        y = self.bn1(y)
+        y = self.act(y)
+        # Split features back into height and width parts
+        x_h, x_w = torch.split(y, [h, w], dim=2)  # x_h: (n, mid_channels, h, 1), x_w: (n, mid_channels, w, 1)
+        a_h = self.conv_h(x_h).sigmoid()  # shape: (n, in_channels, h, 1)
+        a_w = self.conv_w(x_w).sigmoid()  # shape: (n, in_channels, w, 1)
+        a_w = a_w.permute(0, 1, 3, 2)  # shape: (n, in_channels, 1, w)
+        out = x * a_h * a_w  # Multiply the attention maps with the original input
+        return out
+
+# Multi-Scale Block Module (MultiScaleBlock)
+class MultiScaleBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(MultiScaleBlock, self).__init__()
+        self.conv_dil1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1,
+                                   padding=1, dilation=1)
+        self.conv_dil2 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1,
+                                   padding=2, dilation=2)
+        self.conv_dil3 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1,
+                                   padding=3, dilation=3)
+        self.fuse = nn.Conv2d(out_channels * 3, out_channels, kernel_size=1)
+
+    def forward(self, x):
+        dil1 = self.conv_dil1(x)
+        dil2 = self.conv_dil2(x)
+        dil3 = self.conv_dil3(x)
+        out = torch.cat([dil1, dil2, dil3], dim=1)
+        out = self.fuse(out)
+        return out

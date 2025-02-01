@@ -129,14 +129,19 @@ class BestMetricsCallback(pl.Callback):
 
         pl_module.eval()
         with torch.no_grad():
+            # Warm-up iterations
             for _ in range(5):
                 pl_module(x)
+            if 'cuda' in device.type:
+                torch.cuda.synchronize()
 
-        # Time the inference
-        start_time = time.time()
-        with torch.no_grad():
+            # Time the inference
+            start_time = time.time()
             pl_module(x)
-        end_time = time.time()
+            # Synchronize to ensure the forward pass completes
+            if 'cuda' in device.type:
+                torch.cuda.synchronize()
+            end_time = time.time()
 
         inference_time = end_time - start_time
         if inference_time > 0:

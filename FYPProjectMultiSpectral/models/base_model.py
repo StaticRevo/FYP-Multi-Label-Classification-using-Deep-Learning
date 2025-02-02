@@ -13,6 +13,7 @@ from torchmetrics.classification import (
     MultilabelHammingDistance, MultilabelAveragePrecision
 )
 from torchsummary import summary
+from torchinfo import summary as torchinfo_summary
 from torchviz import make_dot
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import matplotlib.pyplot as plt
@@ -257,13 +258,10 @@ class BaseModel(pl.LightningModule):
         device = ModelConfig.device
         self.model.to(device)
 
-        # Create a dummy input tensor with the specified input size
-        dummy_input = torch.zeros(1, *input_size).to(device)
-
         # Redirect the summary output to a file
-        with open(save_path, 'w') as f:
+        with open(save_path, 'w', encoding='utf-8') as f:
             with redirect_stdout(f):
-                summary(self.model, input_size)
+                torchinfo_summary(self.model, input_size=(1, *input_size))
 
     def visualize_model(self, input_size, model_name):
         current_directory = os.getcwd()

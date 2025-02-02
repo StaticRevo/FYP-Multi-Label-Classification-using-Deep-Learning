@@ -6,7 +6,6 @@ import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from tqdm import tqdm
 
-
 def resizeTiffFiles(input_tiff, output_tiff, new_width, new_height):
     with rasterio.open(input_tiff) as src:
         transform, width, height = calculate_default_transform(src.crs, src.crs, new_width, new_height, *src.bounds)

@@ -170,20 +170,20 @@ class CoordinateAttention(nn.Module):
     def forward(self, x):
         n, c, h, w = x.size()
         # Pool along height and width separately
-        x_h = F.adaptive_avg_pool2d(x, (h, 1))  # shape: (n, c, h, 1)
-        x_w = F.adaptive_avg_pool2d(x, (1, w))  # shape: (n, c, 1, w)
+        x_h = F.adaptive_avg_pool2d(x, (h, 1))  
+        x_w = F.adaptive_avg_pool2d(x, (1, w)) 
         # Permute x_w so its spatial dimensions match for concatenation
-        x_w = x_w.permute(0, 1, 3, 2)  # shape: (n, c, w, 1)
+        x_w = x_w.permute(0, 1, 3, 2)  
         # Concatenate along the height dimension (dim=2)
-        y = torch.cat([x_h, x_w], dim=2)  # shape: (n, c, h+w, 1)
-        y = self.conv1(y)  # shape: (n, mid_channels, h+w, 1)
+        y = torch.cat([x_h, x_w], dim=2)  
+        y = self.conv1(y)  
         y = self.bn1(y)
         y = self.act(y)
         # Split features back into height and width parts
         x_h, x_w = torch.split(y, [h, w], dim=2)  # x_h: (n, mid_channels, h, 1), x_w: (n, mid_channels, w, 1)
-        a_h = self.conv_h(x_h).sigmoid()  # shape: (n, in_channels, h, 1)
-        a_w = self.conv_w(x_w).sigmoid()  # shape: (n, in_channels, w, 1)
-        a_w = a_w.permute(0, 1, 3, 2)  # shape: (n, in_channels, 1, w)
+        a_h = self.conv_h(x_h).sigmoid()  
+        a_w = self.conv_w(x_w).sigmoid()  
+        a_w = a_w.permute(0, 1, 3, 2)  
         out = x * a_h * a_w  # Multiply the attention maps with the original input
         return out
 

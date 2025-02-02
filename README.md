@@ -13,16 +13,20 @@ This project aims to address this issue by developing a CNN model capable of cla
 - Utilise pre-trained models to leverage existing knowledge and serve as benchmarks for comparison
 - Implement Data preprocessing and augmentation techniques to handle datasets such as BigEarthNet
 - Incorporate various visualisation techniques to further ensure transparency and trust in the model's prediction
-## Dataset
-### Description
-### Source
-## Model Architecture
-### Overview
-### Architecture Details
-### Model Diagram
-## Training 
-### Training Process
-### Training Code
-### Training Results
-## Conclusion 
 
+## Getting Started
+Follow these steps to set up and run the project locally.
+### Prerequisites
+- **Python 3.11+** – Ensure you have Python installed. [Download Python](https://www.python.org/downloads/).
+- **Git** – Required to clone the repository. [Download Git](https://git-scm.com/downloads).
+- **CUDA (Optional)** – If you plan to run the model on a GPU, ensure CUDA is installed along with the necessary drivers.
+- **Anaconda** - To install all the requirements from the project you need to create an anaconda enviroment.
+
+### Installation
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery.git
+   cd Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery
+### Dataset Setup
+### Running the Project

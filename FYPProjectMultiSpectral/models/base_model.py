@@ -11,7 +11,8 @@ import torch.optim as optim
 import pytorch_lightning as pl
 from torchmetrics.classification import (
     MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy, 
-    MultilabelHammingDistance, MultilabelAveragePrecision, MultilabelFBetaScore
+    MultilabelHammingDistance, MultilabelAveragePrecision, MultilabelFBetaScore,
+    MultilabelRankingAveragePrecision
 )
 from torchsummary import summary
 from torchinfo import summary as torchinfo_summary
@@ -64,6 +65,10 @@ class BaseModel(pl.LightningModule):
         self.train_one_error = OneError(num_labels=self.num_classes)
         self.val_one_error = OneError(num_labels=self.num_classes)
         self.test_one_error = OneError(num_labels=self.num_classes)
+
+        self.train_avg_precision = MultilabelRankingAveragePrecision(num_labels=self.num_classes)
+        self.val_avg_precision = MultilabelRankingAveragePrecision(num_labels=self.num_classes)
+        self.test_avg_precision = MultilabelRankingAveragePrecision(num_labels=self.num_classes)
 
         self.hamming_loss = MultilabelHammingDistance(num_labels=self.num_classes)
 
@@ -174,6 +179,16 @@ class BaseModel(pl.LightningModule):
         self.log(f'{phase}_precision', precision, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_one_error', one_error, on_epoch=True, prog_bar=True, batch_size=len(x))
         self.log(f'{phase}_hamming_loss', hamming_loss_val, on_epoch=True, prog_bar=True, batch_size=len(x))
+
+        if phase == 'train':
+            avg_precision = self.train_avg_precision(probs, y)
+            self.log('train_avg_precision', avg_precision, on_epoch=True, prog_bar=True, batch_size=len(x))
+        elif phase == 'val':
+            avg_precision = self.val_avg_precision(probs, y)
+            self.log('val_avg_precision', avg_precision, on_epoch=True, prog_bar=True, batch_size=len(x))
+        elif phase == 'test':
+            avg_precision = self.test_avg_precision(probs, y)
+            self.log('test_avg_precision', avg_precision, on_epoch=True, prog_bar=True, batch_size=len(x))
 
         # Compute and log per-class metrics
         if phase in ['train', 'val', 'test']:

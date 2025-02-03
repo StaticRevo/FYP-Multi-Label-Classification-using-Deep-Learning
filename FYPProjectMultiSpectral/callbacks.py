@@ -100,7 +100,7 @@ class BestMetricsCallback(pl.Callback):
         print(f"  Inference Rate: {self.inference_rate:.2f} images/second")
 
     def is_metric_better(self, metric, current, best):
-        metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_subset_accuracy', 'val_f2']
+        metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_f2', 'val_avg_precision']
         metrics_to_minimize = ['val_loss', 'val_one_error', 'val_hamming_loss']
 
         if metric in metrics_to_maximize:

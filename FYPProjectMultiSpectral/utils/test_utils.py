@@ -45,17 +45,20 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
 
     return all_preds, all_labels
 
-def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name):
+def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path):
+    save_dir = os.path.join(result_path, 'visualizations')
+    os.makedirs(save_dir, exist_ok=True)
+
     display_batch_predictions( # Display batch predictions
-         model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands
+         model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=save_dir
     )
     plot_per_label_confusion_matrices_grid( # Plot per-label confusion matrices
-        true_labels, predictions, class_names=class_labels
+        true_labels, predictions, class_names=class_labels, cols=4, save_dir=save_dir
     )
     scores = compute_aggregated_metrics(true_labels, predictions) # Compute and print aggregated metrics
     print("\nAggregated Metrics:\n", scores)
 
-    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels) # Plot co-occurrence matrix
+    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir) # Plot co-occurrence matrix
 
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
@@ -206,7 +209,7 @@ def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_band
 
     return np.array(all_preds), np.array(all_true_labels)
 
-def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10):
+def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=None):
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
     
     dataset_size = len(dataloader.dataset)
@@ -253,8 +256,9 @@ def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, ban
             f"True Labels: {true_labels_indices}\n"
             f"Predicted Labels: {predicted_labels_indices}"
         )
-        plt.axis('off')
-        plt.show()
+        if save_dir is not None:
+            plt.savefig(os.path.join(save_dir, f"batch_prediction_{i}.png"))
+        plt.close()
 
 
 def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands):
@@ -296,7 +300,7 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
 
     return np.array(sigmoid_outputs_list)
 
-def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=None, cols=4):
+def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=None, cols=4, save_dir=None):
     mcm = multilabel_confusion_matrix(all_labels, all_preds)
     n_labels = len(mcm)
 
@@ -316,16 +320,8 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
 
         # Plot a heatmap for this label's 2x2 matrix on the i-th subplot
         ax = axes[i]
-        sns.heatmap(
-            matrix,
-            annot=True,
-            fmt='d',
-            cmap='Blues',
-            cbar=False,
-            xticklabels=['Pred 0', 'Pred 1'],
-            yticklabels=['True 0', 'True 1'],
-            ax=ax
-        )
+        sns.heatmap(matrix, annot=True, fmt='d', cmap='Blues', cbar=False,
+                    xticklabels=['Pred 0', 'Pred 1'], yticklabels=['True 0', 'True 1'], ax=ax)
         ax.set_title(f'{label_name}\n(TN={tn}, FP={fp}, FN={fn}, TP={tp})')
         ax.set_xlabel('Predicted')
         ax.set_ylabel('True')
@@ -334,8 +330,10 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    plt.subplots_adjust(wspace=0.4, hspace=0.6)  
-    plt.show()
+    plt.subplots_adjust(wspace=0.4, hspace=0.6)
+    if save_dir is not None:
+        plt.savefig(os.path.join(save_dir, "confusion_matrices_grid.png"))
+    plt.close()
 
 def compute_aggregated_metrics(all_labels, all_preds):
     metrics_dict = {}
@@ -358,7 +356,7 @@ def compute_aggregated_metrics(all_labels, all_preds):
 
     return metrics_dict
 
-def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None):
+def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=None):
     num_classes = all_labels.shape[1]
     cooccur = np.zeros((num_classes, num_classes), dtype=int)
 
@@ -389,6 +387,7 @@ def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None):
     plt.xticks(rotation=45, ha='right')
     plt.yticks(rotation=0)
     plt.tight_layout(pad=2.0)
-    plt.show()
-
+    if save_dir is not None:
+        plt.savefig(os.path.join(save_dir, "cooccurrence_matrix.png"))
+    plt.close()
     return cooccur

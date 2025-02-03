@@ -104,6 +104,7 @@ def main():
         true_labels=all_labels,
         class_labels=class_labels,
         model_name=model_name,
+        result_path=result_path
     )
 
     # Visualize activations

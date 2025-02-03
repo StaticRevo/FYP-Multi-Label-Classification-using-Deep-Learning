@@ -99,9 +99,45 @@ class BestMetricsCallback(pl.Callback):
         print(f"  Model Size: {self.model_size:.2f} MB")
         print(f"  Inference Rate: {self.inference_rate:.2f} images/second")
 
+    def on_test_epoch_end(self, trainer, pl_module):
+        logs = trainer.callback_metrics
+        current_epoch = trainer.current_epoch
+
+        for metric in self.best_test_metrics:
+            current = logs.get(metric)
+
+            if current is None:
+                continue  
+
+            if self.best_test_metrics[metric] is None or self.is_metric_better(metric, current, self.best_test_metrics[metric]):
+                self.best_test_metrics[metric] = current
+                self.best_test_epochs[metric] = current_epoch
+
+        # Convert test metrics to Python scalars
+        best_test_metrics_python = {metric: value.item() if isinstance(value, torch.Tensor) else value
+                                for metric, value in self.best_test_metrics.items()}
+        best_test_epochs_python = {metric: epoch for metric, epoch in self.best_test_epochs.items()}
+
+        # Save best test metrics
+        test_metrics_path = self.save_path.replace('best_metrics.json', 'best_test_metrics.json')
+        data_to_save = {
+            'best_test_metrics': best_test_metrics_python,
+            'best_test_epochs': best_test_epochs_python
+        }
+
+        os.makedirs(os.path.dirname(test_metrics_path), exist_ok=True)
+
+        with open(test_metrics_path, 'w') as f:
+            json.dump(data_to_save, f, indent=4)
+
+        print(f"\nBest Test Metrics saved to {test_metrics_path}:")
+        for metric, value in best_test_metrics_python.items():
+            epoch = best_test_epochs_python.get(metric, 'N/A')
+            print(f"  {metric}: {value} (Epoch {epoch})")
+
     def is_metric_better(self, metric, current, best):
-        metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_f2', 'val_avg_precision']
-        metrics_to_minimize = ['val_loss', 'val_one_error', 'val_hamming_loss']
+        metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_f2', 'val_avg_precision', 'test_acc', 'test_f1', 'test_precision', 'test_recall', 'test_f2', 'test_avg_precision']
+        metrics_to_minimize = ['val_loss', 'val_one_error', 'val_hamming_loss', 'test_loss', 'test_one_error', 'test_hamming_loss']
 
         if metric in metrics_to_maximize:
             return current > best

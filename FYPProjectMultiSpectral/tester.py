@@ -10,6 +10,7 @@ import pytorch_lightning as pl
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig
+from callbacks import BestMetricsCallback
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
@@ -71,16 +72,36 @@ def main():
 
     class_labels = DatasetConfig.class_labels
 
+    # Initialize the BestMetricsCallback
+    metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_f2', 'val_precision', 'val_recall','val_one_error', 'val_hamming_loss', 'val_avg_precision']
+    best_metrics_path = os.path.join(main_path, 'results', 'best_test_metrics.json')
+    best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
+    
     # Set up Trainer for testing
     trainer = pl.Trainer(
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
         precision='16-mixed',
         deterministic=True,
+        callbacks=[best_metrics_callback]
     )
 
     # Run the testing phase
-    trainer.test(model, datamodule=data_module) 
+    test_results = trainer.test(model, datamodule=data_module)
+
+    # Extract and save test metrics
+    test_metrics = test_results[0] if test_results else {}
+
+    test_metrics_path = os.path.join(main_path, 'results', 'best_test_metrics.json')
+    os.makedirs(os.path.dirname(test_metrics_path), exist_ok=True)
+
+    # Save aggregated test metrics to JSON
+    with open(test_metrics_path, 'w') as f:
+        json.dump(test_metrics, f, indent=4)
+
+    print(f"\nTest Metrics saved to {test_metrics_path}:")
+    for metric, value in test_metrics.items():
+        print(f"  {metric}: {value:.4f}")
 
     result_path = os.path.join(main_path, "results")
     print(f"Result Path: {result_path}")

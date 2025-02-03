@@ -103,7 +103,7 @@ def main():
     )
 
     # Initialize the BestMetricsCallback
-    metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_precision', 'val_recall', 'val_subset_accuracy', 'val_hamming_loss']
+    metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_f2', 'val_precision', 'val_recall','val_one_error', 'val_hamming_loss']
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     

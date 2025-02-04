@@ -45,4 +45,15 @@ By running the [data_preprocessing.py](https://github.com/StaticRevo/FYP-Multi-L
 - Download the Dataset
 - Extract All Necessary Files
 - Clean and Organise the Dataset
+
 ### Running the Project
+To run the project, simply execute the [main.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/main.py) script. This will launch the model selection interface, allowing users to configure and run experiments based on their desired model, dataset percentage, band combinations, and training options.
+
+After running the script users can:
+- Select a **Model** from: CustomModel, ResNet18, ResNet50, VGG16, VGG19, DenseNet121, Swin-Transformer and ViT-Transformer
+- Choose a **Dataset percentage**: 100%, 50%, 10%, 5%, 1%, 0.5%
+- Pick a **Band Combination**: All_Bands, RGB_Bands, RGB_NIR_Bands, RGB_SWIR_Bands, RGB_NIR_SWIR_Bands
+- Specify **Weights**: Pre-trained or Not
+- Select **Training Option**: Train Only, Train and Test, Test Only
+
+Users are also encouraged to experiment with different hyperparamters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file.

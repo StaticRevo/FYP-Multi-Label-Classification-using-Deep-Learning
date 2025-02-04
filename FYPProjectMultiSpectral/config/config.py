@@ -14,7 +14,7 @@ from .config_utils import *
 # Dataclass for the dataset configuration
 @dataclass
 class DatasetConfig:
-    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\50%_BigEarthNet\\metadata_50_percent.csv"
+    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\50%_BigEarthNet\\metadata_100_percent.csv"
     dataset_paths = {
         "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages",
         "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages",

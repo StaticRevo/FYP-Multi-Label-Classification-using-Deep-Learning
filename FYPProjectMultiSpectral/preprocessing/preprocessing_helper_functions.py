@@ -10,6 +10,7 @@ from tqdm import tqdm
 import pandas as pd
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+from pathlib import Path
 
 def downloadAndExtractDataset(dataset_dir):
     download_url = 'https://zenodo.org/records/10891137/files/BigEarthNet-S2.tar.zst?download=1'
@@ -90,27 +91,46 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
     # Save metadata for the subset
     metadata_subset.to_csv(os.path.join(subset_dir, f'metadata_{percentage}_percent.csv'), index=False)
 
+def copy_subset_images(original_images_dir, original_metadata_path, subset_metadata_path, subset_images_dir):
+    original_images_dir = Path(original_images_dir)
+    subset_metadata_path = Path(subset_metadata_path)
+    subset_images_dir = Path(subset_images_dir)
+    subset_images_dir.mkdir(parents=True, exist_ok=True)
 
-def count_subfolders(base_dir, folder):
-    # Dictionary to hold folder counts
-    folder_counts = {}
-    total_subfolders = 0  # Initialize total subfolder counter
-    
-    # Iterate through all folders in the base directory
-    for folder in tqdm(os.listdir(base_dir), desc="Processing folders"):
-        folder_path = os.path.join(base_dir, folder)
-        
-        # Check if the current path is a directory
-        if os.path.isdir(folder_path):
-            # Count subdirectories within this folder
-            subfolder_count = sum(os.path.isdir(os.path.join(folder_path, subfolder)) for subfolder in os.listdir(folder_path))
-            folder_counts[folder] = subfolder_count
-        
-            # Update total subfolder count
-            total_subfolders += subfolder_count
+    # Load subset metadata
+    subset_metadata = pd.read_csv(subset_metadata_path)
 
-    # Print total subfolders
-    return total_subfolders, folder
+    # Get unique patch_ids from subset metadata
+    subset_patch_ids = subset_metadata["patch_id"].unique().tolist()
+
+    missing_files = []
+
+    for patch_id in subset_patch_ids:
+        # Construct file paths
+        src_path = original_images_dir / f"{patch_id}.tif"  # Assumes .tif extension
+        dst_path = subset_images_dir / f"{patch_id}.tif"
+        
+        if src_path.exists():
+            shutil.copy2(src_path, dst_path)
+        else:
+            missing_files.append(patch_id)
+
+    if missing_files: # Report missing files (if any)
+        print(f"Warning: {len(missing_files)} files missing in original dataset")
+        print("Missing patch_ids:", missing_files)
+
+def count_tif_images(folder_path):
+    total_images = 0  # Initialize total image counter
+
+    # Iterate through all files in the folder
+    for file in tqdm(os.listdir(folder_path), desc="Counting .tif images"):
+        file_path = os.path.join(folder_path, file)
+        
+        # Check if the current path is a file and has a .tif extension
+        if os.path.isfile(file_path) and file.lower().endswith('.tif'):
+            total_images += 1
+
+    return total_images
 
 def display_percentage(partial_count, full_count, folder_name):
     percentage = (partial_count / full_count) * 100

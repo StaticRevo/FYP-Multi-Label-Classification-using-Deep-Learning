@@ -1,5 +1,6 @@
 from models.models import *
 
+# Get the model class
 def get_model_class(model_name):
     model_mapping = {
         'custom_model': (CustomModel, 'custom_model'),

@@ -42,16 +42,13 @@ class GradCAM:
         # Retrieve captured gradients and activations
         gradients = self.gradients  
         activations = self.activations  
-
-        # Global average pooling on gradients
-        weights = torch.mean(gradients, dim=(2, 3), keepdim=True)  
+        
+        weights = torch.mean(gradients, dim=(2, 3), keepdim=True) # Global average pooling on gradients
 
         # Weighted combination of activations
         weighted_activations = weights * activations  
         cam = torch.sum(weighted_activations, dim=1, keepdim=True) 
-
-        # Apply ReLU to focus on positive influences
-        cam = F.relu(cam)
+        cam = F.relu(cam) # Apply ReLU to focus on positive influences
 
         # Normalize the heatmap
         cam = cam - cam.min()

@@ -5,6 +5,7 @@ import torch
 from config.config import DatasetConfig
 from models.models import *
 
+# Encode the labels
 def encode_label(label: list, num_classes=DatasetConfig.num_classes):
     target = torch.zeros(num_classes)
     for l in label:
@@ -12,6 +13,7 @@ def encode_label(label: list, num_classes=DatasetConfig.num_classes):
             target[DatasetConfig.class_labels_dict[l]] = 1.0
     return target
 
+# Decode the labels
 def decode_target(
     target: list,
     text_labels: bool = False,

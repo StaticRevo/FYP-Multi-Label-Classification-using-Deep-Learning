@@ -37,17 +37,28 @@ Follow these steps to set up and run the project locally.
    conda activate Fyp311
 
 ### Dataset Setup
-The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of 590,326 patches, 19 land cover types and 12 spectral bands at 10m,20m and 60m per pixel resolution.
+The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of 
+- **590,326 patches**
+- **19 land cover types** 
+- **12 spectral bands at 10m,20m and 60m per pixel resolution**
 
 Official Source: [BigEarthNet](https://bigearth.net/)
 
-By running the [data_preprocessing.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/preprocessing/data_preprocessing.py) script within the preprocessing folder, the script will
-- Download the Dataset
-- Extract All Necessary Files
-- Clean and Organise the Dataset
+To automatically download and pre-process the dataset run:
+
+      python FYPProjectMultiSpectral/preprocessing/data_preprocessing.py
+
+The Script will:
+- **Download** the Dataset
+- **Extract** All Necessary Files
+- **Clean and Organise** the Dataset
 
 ### Running the Project
-To run the project, simply execute the [main.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/main.py) script. This will launch the model selection interface, allowing users to configure and run experiments based on their desired model, dataset percentage, band combinations, and training options.
+To run the project, simply run:
+
+     python main.py
+
+This will launch the model selection interface, allowing users to configure and run experiments based on their desired model, dataset percentage, band combinations, and training options.
 
 After running the script users can:
 - Select a **Model** from: CustomModel, ResNet18, ResNet50, VGG16, VGG19, DenseNet121, Swin-Transformer and ViT-Transformer
@@ -79,9 +90,13 @@ The project follows automated experiment logging in a structured directory forma
       │   ├── final.pth                    # Final model after all epochs
       ├── logs/                            # Lightning Logs 
 
-Such strured format ensures that eveluation could be performed efficiently. Besides that to ensure conistent results the project implementes **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
+Such strured format ensures that Evaluation could be performed efficiently. Besides that to ensure conistent results the project implementes **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
 
-### Eveluation and Performance Metrics
+To reproduce an experiment run:
+
+    python train_runner.py <model_name> <weights> <band_combination> <dataset> <enable_test>
+
+### Evaluation and Performance Metrics
 The models are evaluated using a combination of aggregated and per-class metrics to ensure a detailed performance assessment. The following are the metrics that were computed during training, validation and testing:
 - **Accuracy**
 - **Precision**
@@ -92,10 +107,13 @@ The models are evaluated using a combination of aggregated and per-class metrics
 - **One Error**
 - **Mean Average Precision (mAP)**
 
-Beyond the above standard metrics, the project also makes use of additional eveluation techniques to provide even deeper insights on the models performance such as:
+Beyond the above standard metrics, the project also makes use of additional Evaluation techniques to provide even deeper insights on the models performance such as:
 - **Confusion Matrics (Per-Class and Aggregated)**
 - **ROC and AUC Curves**
 - **Label Co-occurrence Analysis**
 - **Grad-CAM and Activation Maps**
 
 The results are stored within experiment/results folder.
+
+### Results
+

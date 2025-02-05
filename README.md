@@ -27,7 +27,7 @@ Follow these steps to set up and run the project locally.
    ```bash
    git clone https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery.git
    cd Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery
-
+   
 2. **Create and activate conda environment from [requirements.txt](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/requirements.txt)**
    ```bash
    conda env create -f enviroment.yml
@@ -60,24 +60,24 @@ Users are also encouraged to experiment with different hyperparamters through th
 
 ### Experiment Tracking and Reporoducability
 The project follows automated experiment logging in a structured directory format:
-   ```bash
-experiments/
-├── results/                         # Stores evaluation metrics, logs, and visualizations
-│   ├── best_metrics.json            # Stores best validation metrics
-│   ├── best_test_metrics.json       # Stores best test metrics
-│   ├── train_per_class_metrics.json # Stores the per-class metrics for training
-│   ├── val_per_class_metrics.json   # Stores the per-class metrics for validation
-│   ├── test_per_class_metrics.json  # Stores the per-class metrics for testing
-│   ├── tensorboard_graphs/          # TensorBoard visualizations saved as images
-│   ├── predictions.npz              # Model predictions for analysis
-│   ├── visualizations/              # Confusion matrices and Label Co-occurance images
-│   ├── gradcam_visualizations/      # Grad-CAM heatmaps
-│   ├── activations.pdf/             # Activations of the model
-├── checkpoints/                     # Stores trained models
-│   ├── best_acc.pth                 # Best model based on validation accuracy
-│   ├── best_loss.pth                # Best model based on validation loss
-│   ├── final.pth                    # Final model after all epochs
-├── logs/                            # Lightning Logs 
+
+      experiments/
+      ├── results/                         # Stores evaluation metrics, logs, and visualizations
+      │   ├── best_metrics.json            # Stores best validation metrics
+      │   ├── best_test_metrics.json       # Stores best test metrics
+      │   ├── train_per_class_metrics.json # Stores the per-class metrics for training
+      │   ├── val_per_class_metrics.json   # Stores the per-class metrics for validation
+      │   ├── test_per_class_metrics.json  # Stores the per-class metrics for testing
+      │   ├── tensorboard_graphs/          # TensorBoard visualizations saved as images
+      │   ├── predictions.npz              # Model predictions for analysis
+      │   ├── visualizations/              # Confusion matrices and Label Co-occurance images
+      │   ├── gradcam_visualizations/      # Grad-CAM heatmaps
+      │   ├── activations.pdf/             # Activations of the model
+      ├── checkpoints/                     # Stores trained models
+      │   ├── best_acc.pth                 # Best model based on validation accuracy
+      │   ├── best_loss.pth                # Best model based on validation loss
+      │   ├── final.pth                    # Final model after all epochs
+      ├── logs/                            # Lightning Logs 
 
 Such strured format ensures that eveluation could be performed efficiently. Besides that to ensure conistent results the project implementes **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
 

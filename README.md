@@ -57,3 +57,44 @@ After running the script users can:
 - Select **Training Option**: Train Only, Train and Test, Test Only
 
 Users are also encouraged to experiment with different hyperparamters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file.
+
+### Experiment Tracking and Reporoducability
+The project follows automated experiment logging in a structured directory format:
+experiments/
+├── results/                         # Stores evaluation metrics, logs, and visualizations
+│   ├── best_metrics.json            # Stores best validation metrics
+│   ├── best_test_metrics.json       # Stores best test metrics
+│   ├── train_per_class_metrics.json # Stores the per-class metrics for training
+│   ├── val_per_class_metrics.json   # Stores the per-class metrics for validation
+│   ├── test_per_class_metrics.json  # Stores the per-class metrics for testing
+│   ├── tensorboard_graphs/          # TensorBoard visualizations saved as images
+│   ├── predictions.npz              # Model predictions for analysis
+│   ├── visualizations/              # Confusion matrices and Label Co-occurance images
+│   ├── gradcam_visualizations/      # Grad-CAM heatmaps
+│   ├── activations.pdf/             # Activations of the model
+├── checkpoints/                     # Stores trained models
+│   ├── best_acc.pth                 # Best model based on validation accuracy
+│   ├── best_loss.pth                # Best model based on validation loss
+│   ├── final.pth                    # Final model after all epochs
+├── logs/                            # Lightning Logs 
+
+Such strured format ensures that eveluation could be performed efficiently. Besides that to ensure conistent results the project implementes **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
+
+### Eveluation and Performance Metrics
+The models are evaluated using a combination of aggregated and per-class metrics to ensure a detailed performance assessment. The following are the metrics that were computed during training, validation and testing:
+- **Accuracy**
+- **Precision**
+- **Recall**
+- **F1-Score**
+- **F2-Score**
+- **Hamming Loss**
+- **One Error**
+- **Mean Average Precision (mAP)**
+
+Beyond the above standard metrics, the project also makes use of additional eveluation techniques to provide even deeper insights on the models performance such as:
+- **Confusion Matrics (Per-Class and Aggregated)**
+- **ROC and AUC Curves**
+- **Label Co-occurrence Analysis**
+- **Grad-CAM and Activation Maps**
+
+The results are stored within experiment/results folder.

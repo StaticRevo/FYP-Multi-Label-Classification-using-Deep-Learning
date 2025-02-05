@@ -60,6 +60,7 @@ Users are also encouraged to experiment with different hyperparamters through th
 
 ### Experiment Tracking and Reporoducability
 The project follows automated experiment logging in a structured directory format:
+   ```bash
 experiments/
 ├── results/                         # Stores evaluation metrics, logs, and visualizations
 │   ├── best_metrics.json            # Stores best validation metrics

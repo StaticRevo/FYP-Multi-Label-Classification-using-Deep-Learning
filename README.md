@@ -36,7 +36,7 @@ Follow these steps to set up and run the project locally.
    ```bash
    conda activate Fyp311
 
-### Dataset Setup
+## Dataset Setup
 ![Image](https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df)
 The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of 
 - **590,326 patches**
@@ -54,7 +54,7 @@ The Script will:
 - **Extract** All Necessary Files
 - **Clean and Organise** the Dataset
 
-### Running the Project
+## Running the Project
 To run the project, simply run:
 
      python main.py
@@ -70,7 +70,7 @@ After running the script users can:
 
 Users are also encouraged to experiment with different hyperparamters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file.
 
-### Experiment Tracking and Reporoducability
+## Experiment Tracking and Reporoducability
 The project follows automated experiment logging in a structured directory format:
 
       experiments/
@@ -97,7 +97,7 @@ To reproduce an experiment run:
 
     python train_runner.py <model_name> <weights> <band_combination> <dataset> <enable_test>
 
-### Evaluation and Performance Metrics
+## Evaluation and Performance Metrics
 The models are evaluated using a combination of aggregated and per-class metrics to ensure a detailed performance assessment. The following are the metrics that were computed during training, validation and testing:
 - **Accuracy**
 - **Precision**

@@ -1,6 +1,7 @@
 # Standard library imports
 import os
 import random
+import math
 
 # Third-party imports
 import torch
@@ -73,3 +74,10 @@ def denormalize(tensors, *, mean, std):
         tensors[:, c, :, :].mul_(std[c]).add_(mean[c])
 
     return torch.clamp(tensors, min=0.0, max=1.0)
+
+def calculate_log_every_n_steps(csv, batch_size, logs_per_epoch):
+    dataset_size = len(csv)
+    steps_per_epoch = math.ceil(dataset_size / batch_size)
+    logs_per_epoch = min(logs_per_epoch, steps_per_epoch)
+    log_every_n_steps = math.ceil(steps_per_epoch / logs_per_epoch)
+    return log_every_n_steps

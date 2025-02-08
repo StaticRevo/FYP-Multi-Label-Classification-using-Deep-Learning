@@ -231,12 +231,56 @@ class BaseModel(pl.LightningModule):
     
     def on_train_epoch_end(self):
         self._save_epoch_metrics('train')
+        self._display_aggregated_metrics('train')
 
     def on_validation_epoch_end(self):
         self._save_epoch_metrics('val')
+        self._display_aggregated_metrics('val')
 
     def on_test_epoch_end(self):
         self._save_epoch_metrics('test')
+        self._display_aggregated_metrics('test')
+
+    def _display_aggregated_metrics(self, phase):
+        if phase == 'train':
+            acc = self.train_acc.compute().item()
+            recall = self.train_recall.compute().item()
+            precision = self.train_precision.compute().item()
+            f1 = self.train_f1.compute().item()
+            f2 = self.train_f2.compute().item()
+            one_error = self.train_one_error.compute().item()
+            avg_precision = self.train_avg_precision.compute().item()
+        elif phase == 'val':
+            acc = self.val_acc.compute().item()
+            recall = self.val_recall.compute().item()
+            precision = self.val_precision.compute().item()
+            f1 = self.val_f1.compute().item()
+            f2 = self.val_f2.compute().item()
+            one_error = self.val_one_error.compute().item()
+            avg_precision = self.val_avg_precision.compute().item()
+        elif phase == 'test':
+            acc = self.test_acc.compute().item()
+            recall = self.test_recall.compute().item()
+            precision = self.test_precision.compute().item()
+            f1 = self.test_f1.compute().item()
+            f2 = self.test_f2.compute().item()
+            one_error = self.test_one_error.compute().item()
+            avg_precision = self.test_avg_precision.compute().item()
+        else:
+            print(f"Unknown phase: {phase}")
+            return
+        
+        table = PrettyTable()
+        table.field_names = ["Metric", "Value"]
+        table.add_row(["Accuracy", round(acc, 4)])
+        table.add_row(["Precision", round(precision, 4)])
+        table.add_row(["Recall", round(recall, 4)])
+        table.add_row(["F1 Score", round(f1, 4)])
+        table.add_row(["F2 Score", round(f2, 4)])
+        table.add_row(["One Error", round(one_error, 4)])
+        table.add_row(["Avg Precision", round(avg_precision, 4)])
+
+        print(f"\nAggregated {phase.capitalize()} Metrics:\n{table}")
 
     def _save_epoch_metrics(self, phase):
         # Check if per-class metrics have been collected

@@ -202,3 +202,4 @@ class BestMetricsCallback(pl.Callback):
             inference_rate = float('inf')  
 
         return inference_rate
+

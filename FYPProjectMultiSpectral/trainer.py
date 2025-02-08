@@ -15,7 +15,7 @@ from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.file_utils import initialize_paths
-from utils.data_utils import get_dataset_info
+from utils.data_utils import get_dataset_info, calculate_log_every_n_steps
 from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
 from models.models import *
@@ -107,6 +107,9 @@ def main():
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     
+    # Start TensorBoard
+    subprocess.Popen(['tensorboard', '--logdir', log_dir])
+
     # Model Training with custom callbacks
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
@@ -115,14 +118,15 @@ def main():
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
         precision='16-mixed',
-        log_every_n_steps=1,
+        enable_progress_bar=True,
+        log_every_n_steps= calculate_log_every_n_steps(metadata_csv, ModelConfig.batch_size, ModelConfig.logs_per_epoch),
         accumulate_grad_batches=2,
         callbacks=[
                     checkpoint_callback_loss, 
                     checkpoint_callback_acc, 
                     best_metrics_callback,
                     final_checkpoint, 
-                    early_stopping
+                    early_stopping,
                 ],
     )
 
@@ -138,9 +142,6 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     save_tensorboard_graphs(logger.log_dir, output_dir)
-
-    # Start TensorBoard
-    subprocess.Popen(['tensorboard', '--logdir', log_dir])
 
     # Load the best metrics
     if os.path.exists(best_metrics_path):

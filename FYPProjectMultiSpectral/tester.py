@@ -1,9 +1,6 @@
-# Standard library imports
 import os
 import sys
 import json
-
-# Third-party imports
 import pandas as pd
 import torch
 import pytorch_lightning as pl
@@ -19,51 +16,37 @@ from utils.test_utils import calculate_metrics_and_save_results, visualize_predi
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from models.models import *
 
-# Testing the model
 def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
 
-    # Parse command-line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
-    selected_bands = sys.argv[3] 
+    selected_bands = sys.argv[3]
     selected_dataset = sys.argv[4]
-    acc_checkpoint_path = sys.argv[5]
-    loss_checkpoint_path = sys.argv[6]
-    last_checkpoint_path = sys.argv[7]
-    in_channels = int(sys.argv[8])
-    class_weights = json.loads(sys.argv[9])
-    metadata_csv = pd.read_csv(sys.argv[10])
-    dataset_dir = sys.argv[11]
-    bands = json.loads(sys.argv[12]) 
-    
-    # Allow user to choose checkpoint
-    checkpoint_choice = input(f"Select checkpoint to test:\n"
-                              f"1. Best Accuracy ({acc_checkpoint_path})\n"
-                              f"2. Best Loss ({loss_checkpoint_path})\n"
-                              f"3. Final ({last_checkpoint_path})\n"
-                              f"Choice [1/2/3]: ")
-    
-    if checkpoint_choice == "1":
-        checkpoint_path = acc_checkpoint_path
-    elif checkpoint_choice == "2":
-        checkpoint_path = loss_checkpoint_path
-    elif checkpoint_choice == "3":
-        checkpoint_path = last_checkpoint_path
-    else:
-        print("Invalid choice. Defaulting to Last Saved checkpoint.")
-        checkpoint_path = last_checkpoint_path
+    checkpoint_path = sys.argv[5]
+    in_channels = int(sys.argv[6])
+    class_weights = json.loads(sys.argv[7])
+    metadata_csv = pd.read_csv(sys.argv[8])
+    dataset_dir = sys.argv[9]
+    bands = json.loads(sys.argv[10])
 
     print(f"\nUsing checkpoint: {checkpoint_path}\n")
 
-    # Create the main path for the experiment
+    # Create the main path for the experiment.
     main_path = initalize_paths_tester(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
     print(f"Main path: {main_path}")
 
     model_class, _ = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
-    model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
+    model = model_class.load_from_checkpoint(
+        checkpoint_path,
+        class_weights=class_weights,
+        num_classes=DatasetConfig.num_classes,
+        in_channels=in_channels,
+        model_weights=model_weights,
+        main_path=main_path
+    )
     model.eval()
     register_hooks(model)
 
@@ -72,12 +55,13 @@ def main():
 
     class_labels = DatasetConfig.class_labels
 
-    # Initialize the BestMetricsCallback
-    metrics_to_track = ['test_acc', 'test_loss', 'test_f1', 'test_f2', 'test_precision', 'test_recall','test_one_error', 'test_hamming_loss', 'test_avg_precision']
+    # Initialize the BestMetricsCallback.
+    metrics_to_track = ['test_acc', 'test_loss', 'test_f1', 'test_f2', 'test_precision', 'test_recall',
+                         'test_one_error', 'test_hamming_loss', 'test_avg_precision']
     best_test_metrics_path = os.path.join(main_path, 'results', 'best_test_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_test_metrics_path)
-    
-    # Set up Trainer for testing
+
+    # Set up Trainer for testing.
     trainer = pl.Trainer(
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
@@ -86,14 +70,14 @@ def main():
         callbacks=[best_metrics_callback]
     )
 
-    # Run the testing phase
+    # Run the testing phase.
     trainer.test(model, datamodule=data_module)
-    
+
     result_path = os.path.join(main_path, "results")
     print(f"Result Path: {result_path}")
-    
-    # Calculate metrics and save results
-    all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
+
+    # Calculate metrics and save results.
+    all_preds, all_labels = calculate_metrics_and_save_results(
         model=model,
         data_module=data_module,
         model_name=model_name,
@@ -102,7 +86,7 @@ def main():
         result_path=result_path
     )
 
-    # Visualize predictions and results
+    # Visualize predictions and heatmaps.
     visualize_predictions_and_heatmaps(
         model=model,
         data_module=data_module,
@@ -114,18 +98,18 @@ def main():
         result_path=result_path
     )
 
-    # Visualize activations
+    # Visualize activations.
     test_loader = data_module.test_dataloader()
     example_batch = next(iter(test_loader))
-    example_imgs, example_lbls = example_batch
+    example_imgs, _ = example_batch
     show_rgb_from_batch(example_imgs[0], in_channels)
     example_imgs = example_imgs.to(model.device)
     clear_activations()
     with torch.no_grad():
         _ = model(example_imgs[0].unsqueeze(0))
-    visualize_activations(result_path=result_path, num_filters=16)  
-    
-    # Generate Grad-CAM visualizations
+    visualize_activations(result_path=result_path, num_filters=16)
+
+    # Generate Grad-CAM visualizations.
     generate_gradcam_visualizations(
         model=model,
         data_module=data_module,

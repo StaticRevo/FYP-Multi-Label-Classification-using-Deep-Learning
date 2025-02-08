@@ -14,7 +14,7 @@ from .config_utils import *
 # Dataclass for the dataset configuration
 @dataclass
 class DatasetConfig:
-    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\50%_BigEarthNet\\metadata_100_percent.csv"
+    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\100%_BigEarthNet\\metadata_100_percent.csv"
     dataset_paths = {
         "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages",
         "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages",
@@ -99,6 +99,7 @@ class ModelConfig:
     patience: int = 5
     dropout: float = 0.5
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+    logs_per_epoch = 5
 
     model_names: list = field(default_factory=lambda: [
         'resnet18', 

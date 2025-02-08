@@ -15,7 +15,7 @@ from FYPProjectMultiSpectral.utils.data_utils import extract_number
 from FYPProjectMultiSpectral.config.config_utils import calculate_class_weights
 from FYPProjectMultiSpectral.config.config import DatasetConfig
 
-# --- Constants and Selections ---
+# Constants and Selections
 BG_COLOR = 'black'
 FG_COLOR = 'white'
 FONT = ("Consolas", 10)
@@ -50,8 +50,7 @@ dataset_selection = {
     '6': '0.5%_BigEarthNet'
 }
 
-
-# --- Main Application Class ---
+# Main Application Class 
 class ModelTrainerApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -79,7 +78,7 @@ class ModelTrainerApp(tk.Tk):
         style.configure('TFrame', background=BG_COLOR)
 
     def create_widgets(self):
-        # --- Top Title Bar with minimize and close buttons ---
+        # Top Title Bar with minimize and close buttons 
         title_bar = tk.Frame(self, bg=BG_COLOR)
         title_bar.pack(side=tk.TOP, anchor='ne', fill=tk.X)
         minimize_button = ttk.Button(title_bar, text="_", command=self.minimize_window)
@@ -87,7 +86,7 @@ class ModelTrainerApp(tk.Tk):
         close_button = ttk.Button(title_bar, text="X", command=self.close_window)
         close_button.pack(side=tk.RIGHT, padx=5, pady=5)
 
-        # --- PanedWindow: Left for selections, Right for logs/progress ---
+        # PanedWindow: Left for selections, Right for logs/progress
         paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         paned.pack(fill=tk.BOTH, expand=True)
         left_frame = tk.Frame(paned, bg=BG_COLOR, width=300)
@@ -95,7 +94,7 @@ class ModelTrainerApp(tk.Tk):
         self.right_frame = tk.Frame(paned, bg=BG_COLOR)
         paned.add(self.right_frame, weight=4)
 
-        # --- LEFT PANEL: Selection Widgets ---
+        # LEFT PANEL: Selection Widgets 
         # Model Selection
         model_frame = ttk.LabelFrame(left_frame, text="Choose a model to run", padding="10")
         model_frame.pack(padx=10, pady=10, fill=tk.X)
@@ -140,7 +139,7 @@ class ModelTrainerApp(tk.Tk):
         self.reset_button = ttk.Button(button_frame, text="Reset", command=self.reset_selections)
         self.reset_button.pack(side=tk.LEFT, padx=10)
 
-        # --- RIGHT PANEL: Log and Progress Widgets ---
+        # RIGHT PANEL: Log and Progress Widgets
         progress_label = ttk.Label(self.right_frame, text="Training/Testing Progress", font=("Consolas", 14))
         progress_label.pack(pady=10)
         self.log_text = scrolledtext.ScrolledText(self.right_frame, bg=BG_COLOR, fg=FG_COLOR, font=FONT)
@@ -162,7 +161,6 @@ class ModelTrainerApp(tk.Tk):
         chosen_dataset = dataset_selection.get(self.dataset_var.get())
 
         if self.train_test_var.get() == 'test':
-            # In test-only mode we handle checkpoint selection separately.
             return None
         else:
             chosen_test = 'True' if self.train_test_var.get() == 'train_test' else 'False'
@@ -213,7 +211,7 @@ class ModelTrainerApp(tk.Tk):
             chosen_weights,
             chosen_bands,
             chosen_dataset,
-            selected_checkpoint,         # Only the chosen checkpoint is passed
+            selected_checkpoint,         
             str(in_channels),
             json.dumps(class_weights.tolist()),
             metadata_path,
@@ -236,7 +234,6 @@ class ModelTrainerApp(tk.Tk):
             self.start_subprocess(cmd)
 
     def open_checkpoint_selector(self):
-        """Display an overlay for selecting a checkpoint."""
         self.checkpoint_frame = CheckpointSelectorFrame(
             self.right_frame,
             submit_callback=self.on_checkpoint_submit,
@@ -245,7 +242,6 @@ class ModelTrainerApp(tk.Tk):
         self.checkpoint_frame.place(relx=0.5, rely=0.5, anchor='center')
 
     def on_checkpoint_submit(self, selected_checkpoint):
-        """Remove the overlay and start the testing process with the selected checkpoint."""
         if self.checkpoint_frame:
             self.checkpoint_frame.destroy()
             self.checkpoint_frame = None
@@ -302,7 +298,7 @@ class ModelTrainerApp(tk.Tk):
         self.run_button.config(state=tk.NORMAL)
 
 
-# --- Integrated Checkpoint Selector Overlay ---
+# Integrated Checkpoint Selector Overlay
 class CheckpointSelectorFrame(tk.Frame):
     def __init__(self, master, submit_callback, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
@@ -364,7 +360,6 @@ class CheckpointSelectorFrame(tk.Frame):
         selected_key = self.selected_checkpoint.get()
         # Pass only the selected checkpoint path to the callback.
         self.submit_callback(self.paths[selected_key])
-
 
 if __name__ == "__main__":
     app = ModelTrainerApp()

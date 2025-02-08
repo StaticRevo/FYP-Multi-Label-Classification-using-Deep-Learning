@@ -50,7 +50,7 @@ def visualize_activations(result_path, num_filters=8):
             pdf.savefig(fig)
             plt.close(fig)
 
-    print("Activations saved to activations.pdf")
+    print(f"Activations saved to {pdf_path}")
 
 def show_rgb_from_batch(image_tensor, in_channels):
     image_cpu = image_tensor.detach().cpu().numpy()

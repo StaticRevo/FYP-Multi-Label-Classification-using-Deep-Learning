@@ -43,9 +43,11 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     save_path = os.path.join(result_path, f'test_predictions_{model_name}_{dataset_name}.npz')
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
+    print(f"\nPredictions and labels saved to {save_path}")
+
     return all_preds, all_labels
 
-def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path):
+def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None):
     save_dir = os.path.join(result_path, 'visualizations')
     os.makedirs(save_dir, exist_ok=True)
 
@@ -59,6 +61,10 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     print("\nAggregated Metrics:\n", scores)
 
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir) # Plot co-occurrence matrix
+
+    if probs is not None:
+        plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir) # Plot ROC-AUC curve
+
 
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
@@ -149,9 +155,9 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16) # Save and display the visualization
             plt.tight_layout()
             plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
-            plt.show()
+        print(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
 
-def plot_roc_auc(all_labels, all_probs, class_labels):
+def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None):
     num_classes = all_labels.shape[1]
     fpr, tpr, roc_auc = dict(), dict(), dict()
 
@@ -184,8 +190,8 @@ def plot_roc_auc(all_labels, all_probs, class_labels):
     plt.ylabel('True Positive Rate')
     plt.title('Multi-label ROC Curve')
     plt.legend(loc="lower right")
-    plt.show()
-
+    plt.savefig(os.path.join(save_dir, "roc_auc_curve.png"))
+    print(f"ROC-AUC curve saved to {save_dir}")
 
 def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
     model.eval()
@@ -258,8 +264,10 @@ def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, ban
         )
         if save_dir is not None:
             plt.savefig(os.path.join(save_dir, f"batch_prediction_{i}.png"))
-        plt.close()
 
+        print(f"Image {i}\n" f"True Labels: {true_labels_indices}\n" f"Predicted Labels: {predicted_labels_indices}")
+        plt.close()
+    print(f"Batch predictions saved to {save_dir}")
 
 def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands):
     # Create dictionaries for mapping between labels and indices
@@ -309,13 +317,11 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
 
     # Create a figure with (rows x cols) subplots
     fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 3 * rows))
-    # If there's only 1 row, axes is not a 2D array; make it a list for consistency
     axes = axes if isinstance(axes, np.ndarray) else np.array([axes])
-    axes = axes.flatten()  # flatten in case we have multiple rows
+    axes = axes.flatten()  
 
     for i, matrix in enumerate(mcm):
-        # Flatten the 2x2 matrix into TN, FP, FN, TP
-        tn, fp, fn, tp = matrix.ravel()
+        tn, fp, fn, tp = matrix.ravel() # Flatten the 2x2 matrix into TN, FP, FN, TP
         label_name = class_names[i] if class_names else f"Label {i}"
 
         # Plot a heatmap for this label's 2x2 matrix on the i-th subplot
@@ -334,6 +340,7 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
     if save_dir is not None:
         plt.savefig(os.path.join(save_dir, "confusion_matrices_grid.png"))
     plt.close()
+    print(f"Per-label confusion matrices saved to {save_dir}")
 
 def compute_aggregated_metrics(all_labels, all_preds):
     metrics_dict = {}
@@ -390,4 +397,5 @@ def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=N
     if save_dir is not None:
         plt.savefig(os.path.join(save_dir, "cooccurrence_matrix.png"))
     plt.close()
+    print(f"Co-occurrence matrix saved to {save_dir}")
     return cooccur

@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import torch
 import pytorch_lightning as pl
+import logging
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig
@@ -12,9 +13,17 @@ from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
 from utils.file_utils import initalize_paths_tester
-from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations
+from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations, get_sigmoid_outputs
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from models.models import *
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 def main():
     set_random_seeds()
@@ -31,11 +40,11 @@ def main():
     dataset_dir = sys.argv[9]
     bands = json.loads(sys.argv[10])
 
-    print(f"\nUsing checkpoint: {checkpoint_path}\n")
+    logger.info(f"Using checkpoint: {checkpoint_path}")
 
     # Create the main path for the experiment.
     main_path = initalize_paths_tester(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
-    print(f"Main path: {main_path}")
+    logger.info(f"Main path: {main_path}")
 
     model_class, _ = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
@@ -69,14 +78,16 @@ def main():
         deterministic=True,
         callbacks=[best_metrics_callback]
     )
-
+    logger.info("Starting testing phase...")
     # Run the testing phase.
     trainer.test(model, datamodule=data_module)
+    logger.info("Testing phase complete.")
 
     result_path = os.path.join(main_path, "results")
-    print(f"Result Path: {result_path}")
+    logger.info(f"Results will be saved to: {result_path}")
 
     # Calculate metrics and save results.
+    logger.info("Calculating metrics and saving results...")
     all_preds, all_labels = calculate_metrics_and_save_results(
         model=model,
         data_module=data_module,
@@ -86,7 +97,12 @@ def main():
         result_path=result_path
     )
 
+    # Compute continuous probability outputs (using your helper function)
+    logger.info("Computing continuous probability outputs for ROC AUC...")
+    all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands)
+
     # Visualize predictions and heatmaps.
+    logger.info("Visualizing predictions, heatmaps, and ROC AUC curve...")
     visualize_predictions_and_heatmaps(
         model=model,
         data_module=data_module,
@@ -95,10 +111,12 @@ def main():
         true_labels=all_labels,
         class_labels=class_labels,
         model_name=model_name,
-        result_path=result_path
+        result_path=result_path,
+        probs=all_probs
     )
 
-    # Visualize activations.
+    # Visualize activations
+    logger.info("Visualizing activations...")
     test_loader = data_module.test_dataloader()
     example_batch = next(iter(test_loader))
     example_imgs, _ = example_batch
@@ -110,6 +128,7 @@ def main():
     visualize_activations(result_path=result_path, num_filters=16)
 
     # Generate Grad-CAM visualizations.
+    logger.info("Generating Grad-CAM visualizations...")
     generate_gradcam_visualizations(
         model=model,
         data_module=data_module,
@@ -118,6 +137,7 @@ def main():
         result_path=result_path,
         in_channels=in_channels
     )
+    logger.info("Experiment complete.")
 
 if __name__ == "__main__":
     main()

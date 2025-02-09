@@ -21,8 +21,12 @@ from utils.visualisation_utils import save_tensorboard_graphs
 from models.models import *
 from callbacks import BestMetricsCallback
 
+
 # Training the model
 def main():
+    print("DEBUG: trainer.py has started", flush=True)
+    print("DEBUG: Received sys.argv:", sys.argv, flush=True)
+
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
 

@@ -21,6 +21,8 @@ import rasterio
 from config.config import DatasetConfig
 from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap
+from utils.logging_utils import setup_logger
+logger = setup_logger(__name__)
 
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path):
     all_preds, all_labels = [], []
@@ -43,8 +45,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     save_path = os.path.join(result_path, f'test_predictions_{model_name}_{dataset_name}.npz')
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
-    print(f"\nPredictions and labels saved to {save_path}")
-
+    print(f"Predictions and labels saved to {save_path}")
     return all_preds, all_labels
 
 def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None):
@@ -58,13 +59,14 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
         true_labels, predictions, class_names=class_labels, cols=4, save_dir=save_dir
     )
     scores = compute_aggregated_metrics(true_labels, predictions) # Compute and print aggregated metrics
-    print("\nAggregated Metrics:\n", scores)
+    print(f"Aggregated Metrics:\n{scores}")
 
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir) # Plot co-occurrence matrix
 
     if probs is not None:
         plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir) # Plot ROC-AUC curve
-
+    else:
+        logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
@@ -93,14 +95,11 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
     num_images = len(test_dataset)
     target_indices = [random.randint(0, num_images - 1) for _ in range(5)]  # Select 5 random images
 
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(model.device)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(model.device)
-
     for idx in target_indices:
         try:
             img_tensor, label = test_dataset[idx] # Retrieve the image and label from the Dataset
         except IndexError:
-            print(f"Index {idx} is out of bounds for the test dataset.")
+            logger.warning(f"Index {idx} is out of bounds for the test dataset.")
             continue
 
         input_image = img_tensor.unsqueeze(0).to(model.device)  
@@ -190,15 +189,14 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None):
     plt.ylabel('True Positive Rate')
     plt.title('Multi-label ROC Curve')
     plt.legend(loc="lower right")
-    plt.savefig(os.path.join(save_dir, "roc_auc_curve.png"))
-    print(f"ROC-AUC curve saved to {save_dir}")
+    if save_dir is not None:
+        plt.savefig(os.path.join(save_dir, "roc_auc_curve.png"))
+        print(f"ROC-AUC curve saved to {save_dir}")
 
 def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
     model.eval()
     all_preds = []
     all_true_labels = []
-    class_labels_dict = DatasetConfig.class_labels_dict
-    reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict
 
     with torch.no_grad():
         for batch in dataloader:

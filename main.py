@@ -297,69 +297,45 @@ class ModelTrainerApp(tk.Tk):
         self.log_text.delete(1.0, tk.END)
         self.run_button.config(state=tk.NORMAL)
 
-
 # Integrated Checkpoint Selector Overlay
 class CheckpointSelectorFrame(tk.Frame):
     def __init__(self, master, submit_callback, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.submit_callback = submit_callback
         self.configure(bg=BG_COLOR)
-        self.labels = {
-            "best_acc": "Best Accuracy Checkpoint:",
-            "best_loss": "Best Loss Checkpoint:",
-            "last": "Last Checkpoint:"
-        }
-        self.entries = {}
-        row = 0
-        # Create entry fields and browse buttons for each checkpoint type.
-        for key, text in self.labels.items():
-            label = tk.Label(self, text=text, bg=BG_COLOR, fg=FG_COLOR)
-            label.grid(row=row, column=0, padx=10, pady=5, sticky='e')
-            entry = tk.Entry(self, width=50)
-            entry.grid(row=row, column=1, padx=10, pady=5)
-            self.entries[key] = entry
-            btn = tk.Button(self, text="Browse", command=lambda k=key: self.browse_file(k))
-            btn.grid(row=row, column=2, padx=10, pady=5)
-            row += 1
-
-        # Add radiobuttons to select which checkpoint to use.
-        self.selected_checkpoint = tk.StringVar(value="best_acc")
-        rb_frame = tk.Frame(self, bg=BG_COLOR)
-        rb_frame.grid(row=row, column=0, columnspan=3, pady=10)
-        tk.Label(rb_frame, text="Select checkpoint for testing:", bg=BG_COLOR, fg=FG_COLOR).pack(anchor="w")
-        tk.Radiobutton(rb_frame, text="Best Accuracy", variable=self.selected_checkpoint, value="best_acc",
-                       bg=BG_COLOR, fg=FG_COLOR).pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(rb_frame, text="Best Loss", variable=self.selected_checkpoint, value="best_loss",
-                       bg=BG_COLOR, fg=FG_COLOR).pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(rb_frame, text="Last", variable=self.selected_checkpoint, value="last",
-                       bg=BG_COLOR, fg=FG_COLOR).pack(side=tk.LEFT, padx=5)
-        row += 1
-
+        
+        # Label for the single checkpoint file
+        label = tk.Label(self, text="Select Checkpoint File:", bg=BG_COLOR, fg=FG_COLOR)
+        label.grid(row=0, column=0, padx=10, pady=5, sticky ='e')
+        
+        # Entry to display the chosen file path
+        self.entry = tk.Entry(self, width=50)
+        self.entry.grid(row=0, column=1, padx=10, pady=5)
+        
+        # Browse button to open file dialog
+        browse_button = tk.Button(self, text="Browse", command=self.browse_file)
+        browse_button.grid(row=0, column=2, padx=10, pady=5)
+        
+        # Submit button to confirm selection
         self.submit_button = tk.Button(self, text="Submit", command=self.on_submit)
-        self.submit_button.grid(row=row, column=1, pady=20)
-        self.paths = {"best_acc": "", "best_loss": "", "last": ""}
+        self.submit_button.grid(row=1, column=1, pady=20)
 
-    def browse_file(self, key):
+    def browse_file(self):
         file_path = filedialog.askopenfilename(
-            title=f"Select {self.labels[key]}",
+            title="Select Checkpoint File",
             filetypes=[("Checkpoint files", "*.ckpt"), ("All files", "*.*")]
         )
         if file_path:
-            self.entries[key].delete(0, tk.END)
-            self.entries[key].insert(0, file_path)
-            self.paths[key] = file_path
+            self.entry.delete(0, tk.END)
+            self.entry.insert(0, file_path)
 
     def on_submit(self):
-        # Ensure that each entry has a provided path.
-        for key, entry in self.entries.items():
-            path = entry.get().strip()
-            if not path:
-                messagebox.showerror("Input Error", f"Please provide a path for {self.labels[key]}")
-                return
-            self.paths[key] = path
-        selected_key = self.selected_checkpoint.get()
-        # Pass only the selected checkpoint path to the callback.
-        self.submit_callback(self.paths[selected_key])
+        checkpoint_path = self.entry.get().strip()
+        if not checkpoint_path:
+            messagebox.showerror("Input Error", "Please select a checkpoint file.")
+            return
+        # Pass the selected checkpoint path back to the main app
+        self.submit_callback(checkpoint_path)
 
 if __name__ == "__main__":
     app = ModelTrainerApp()

@@ -247,23 +247,29 @@ class ModelTrainerApp(tk.Tk):
             self.checkpoint_frame = None
 
         cmd = self.build_testing_command(selected_checkpoint)
-        self.start_subprocess(cmd)
+        self.start_subprocess(cmd, capture_output=False)
 
-    def start_subprocess(self, cmd):
+    def start_subprocess(self, cmd, capture_output=True):
         def run_subprocess():
             try:
-                self.process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
-                # Stream output into the log queue.
-                for line in iter(self.process.stdout.readline, ''):
-                    self.log_queue.put(line)
-                self.process.stdout.close()
-                self.process.wait()
-                self.log_queue.put("PROCESS_DONE")
+                if capture_output:
+                    proc = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True
+                    )
+                    # Stream output into the log queue.
+                    for line in iter(proc.stdout.readline, ''):
+                        self.log_queue.put(line)
+                    proc.stdout.close()
+                    proc.wait()
+                    self.log_queue.put("PROCESS_DONE")
+                else:
+                    # This will let the output go to the terminal.
+                    proc = subprocess.Popen(cmd, text=True)
+                    proc.wait()
+                    self.log_queue.put("PROCESS_DONE")
             except Exception as e:
                 self.log_queue.put(f"ERROR: {e}")
 

@@ -1,4 +1,6 @@
 import os
+os.environ['CPL_LOG_LEVEL'] = 'NONE'
+os.environ['CPL_DEBUG'] = 'OFF'
 import sys
 import json
 import pandas as pd
@@ -76,6 +78,7 @@ def main():
         deterministic=True,
         callbacks=[best_metrics_callback]
     )
+    
     print("Starting testing phase...")
     # Run the testing phase.
     trainer.test(model, datamodule=data_module)

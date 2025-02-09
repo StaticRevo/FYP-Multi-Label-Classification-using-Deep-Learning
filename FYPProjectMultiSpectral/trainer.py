@@ -18,6 +18,7 @@ from utils.file_utils import initialize_paths
 from utils.data_utils import get_dataset_info
 from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
+from utils.logging_utils import setup_logger
 from models.models import *
 from callbacks import BestMetricsCallback
 
@@ -36,6 +37,12 @@ def main():
     # Create the main path for the experiment
     main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
 
+    # Initialize the log directories
+    log_dir = os.path.join(main_path, 'logs')
+    training_log_path = os.path.join(log_dir, 'training')
+    tb_logger = TensorBoardLogger(save_dir=log_dir, name='lightning_logs')
+    logger = setup_logger(log_dir=training_log_path)
+
     # Determine the number of input channels based on the selected bands
     bands_mapping = {
         'all_bands': DatasetConfig.all_bands,
@@ -46,9 +53,10 @@ def main():
     }
     bands = bands_mapping.get(selected_bands)
     if bands is None:
-        print(f"Band combination {selected_bands} is not supported.")
+        logger.error(f"Band combination {selected_bands} is not supported.")
         sys.exit(1)
     in_channels = len(bands)
+    logger.info(f"Using {in_channels} input channels based on '{selected_bands}'.")
     
     # Get dataset information
     dataset_dir, metadata_path, metadata_csv = get_dataset_info(selected_dataset)
@@ -65,12 +73,8 @@ def main():
     model.print_summary((in_channels, 120, 120), filename) 
     model.visualize_model((in_channels, 120, 120), filename)
 
-    print(f"Training {model_name} model with {weights} weights and {selected_bands} bands on the {selected_dataset}.")
-    print("Model parameter device:", next(model.parameters()).device)
-
-    # Initialize the logger
-    log_dir = os.path.join(main_path, 'logs')
-    logger = TensorBoardLogger(log_dir)
+    logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
+    logger.info(f"Model parameter device: {next(model.parameters()).device}")
 
     # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
@@ -111,7 +115,7 @@ def main():
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
         max_epochs=ModelConfig.num_epochs,
-        logger=logger,
+        logger=tb_logger,
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
         precision='16-mixed',
@@ -148,18 +152,18 @@ def main():
             best_metrics = json.load(f)
     else:
         best_metrics = {}
-        print(f"No best metrics file found at {best_metrics_path}.")
+        logger.warning(f"No best metrics file found at {best_metrics_path}.")
 
     # Print best metrics
-    print("\nBest Validation Metrics:")
+    logger.info("Best Validation Metrics:")
     for metric, value in best_metrics.get('best_metrics', {}).items():
         epoch = best_metrics.get('best_epochs', {}).get(metric, 'N/A')
-        print(f"  {metric}: {value} (Epoch {epoch})")
+        logger.info(f"  {metric}: {value} (Epoch {epoch})")
 
     # Print additional metrics
-    print(f"  Training Time: {best_metrics.get('training_time_sec', 'N/A'):.2f} seconds")
-    print(f"  Model Size: {best_metrics.get('model_size_MB', 'N/A'):.2f} MB")
-    print(f"  Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
+    logger.info(f"Training Time: {best_metrics.get('training_time_sec', 'N/A'):.2f} seconds")
+    logger.info(f"Model Size: {best_metrics.get('model_size_MB', 'N/A'):.2f} MB")
+    logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
 
     if test_variable == 'True':
         # Run test
@@ -181,9 +185,9 @@ def main():
         ]
 
         # Print the arguments
-        print("Arguments to subprocess.run:")
+        logger.info("Arguments to subprocess.run:")
         for arg in args:
-            print(arg)
+            logger.info(arg)
 
         # Run the subprocess
         subprocess.run(args)

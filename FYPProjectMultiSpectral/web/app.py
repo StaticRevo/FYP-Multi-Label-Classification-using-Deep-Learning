@@ -1,11 +1,19 @@
 import os
 import sys
-import ast  # for safely evaluating string representations of lists
+import ast
+import secrets
+from flask import Flask, render_template, request, redirect, url_for, session
+
+# Set up directories
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.join(current_dir, '..')
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
-import subprocess  # to call external scripts
-from flask import Flask, render_template, request, redirect, url_for
+
+# Create the Flask app only once and set the secret key
+app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
+
+import subprocess
 from werkzeug.utils import secure_filename
 import rasterio
 import torch
@@ -18,10 +26,9 @@ import torch.nn.functional as F
 # Local application imports
 from utils.model_utils import get_model_class
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
+from utils.file_utils import initialize_paths
 from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap
-
-app = Flask(__name__)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -218,18 +225,13 @@ def fetch_actual_labels(patch_id):
         labels = labels_str
     return labels
 
-# =========================
-# New Routes for Homepage
-# =========================
-
 # Homepage that provides options for Train, Test, or Predict
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# -------------------------
-# Predict Page (existing upload functionality)
-# -------------------------
+
+# --- Predict Page ---
 @app.route("/predict", methods=['GET', 'POST'])
 def predict_page():
     if request.method == 'POST':
@@ -274,25 +276,55 @@ def predict_page():
                                multiple_models=multiple_models)
     return render_template('upload.html', model_options=MODEL_OPTIONS)
 
-# -------------------------
-# Train Page
-# -------------------------
+# --- Logs ---
+@app.route('/logs')
+def logs():
+    # Retrieve the main experiment path from the session.
+    main_path = session.get('main_path')
+    if not main_path:
+        return "No training run information found in session."
+
+    # Construct the log file path (assuming your trainer writes to this file)
+    log_dir = os.path.join(main_path, 'logs')
+    training_log_path = os.path.join(log_dir, 'training_logs')
+    log_file = os.path.join(training_log_path, 'training.log')
+    
+    try:
+        with open(log_file, 'r') as f:
+            log_content = f.read()
+    except Exception as e:
+        log_content = f"Error reading log file: {e}"
+    return log_content
+
+# --- Train Page ---
 @app.route("/train", methods=['GET', 'POST'])
 def train_page():
     if request.method == 'POST':
-        # Extract form parameters for training
         model_name = request.form.get("model_name")
         weights = request.form.get("weights")
         selected_bands = request.form.get("selected_bands")
         selected_dataset = request.form.get("selected_dataset")
         test_variable = request.form.get("test_variable", "False")
         
-        # Build command to launch trainer.py (adjust path if necessary)
+        # Compute the main experiment path using your initialize_paths function.
+        from utils.file_utils import initialize_paths  # Make sure this is imported at the top if not already
+        main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
+        
+        # Store the main path in the session
+        from flask import session
+        session['main_path'] = main_path
+        session['train_params'] = {
+            'model_name': model_name,
+            'weights': weights,
+            'selected_bands': selected_bands,
+            'selected_dataset': selected_dataset
+        }
+        
+        # Build command to launch trainer.py using parent_dir
         trainer_script = os.path.join(parent_dir, "trainer.py")
         cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable]
         subprocess.Popen(cmd)
         return render_template("train_status.html", message=f"Training for {model_name} has started.")
-    # On GET, display training form
     return render_template("train.html", 
                            models=MODEL_OPTIONS, 
                            weights_options=["None", "DEFAULT"],
@@ -300,9 +332,8 @@ def train_page():
                            dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"],
                            test_options=["False", "True"])
 
-# -------------------------
-# Test Page
-# -------------------------
+
+# --- Test Page ---
 @app.route("/test", methods=['GET', 'POST'])
 def test_page():
     if request.method == 'POST':
@@ -322,10 +353,6 @@ def test_page():
                            weights_options=["None", "DEFAULT"],
                            band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
                            dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"])
-
-# =========================
-# End of New Routes
-# =========================
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

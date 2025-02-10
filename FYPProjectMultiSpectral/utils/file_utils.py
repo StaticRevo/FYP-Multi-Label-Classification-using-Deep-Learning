@@ -31,21 +31,4 @@ def initialize_paths(model_name, weights, selected_bands, selected_dataset, epoc
         os.makedirs(main_path)
     return main_path
 
-def initalize_paths_tester(model_name, weights, selected_bands, selected_dataset, epochs):
-    experiment_path = DatasetConfig.experiment_path
-    main_path = os.path.join(experiment_path, f"{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs")
-    
-    if not os.path.exists(main_path):
-        print(f"Path {main_path} does not exist. Trying with increments.")
-        increment = 1
-        while increment <= 5:
-            new_main_path = f"{main_path}_{increment}"
-            if os.path.exists(new_main_path):
-                print(f"Found path: {new_main_path}")
-                return new_main_path
-            increment += 1
-        raise Exception(f"Path not found after 5 increments. Last tried path: {new_main_path}")
-    
-    return main_path
-
 

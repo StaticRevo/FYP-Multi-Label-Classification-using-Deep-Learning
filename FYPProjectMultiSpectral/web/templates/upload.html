@@ -7,6 +7,14 @@
       <label for="formFile" class="form-label">Select Image File</label>
       <input class="form-control" type="file" name="file" accept=".tif,.tiff" id="formFile" required>
     </div>
+    <div class="mb-3">
+      <label for="modelSelect" class="form-label">Select Model</label>
+      <select class="form-select" name="model" id="modelSelect" required>
+        {% for option in model_options %}
+          <option value="{{ option }}">{{ option }}</option>
+        {% endfor %}
+      </select>
+    </div>
     <button type="submit" class="btn btn-primary">Upload and Predict</button>
   </form>
 {% endblock %}

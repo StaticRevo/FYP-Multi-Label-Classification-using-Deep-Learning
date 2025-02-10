@@ -171,31 +171,7 @@ def main():
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
 
     if test_variable == 'True':
-        # Run test
-        args = [
-            'python', 
-            'FYPProjectMultiSpectral\\tester_runner.py', 
-            model_name, 
-            weights, 
-            selected_bands, 
-            selected_dataset, 
-            best_acc_checkpoint_path, 
-            best_loss_checkpoint_path, 
-            last_checkpoint_path,
-            str(in_channels),
-            json.dumps(class_weights.tolist()),
-            metadata_path, 
-            dataset_dir, 
-            json.dumps(bands)
-        ]
-
-        # Print the arguments
-        logger.info("Arguments to subprocess.run:")
-        for arg in args:
-            logger.info(arg)
-
-        # Run the subprocess
-        subprocess.run(args)
+        subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])
 
 if __name__ == "__main__":
     main()

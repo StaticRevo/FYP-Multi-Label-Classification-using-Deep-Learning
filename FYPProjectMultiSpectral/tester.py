@@ -14,7 +14,6 @@ from callbacks import BestMetricsCallback
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
-from utils.file_utils import initalize_paths_tester
 from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations, get_sigmoid_outputs
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from utils.logging_utils import setup_logger
@@ -30,36 +29,15 @@ def main():
     weights = sys.argv[2]
     selected_bands = sys.argv[3] 
     selected_dataset = sys.argv[4]
-    acc_checkpoint_path = sys.argv[5]
-    loss_checkpoint_path = sys.argv[6]
-    last_checkpoint_path = sys.argv[7]
-    in_channels = int(sys.argv[8])
-    class_weights = json.loads(sys.argv[9])
-    metadata_csv = pd.read_csv(sys.argv[10])
-    dataset_dir = sys.argv[11]
-    bands = json.loads(sys.argv[12]) 
+    checkpoint_path = sys.argv[5]
+    in_channels = int(sys.argv[6])
+    class_weights = json.loads(sys.argv[7])
+    metadata_csv = pd.read_csv(sys.argv[8])
+    dataset_dir = sys.argv[9]
+    bands = json.loads(sys.argv[10]) 
     
-    # Allow user to choose checkpoint
-    checkpoint_choice = input(f"Select checkpoint to test:\n"
-                              f"1. Best Accuracy ({acc_checkpoint_path})\n"
-                              f"2. Best Loss ({loss_checkpoint_path})\n"
-                              f"3. Final ({last_checkpoint_path})\n"
-                              f"Choice [1/2/3]: ")
-    
-    if checkpoint_choice == "1":
-        checkpoint_path = acc_checkpoint_path
-    elif checkpoint_choice == "2":
-        checkpoint_path = loss_checkpoint_path
-    elif checkpoint_choice == "3":
-        checkpoint_path = last_checkpoint_path
-    else:
-        print("Invalid choice. Defaulting to Last Saved checkpoint.")
-        checkpoint_path = last_checkpoint_path
-
-    print(f"\nUsing checkpoint: {checkpoint_path}\n")
-
     # Create the main path for the experiment
-    main_path = initalize_paths_tester(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
+    main_path = os.path.dirname(os.path.dirname(checkpoint_path))
     print(f"Main path: {main_path}")
     result_path = os.path.join(main_path, "results")
     print(f"Result Path: {result_path}")

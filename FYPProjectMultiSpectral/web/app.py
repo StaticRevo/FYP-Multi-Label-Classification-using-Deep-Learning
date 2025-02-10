@@ -1,9 +1,10 @@
 import os
 import sys
+import ast  # for safely evaluating string representations of lists
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.join(current_dir, '..')
 sys.path.insert(0, parent_dir)
-
+import subprocess  # to call external scripts
 from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import rasterio
@@ -17,19 +18,24 @@ import torch.nn.functional as F
 # Local application imports
 from utils.model_utils import get_model_class
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
+from models.models import *
+from utils.gradcam import GradCAM, overlay_heatmap
 
 app = Flask(__name__)
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.insert(0, parent_dir)
+
 # Configure upload and static folders
-UPLOAD_FOLDER = os.path.join(current_dir, 'uploads')
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-STATIC_FOLDER = os.path.join(current_dir, 'static')
+STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
-
 
 MODEL_CONFIGS = {
     "ResNet18": {
@@ -43,14 +49,13 @@ MODEL_CONFIGS = {
          "weights": None
     }
 }
-# A special key for the dropdown option "All"
+# Dropdown option "All"
 MODEL_OPTIONS = list(MODEL_CONFIGS.keys()) + ["All"]
 
 # Precompute class weights (assuming DatasetConfig.metadata_path is valid)
 class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path))
 CLASS_WEIGHTS = class_weights_array
 
-# Load a model based on the model name
 def load_model_for_name(model_name):
     if model_name not in MODEL_CONFIGS:
         raise ValueError(f"Model configuration for {model_name} not found.")
@@ -58,7 +63,7 @@ def load_model_for_name(model_name):
     checkpoint_path = config["checkpoint_path"]
     in_channels = config["in_channels"]
     weights = config["weights"]
-    main_path = os.path.dirname(checkpoint_path)  
+    main_path = os.path.dirname(checkpoint_path)
     model_class, _ = get_model_class(model_name)
     if model_class is None:
         raise ValueError(f"Model class for {model_name} not found!")
@@ -76,30 +81,20 @@ def load_model_for_name(model_name):
 
 # --- TIFF Preprocessing ---
 def preprocess_tiff_image(file_path, selected_bands=None):
-    # Read image data; shape: (channels, height, width)
     with rasterio.open(file_path) as src:
         image = src.read()
-
-    # Select channels; if none provided, use all channels
     if selected_bands is None:
         selected_bands = list(range(image.shape[0]))
     image = image[selected_bands, :, :]
-
-    # Convert to a float32 tensor and normalize each channel to [0, 1]
     image_tensor = torch.tensor(image, dtype=torch.float32)
     for i in range(image_tensor.shape[0]):
         band = image_tensor[i]
         image_tensor[i] = (band - band.min()) / (band.max() - band.min() + 1e-8)
-
-    if image_tensor.shape[0] > 4:     # If the image has more than 4 channels, avoid converting to PIL.
-        # Add a batch dimension: shape [1, C, H, W]
+    if image_tensor.shape[0] > 4:
         image_tensor = image_tensor.unsqueeze(0)
-        # Use bilinear interpolation to resize
         image_tensor = F.interpolate(image_tensor, size=(224, 224), mode='bilinear', align_corners=False)
-        # Now image_tensor is [1, C, 224, 224]
         return image_tensor
     else:
-        # For images with 3 or 4 channels, you can use PIL-based resizing.
         preprocess_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((224, 224)),
@@ -133,31 +128,111 @@ def create_rgb_visualization(file_path, selected_bands=None):
 
 # --- Prediction Function ---
 def predict_image_for_model(model, image_tensor):
-    # Get the device that the model is on (e.g., cuda:0)
     device = next(model.parameters()).device
-    # Move the input tensor to the same device
     image_tensor = image_tensor.to(device)
     with torch.no_grad():
         output = model(image_tensor)
-        # Move the output tensor to CPU before converting to numpy
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
-    
-    selected_classes = []
-    
-    # Iterate over each probability with its index
+    predictions = []
     for idx, prob in enumerate(probs):
         if prob > 0.5:
-            # Retrieve the label from class_labels_dict, using a default if the key is missing
-            label = DatasetConfig.class_labels_dict.get(idx, f"Class_{idx}")
-            selected_classes.append(f"{label} ({prob:.3f})")
-    
-    return selected_classes
+            label = DatasetConfig.reversed_class_labels_dict.get(idx, f"Class_{idx}")
+            predictions.append({"label": label, "probability": prob})
+    return predictions
 
-# --- Flask Routes ---
-@app.route('/', methods=['GET', 'POST'])
-def upload_file():
+# --- GradCAM Visualization ---
+def generate_gradcam_for_single_image(model, input_tensor, model_name):
+    if model_name == 'ResNet18':
+        target_layer = model.model.layer3[-1].conv2
+    elif model_name == 'ResNet50':
+        target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'VGG16':
+        target_layer = model.model.features[28]
+    elif model_name == 'VGG19':
+        target_layer = model.model.features[34]
+    elif model_name == 'EfficientNetB0':
+        target_layer = model.model.features[8][0]
+    elif model_name == 'EfficientNet_v2':
+        target_layer = model.modelfeatures[7][4].block[3]
+    elif model_name == 'Swin-Transformer':
+        target_layer = model.model.stages[3].blocks[-1].norm1
+    elif model_name == 'Vit-Transformer':
+        target_layer = model.model.layers[-1].attention
+    else:
+        for m in model.modules():
+            if isinstance(m, torch.nn.Conv2d):
+                target_layer = m
+                break
+
+    grad_cam = GradCAM(model, target_layer)
+    device = next(model.parameters()).device
+    input_tensor = input_tensor.to(device)
+    model.eval()
+    with torch.no_grad():
+        output = model(input_tensor)
+    probs = torch.sigmoid(output).squeeze().cpu().numpy()
+
+    img_tensor = input_tensor[0].detach().cpu()
+    if img_tensor.shape[0] >= 4:
+        rgb_tensor = img_tensor[[3, 2, 1], :, :]
+    else:
+        rgb_tensor = img_tensor[:3]
+    rgb_np = rgb_tensor.numpy()
+    red   = (rgb_np[0] - rgb_np[0].min()) / (rgb_np[0].max() - rgb_np[0].min() + 1e-8)
+    green = (rgb_np[1] - rgb_np[1].min()) / (rgb_np[1].max() - rgb_np[1].min() + 1e-8)
+    blue  = (rgb_np[2] - rgb_np[2].min()) / (rgb_np[2].max() - rgb_np[2].min() + 1e-8)
+    rgb_image = np.stack([red, green, blue], axis=-1)
+    base_img = Image.fromarray((rgb_image * 255).astype(np.uint8))
+    # Do not upscale base_img so that it remains clear
+
+    gradcam_results = {}
+    threshold = 0.5
+    for idx, prob in enumerate(probs):
+        if prob > threshold:
+            cam, _ = grad_cam.generate_heatmap(input_tensor, target_class=idx)
+            overlay_img = overlay_heatmap(base_img, cam, alpha=0.5)
+            filename = f"gradcam_{model_name}_{idx}.png"
+            out_path = os.path.join(STATIC_FOLDER, filename)
+            overlay_img.save(out_path)
+            class_label = DatasetConfig.reversed_class_labels_dict.get(idx, f"Class_{idx}")
+            gradcam_results[class_label] = url_for('static', filename=filename)
+    return gradcam_results
+
+# --- Helper Function to Fetch Actual Labels from Metadata ---
+def fetch_actual_labels(patch_id):
+    import ast
+    metadata_df = pd.read_csv(DatasetConfig.metadata_path)
+    row = metadata_df.loc[metadata_df['patch_id'] == patch_id]
+    if row.empty:
+        return []
+    labels_str = row.iloc[0]['labels']
+    if isinstance(labels_str, str):
+        try:
+            # Clean the string similar to the dataset class logic
+            cleaned_labels = labels_str.replace(" '", ", '").replace("[", "[").replace("]", "]")
+            labels = ast.literal_eval(cleaned_labels)
+        except (ValueError, SyntaxError) as e:
+            print(f"Error parsing labels for patch_id {patch_id}: {e}")
+            labels = []
+    else:
+        labels = labels_str
+    return labels
+
+# =========================
+# New Routes for Homepage
+# =========================
+
+# Homepage that provides options for Train, Test, or Predict
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+# -------------------------
+# Predict Page (existing upload functionality)
+# -------------------------
+@app.route("/predict", methods=['GET', 'POST'])
+def predict_page():
     if request.method == 'POST':
-        # Retrieve the uploaded file and selected model option
         if 'file' not in request.files:
             return redirect(request.url)
         file = request.files['file']
@@ -167,34 +242,90 @@ def upload_file():
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
-        
-        # Create an RGB composite visualization URL for display
         rgb_url = create_rgb_visualization(file_path)
-        
-        # Preprocess the TIFF file
         input_tensor = preprocess_tiff_image(file_path)
         
-        # Dictionary to hold predictions per model
         predictions_dict = {}
+        gradcam_dict = {}
+        multiple_models = False
         
+        patch_id = os.path.splitext(filename)[0]
+        actual_labels = fetch_actual_labels(patch_id)
+
         if selected_model_option == "All":
-            # Run prediction for each model in the configuration
+            multiple_models = True
             for model_name in MODEL_CONFIGS.keys():
                 model_instance = load_model_for_name(model_name)
                 preds = predict_image_for_model(model_instance, input_tensor)
-                predictions_dict[model_name] = np.array2string(preds, precision=3)
+                predictions_dict[model_name] = preds
+                gradcam_dict[model_name] = generate_gradcam_for_single_image(model_instance, input_tensor, model_name)
         else:
-            # Run prediction for the selected model only
             model_instance = load_model_for_name(selected_model_option)
             preds = predict_image_for_model(model_instance, input_tensor)
-            predictions_dict[selected_model_option] = np.array2string(preds, precision=3)
-        
+            predictions_dict[selected_model_option] = preds
+            gradcam_dict = generate_gradcam_for_single_image(model_instance, input_tensor, selected_model_option)
+
         return render_template('result.html',
                                filename=filename,
                                predictions=predictions_dict,
-                               rgb_url=rgb_url)
-    # GET: Render the upload form with a model selection dropdown.
+                               actual_labels=actual_labels,
+                               rgb_url=rgb_url,
+                               gradcam=gradcam_dict,
+                               multiple_models=multiple_models)
     return render_template('upload.html', model_options=MODEL_OPTIONS)
+
+# -------------------------
+# Train Page
+# -------------------------
+@app.route("/train", methods=['GET', 'POST'])
+def train_page():
+    if request.method == 'POST':
+        # Extract form parameters for training
+        model_name = request.form.get("model_name")
+        weights = request.form.get("weights")
+        selected_bands = request.form.get("selected_bands")
+        selected_dataset = request.form.get("selected_dataset")
+        test_variable = request.form.get("test_variable", "False")
+        
+        # Build command to launch trainer.py (adjust path if necessary)
+        trainer_script = os.path.join(parent_dir, "trainer.py")
+        cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable]
+        subprocess.Popen(cmd)
+        return render_template("train_status.html", message=f"Training for {model_name} has started.")
+    # On GET, display training form
+    return render_template("train.html", 
+                           models=MODEL_OPTIONS, 
+                           weights_options=["None", "DEFAULT"],
+                           band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
+                           dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"],
+                           test_options=["False", "True"])
+
+# -------------------------
+# Test Page
+# -------------------------
+@app.route("/test", methods=['GET', 'POST'])
+def test_page():
+    if request.method == 'POST':
+        # Extract parameters for testing
+        model_name = request.form.get("model_name")
+        weights = request.form.get("weights")
+        selected_bands = request.form.get("selected_bands")
+        selected_dataset = request.form.get("selected_dataset")
+        # Build command to launch tester.py (adjust path if necessary)
+        tester_script = os.path.join(parent_dir, "tester.py")
+        cmd = ["python", tester_script, model_name, weights, selected_bands, selected_dataset]
+        subprocess.Popen(cmd)
+        return render_template("test_status.html", message=f"Testing for {model_name} has started.")
+    # On GET, display testing form
+    return render_template("test.html", 
+                           models=MODEL_OPTIONS,
+                           weights_options=["None", "DEFAULT"],
+                           band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
+                           dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"])
+
+# =========================
+# End of New Routes
+# =========================
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

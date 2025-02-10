@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Home - Image Prediction{% endblock %}
+{% block content %}
+  <h1 class="mb-4">Welcome to the Image Prediction Platform</h1>
+  <p>Please choose one of the following options:</p>
+  <div class="d-grid gap-3">
+    <a href="{{ url_for('train_page') }}" class="btn btn-primary btn-lg">Train Network</a>
+    <a href="{{ url_for('test_page') }}" class="btn btn-secondary btn-lg">Test Network</a>
+    <a href="{{ url_for('predict_page') }}" class="btn btn-success btn-lg">Predict Images</a>
+  </div>
+{% endblock %}

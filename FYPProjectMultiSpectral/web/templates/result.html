@@ -3,35 +3,109 @@
 {% block content %}
   <h1 class="mb-4">Prediction Result</h1>
   
+  <!-- Uploaded File and RGB Visualization -->
   <div class="card mb-4">
     <div class="card-body">
       <h5 class="card-title">Uploaded File: {{ filename }}</h5>
       <h5 class="card-title">RGB Composite Visualization:</h5>
-      <img src="{{ rgb_url }}" alt="RGB Composite" class="img-fluid" style="max-width:600px;">
+      <img src="{{ rgb_url }}" alt="RGB Composite" class="img-fluid" style="max-width:900px;">
     </div>
   </div>
   
-  <div class="card">
-    <div class="card-body">
-      <h5 class="card-title">Model Predictions</h5>
-      <div class="row">
-        {% for model_name, prediction in predictions.items() %}
-          <div class="col-md-6 mb-3">
-            <div class="card">
-              <div class="card-header">
-                {{ model_name }}
-              </div>
-              <div class="card-body">
-                <pre>{{ prediction }}</pre>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
+  <!-- Predictions and Actual Labels Side by Side -->
+  <div class="row">
+    <!-- Predictions Table -->
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Predicted Labels</h5>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Probability</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for model_name, preds in predictions.items() %}
+                {% if multiple_models %}
+                  <tr class="table-secondary">
+                    <td colspan="2"><strong>{{ model_name }}</strong></td>
+                  </tr>
+                  {% for item in preds %}
+                    <tr>
+                      <td>{{ item.label }}</td>
+                      <td>{{ item.probability | round(3) }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  {% for item in preds %}
+                    <tr>
+                      <td>{{ item.label }}</td>
+                      <td>{{ item.probability | round(3) }}</td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- Actual Labels Table -->
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Actual Labels</h5>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Label</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for label in actual_labels %}
+                <tr>
+                  <td>{{ label }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
   
+  <!-- GradCAM Visualizations -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">GradCAM Visualizations</h5>
+      {% if gradcam %}
+        {% if multiple_models %}
+          {% for model_name, model_gradcam in gradcam.items() %}
+            <h6>{{ model_name }}</h6>
+            {% for class_label, gradcam_url in model_gradcam.items() %}
+              <div class="mb-3">
+                <p>{{ class_label }}</p>
+                <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
+              </div>
+            {% endfor %}
+          {% endfor %}
+        {% else %}
+          {% for class_label, gradcam_url in gradcam.items() %}
+            <div class="mb-3">
+              <p>{{ class_label }}</p>
+              <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% else %}
+        <p>No GradCAM visualizations generated.</p>
+      {% endif %}
+    </div>
+  </div>
+  
   <div class="mt-4">
-    <a href="{{ url_for('upload_file') }}" class="btn btn-secondary">Upload Another Image</a>
+    <a href="{{ url_for('predict_page') }}" class="btn btn-secondary">Upload Another Image</a>
   </div>
 {% endblock %}

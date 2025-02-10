@@ -39,9 +39,9 @@ def main():
 
     # Initialize the log directories
     log_dir = os.path.join(main_path, 'logs')
-    training_log_path = os.path.join(log_dir, 'training')
+    training_log_path = os.path.join(log_dir, 'training_logs')
     tb_logger = TensorBoardLogger(save_dir=log_dir, name='lightning_logs')
-    logger = setup_logger(log_dir=training_log_path)
+    logger = setup_logger(log_dir=training_log_path, file_name='training.log')
 
     # Determine the number of input channels based on the selected bands
     bands_mapping = {
@@ -51,6 +51,7 @@ def main():
         'rgb_swir_bands': DatasetConfig.rgb_swir_bands,
         'rgb_nir_swir_bands': DatasetConfig.rgb_nir_swir_bands
     }
+
     bands = bands_mapping.get(selected_bands)
     if bands is None:
         logger.error(f"Band combination {selected_bands} is not supported.")
@@ -130,7 +131,9 @@ def main():
                 ],
     )
 
+    logger.info("Starting model training...")
     trainer.fit(model, data_module)
+    logger.info("Model training completed.")
 
     # Retrieve best checkpoint paths
     best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path
@@ -138,10 +141,12 @@ def main():
     last_checkpoint_path = final_checkpoint.best_model_path
 
     # Save Tensorboard graphs as images
+    logger.info("Saving TensorBoard graphs as images...")
     output_dir = os.path.join(main_path, 'results', 'tensorboard_graphs')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    save_tensorboard_graphs(logger.log_dir, output_dir)
+    save_tensorboard_graphs(tb_logger.log_dir, output_dir)
+    logger.info(f"TensorBoard graphs saved to {output_dir}.")
 
     # Start TensorBoard
     subprocess.Popen(['tensorboard', '--logdir', log_dir])
@@ -154,7 +159,7 @@ def main():
         best_metrics = {}
         logger.warning(f"No best metrics file found at {best_metrics_path}.")
 
-    # Print best metrics
+    # Log best metrics
     logger.info("Best Validation Metrics:")
     for metric, value in best_metrics.get('best_metrics', {}).items():
         epoch = best_metrics.get('best_epochs', {}).get(metric, 'N/A')

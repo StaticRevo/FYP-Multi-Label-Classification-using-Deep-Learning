@@ -121,7 +121,7 @@ def run_ensemble_inference():
 
     combined_arch_name = "_".join([config['arch'] for config in model_configs])
     filename = f'ensemble_per_class_metrics_{combined_arch_name}.json'
-    metrics_save_path = os.path.join('ensemble_results', filename)
+    metrics_save_path = os.path.join('FYPProjectMultiSpectral', 'ensemble_results', filename)
     os.makedirs(os.path.dirname(metrics_save_path), exist_ok=True)
 
     metrics_to_save = {

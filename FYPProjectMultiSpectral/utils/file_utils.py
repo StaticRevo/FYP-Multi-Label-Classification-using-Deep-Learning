@@ -19,7 +19,7 @@ from models.models import *
 # Function to initialize paths for saving results
 def initialize_paths(model_name, weights, selected_bands, selected_dataset, epochs):
     experiment_path = DatasetConfig.experiment_path
-    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+    main_path = os.path.join(experiment_path, f"{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs")
     if os.path.exists(main_path):
         increment = 1
         new_main_path = f"{main_path}_{increment}"
@@ -33,7 +33,7 @@ def initialize_paths(model_name, weights, selected_bands, selected_dataset, epoc
 
 def initalize_paths_tester(model_name, weights, selected_bands, selected_dataset, epochs):
     experiment_path = DatasetConfig.experiment_path
-    main_path = fr'{experiment_path}\{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs'
+    main_path = os.path.join(experiment_path, f"{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs")
     
     if not os.path.exists(main_path):
         print(f"Path {main_path} does not exist. Trying with increments.")

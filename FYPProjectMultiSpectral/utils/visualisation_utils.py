@@ -32,11 +32,16 @@ def visualize_activations(result_path, num_filters=8):
             grid_size = int(math.ceil(math.sqrt(n_filters)))
 
             fig, axes = plt.subplots(
-                    grid_size, 
-                    grid_size, figsize=(grid_size * 3, grid_size * 3),
-                    #squeeze=False
-                )
-            axes = axes.flatten()
+                grid_size, 
+                grid_size, 
+                figsize=(grid_size * 3, grid_size * 3)
+            )
+            
+            # Ensure axes is always iterable
+            if grid_size == 1:
+                axes = np.array([axes])
+            else:
+                axes = axes.flatten()
 
             for i in range(grid_size * grid_size):
                 if i < n_filters:
@@ -50,9 +55,7 @@ def visualize_activations(result_path, num_filters=8):
             pdf.savefig(fig)
             plt.close(fig)
 
-    print("Activations saved to activations.pdf")
-
-def show_rgb_from_batch(image_tensor, in_channels):
+def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
     image_cpu = image_tensor.detach().cpu().numpy()
 
     if in_channels == 12:
@@ -64,6 +67,7 @@ def show_rgb_from_batch(image_tensor, in_channels):
         green = image_cpu[1]
         blue = image_cpu[2]
 
+    # Normalize the bands
     red = (red - red.min()) / (red.max() - red.min() + 1e-8)
     green = (green - green.min()) / (green.max() - green.min() + 1e-8)
     blue = (blue - blue.min()) / (blue.max() - blue.min() + 1e-8)
@@ -71,12 +75,19 @@ def show_rgb_from_batch(image_tensor, in_channels):
     # Stack into an RGB image
     rgb_image = np.stack([red, green, blue], axis=-1)
 
-    # Plot
+    # Create the figure
     plt.figure(figsize=(6, 6))
     plt.imshow(rgb_image)
     plt.title("RGB Visualization of Multi-Spectral Image")
     plt.axis('off')
-    plt.show()
+
+    if save_path:
+        # Ensure the save directory exists
+        os.makedirs(save_path, exist_ok=True)
+        save_file = os.path.join(save_path, "activations_image.png")
+        plt.savefig(save_file, bbox_inches='tight')
+        plt.close()  # Close the figure to free memory
+        print(f"Saved RGB activation visualization to {save_file}")
 
 def save_tensorboard_graphs(log_dir, output_dir):
     # Create the output directory if it doesn't exist

@@ -22,12 +22,12 @@ from config.config import DatasetConfig
 from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap
 from utils.logging_utils import setup_logger
-logger = setup_logger(__name__)
 
-def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path):
+def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path, logger=None):
     all_preds, all_labels = [], []
     test_loader = data_module.test_dataloader()
 
+    logger.info("Starting batch processing for metrics calculation.")
     for batch in tqdm(test_loader, desc="Processing Batches"): # Iterate through batches
         inputs, labels = batch
         inputs, labels = inputs.to(model.device), labels.to(model.device)
@@ -45,30 +45,30 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     save_path = os.path.join(result_path, f'test_predictions_{model_name}_{dataset_name}.npz')
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
-    print(f"Predictions and labels saved to {save_path}")
+    logger.info(f"Predictions and labels saved to {save_path}")
     return all_preds, all_labels
 
-def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None):
+def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None, logger=None):
     save_dir = os.path.join(result_path, 'visualizations')
     os.makedirs(save_dir, exist_ok=True)
 
-    display_batch_predictions( # Display batch predictions
-         model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=save_dir
+    saving_batch_predictions( # Display batch predictions
+         model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=save_dir, logger=logger
     )
     plot_per_label_confusion_matrices_grid( # Plot per-label confusion matrices
-        true_labels, predictions, class_names=class_labels, cols=4, save_dir=save_dir
+        true_labels, predictions, class_names=class_labels, cols=4, save_dir=save_dir, logger=logger
     )
-    scores = compute_aggregated_metrics(true_labels, predictions) # Compute and print aggregated metrics
+    scores = compute_aggregated_metrics(true_labels, predictions, logger) # Compute and print aggregated metrics
     print(f"Aggregated Metrics:\n{scores}")
 
-    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir) # Plot co-occurrence matrix
+    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) # Plot co-occurrence matrix
 
     if probs is not None:
-        plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir) # Plot ROC-AUC curve
+        plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir, logger=logger) # Plot ROC-AUC curve
     else:
         logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
-def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels):
+def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels, logger=None):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
@@ -135,7 +135,6 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             overlay = overlay_heatmap(img, heatmap, alpha=0.5) # Overlay heatmap on image
 
             plt.figure(figsize=(15, 5)) # Plot the results
-
             plt.subplot(1, 3, 1) # Original Image
             plt.title('Original Image')
             plt.imshow(img)
@@ -154,9 +153,10 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16) # Save and display the visualization
             plt.tight_layout()
             plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
-        print(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
+        logger.info(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
 
-def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None):
+def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None):
+    logger.info("Plotting ROC-AUC curve...")
     num_classes = all_labels.shape[1]
     fpr, tpr, roc_auc = dict(), dict(), dict()
 
@@ -191,9 +191,9 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None):
     plt.legend(loc="lower right")
     if save_dir is not None:
         plt.savefig(os.path.join(save_dir, "roc_auc_curve.png"))
-        print(f"ROC-AUC curve saved to {save_dir}")
+        logger.info(f"ROC-AUC curve saved to {save_dir}")
 
-def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_bands):
+def predict_batch(model, dataloader, threshold=0.5, bands=DatasetConfig.all_bands):
     model.eval()
     all_preds = []
     all_true_labels = []
@@ -213,7 +213,8 @@ def predict_batch(model, dataloader, threshold=0.6, bands=DatasetConfig.all_band
 
     return np.array(all_preds), np.array(all_true_labels)
 
-def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=None):
+def saving_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=None, logger=None):
+    logger.info("Saving batch predictions...")
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
     
     dataset_size = len(dataloader.dataset)
@@ -227,7 +228,6 @@ def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, ban
     else:
         rgb_channels  = [2, 1, 0]
 
-    
     for i in random_indices:
         pred = all_preds[i]
         true = all_true_labels[i]
@@ -263,13 +263,13 @@ def display_batch_predictions(model, dataloader, in_channels, threshold=0.6, ban
         if save_dir is not None:
             plt.savefig(os.path.join(save_dir, f"batch_prediction_{i}.png"))
 
-        print(f"Image {i}\n" f"True Labels: {true_labels_indices}\n" f"Predicted Labels: {predicted_labels_indices}")
+        logger.info(f"Image {i}\n" f"True Labels: {true_labels_indices}\n" f"Predicted Labels: {predicted_labels_indices}")
         plt.close()
+
     print(f"Batch predictions saved to {save_dir}")
 
 def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands):
-    # Create dictionaries for mapping between labels and indices
-    test_metadata = metadata_csv[metadata_csv['split'] == 'test']
+    test_metadata = metadata_csv[metadata_csv['split'] == 'test'] # Create dictionaries for mapping between labels and indices
     
     # Map band names to indices
     band_indices = {
@@ -280,7 +280,7 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
     sigmoid_outputs_list = []
 
     # Process only the first 10 test images
-    for image_file in tqdm(test_metadata['patch_id'].iloc[:10].apply(lambda x: f"{x}.tif").tolist(), desc="Processing Images"):
+    for image_file in tqdm(test_metadata['patch_id'].apply(lambda x: f"{x}.tif").tolist(), desc="Processing Images"):
         image_path = os.path.join(dataset_dir, image_file)
         with rasterio.open(image_path) as src:
             # Read all bands
@@ -306,7 +306,8 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
 
     return np.array(sigmoid_outputs_list)
 
-def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=None, cols=4, save_dir=None):
+def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=None, cols=4, save_dir=None, logger=None):
+    logger.info("Plotting and Saving per-label confusion matrices...")
     mcm = multilabel_confusion_matrix(all_labels, all_preds)
     n_labels = len(mcm)
 
@@ -338,9 +339,10 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
     if save_dir is not None:
         plt.savefig(os.path.join(save_dir, "confusion_matrices_grid.png"))
     plt.close()
-    print(f"Per-label confusion matrices saved to {save_dir}")
+    logger.info(f"Per-label confusion matrices saved to {save_dir}")
 
-def compute_aggregated_metrics(all_labels, all_preds):
+def compute_aggregated_metrics(all_labels, all_preds, logger=None):
+    logger.info("Computing aggregated metrics...")
     metrics_dict = {}
     
     # Micro-average: aggregates the contributions of all classes to compute the average metric
@@ -361,7 +363,8 @@ def compute_aggregated_metrics(all_labels, all_preds):
 
     return metrics_dict
 
-def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=None):
+def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=None, logger=None):
+    logger.info("Plotting and saving co-occurrence matrix...")
     num_classes = all_labels.shape[1]
     cooccur = np.zeros((num_classes, num_classes), dtype=int)
 
@@ -395,5 +398,5 @@ def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=N
     if save_dir is not None:
         plt.savefig(os.path.join(save_dir, "cooccurrence_matrix.png"))
     plt.close()
-    print(f"Co-occurrence matrix saved to {save_dir}")
+    logger.info(f"Co-occurrence matrix saved to {save_dir}")
     return cooccur

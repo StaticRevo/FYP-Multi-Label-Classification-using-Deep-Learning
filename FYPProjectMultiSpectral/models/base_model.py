@@ -311,14 +311,10 @@ class BaseModel(pl.LightningModule):
         current_directory = os.getcwd()
         save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', model_name)
         os.makedirs(save_path, exist_ok=True)  
+        self.model.to(device) # Move model to the correct device
 
-        # Move the model to the correct device
-        self.model.to(device)
-
-        # Create a random tensor input based on the input size
-        x = torch.randn(1, *input_size).to(device)  
-        # Pass the tensor through the model
-        y = self.model(x)
+        x = torch.randn(1, *input_size).to(device) # Create a random tensor input based on the input size
+        y = self.model(x) # Pass the tensor through the model
 
         # Create the visualization and save it at the specified path
         file_path = os.path.join(save_path, f'{model_name}')

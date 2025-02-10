@@ -2,7 +2,7 @@
 Layer (type:depth-idx)                   Output Shape              Param #
 ==========================================================================================
 ResNet                                   [1, 19]                   --
-├─Conv2d: 1-1                            [1, 64, 60, 60]           37,632
+├─Conv2d: 1-1                            [1, 64, 60, 60]           9,408
 ├─BatchNorm2d: 1-2                       [1, 64, 60, 60]           128
 ├─ReLU: 1-3                              [1, 64, 60, 60]           --
 ├─MaxPool2d: 1-4                         [1, 64, 30, 30]           --
@@ -72,13 +72,13 @@ ResNet                                   [1, 19]                   --
 ├─AdaptiveAvgPool2d: 1-9                 [1, 512, 1, 1]            --
 ├─Linear: 1-10                           [1, 19]                   9,747
 ==========================================================================================
-Total params: 11,214,483
-Trainable params: 11,214,483
+Total params: 11,186,259
+Trainable params: 11,186,259
 Non-trainable params: 0
-Total mult-adds (Units.MEGABYTES): 654.61
+Total mult-adds (Units.MEGABYTES): 553.00
 ==========================================================================================
-Input size (MB): 0.69
+Input size (MB): 0.17
 Forward/backward pass size (MB): 11.64
-Params size (MB): 44.86
-Estimated Total Size (MB): 57.19
+Params size (MB): 44.75
+Estimated Total Size (MB): 56.56
 ==========================================================================================

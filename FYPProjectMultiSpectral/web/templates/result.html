@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Prediction Result{% endblock %}
+{% block content %}
+  <h1 class="mb-4">Prediction Result</h1>
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Uploaded File: {{ filename }}</h5>
+      <p class="card-text"><strong>Predictions:</strong></p>
+      <pre>{{ predictions }}</pre>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body text-center">
+      <h5 class="card-title">RGB Composite Visualization</h5>
+      <img src="{{ rgb_url }}" alt="RGB Composite" class="img-fluid" style="max-width:600px;">
+    </div>
+  </div>
+  <div class="mt-4">
+    <a href="{{ url_for('upload_file') }}" class="btn btn-secondary">Upload Another Image</a>
+  </div>
+{% endblock %}

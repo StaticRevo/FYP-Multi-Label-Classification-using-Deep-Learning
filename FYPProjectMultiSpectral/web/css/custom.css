@@ -1,0 +1,17 @@
+/* custom.css */
+
+/* Example: Center the main content */
+.container {
+    max-width: 800px;
+}
+
+/* Add some spacing for cards */
+.card {
+    margin-bottom: 20px;
+}
+
+/* Customize the navbar brand */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}

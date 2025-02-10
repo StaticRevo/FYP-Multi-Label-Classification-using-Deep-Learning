@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Upload Image{% endblock %}
+{% block content %}
+  <h1 class="mb-4">Upload a TIFF Image for Prediction</h1>
+  <form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label for="formFile" class="form-label">Select Image File</label>
+      <input class="form-control" type="file" name="file" accept=".tif,.tiff" id="formFile" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload and Predict</button>
+  </form>
+{% endblock %}

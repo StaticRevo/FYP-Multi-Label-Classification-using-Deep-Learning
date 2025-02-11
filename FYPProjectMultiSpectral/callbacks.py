@@ -202,3 +202,25 @@ class BestMetricsCallback(pl.Callback):
             inference_rate = float('inf')  
 
         return inference_rate
+
+class LogEpochEndCallback(pl.Callback):
+    def __init__(self, logger):
+        self.logger = logger
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.logger.info(f"Starting training epoch {trainer.current_epoch}.")
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        self.logger.info(f"Starting validation epoch {trainer.current_epoch}.")
+    
+    def on_test_epoch_start(self, trainer, pl_module):
+        self.logger.info(f"Starting test epoch {trainer.current_epoch}.")
+        
+    def on_train_epoch_end(self, trainer, pl_module):
+        self.logger.info(f"Training epoch {trainer.current_epoch} finished.")
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        self.logger.info(f"Validation epoch {trainer.current_epoch} finished.")
+
+    def on_test_epoch_end(self, trainer, pl_module):
+        self.logger.info(f"Test epoch {trainer.current_epoch} finished.")

@@ -1,19 +1,13 @@
+# Standard library imports
 import os
 import sys
-import secrets
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 import json
-
-# Set up directories
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
-sys.path.insert(0, parent_dir)
-
-# Create the Flask app only once and set the secret key
-app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
-
+import secrets
+import time
 import subprocess
+
+# Third-party imports
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 from werkzeug.utils import secure_filename
 import rasterio
 import torch
@@ -22,19 +16,22 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 import torch.nn.functional as F
-import time
 
 # Local application imports
 from utils.model_utils import get_model_class
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from utils.file_utils import initialize_paths
 from models.models import *
-from utils.gradcam import GradCAM, overlay_heatmap
+from utils.gradcam import GradCAM, overlay_heatmap 
 from utils.data_utils import extract_number
 
+# Set up directories
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
+
+app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
 
 _cached_training_log = None
 _last_training_log_time = 0
@@ -95,6 +92,20 @@ def load_model_for_name(model_name):
     model.eval()
     print(f"{model_name} loaded successfully.")
     return model
+
+# Helper function to load metrics for an experiment.
+def load_experiment_metrics(experiment_name):
+    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
+    results_path = os.path.join(experiment_path, "results")
+    metrics = {}
+    metrics_file = os.path.join(results_path, "best_metrics.json")
+    if os.path.exists(metrics_file):
+        try:
+            with open(metrics_file, 'r') as f:
+                metrics = json.load(f)
+        except Exception as e:
+            metrics = {"error": f"Error loading metrics: {e}"}
+    return metrics
 
 # --- TIFF Preprocessing ---
 def preprocess_tiff_image(file_path, selected_bands=None):
@@ -492,7 +503,6 @@ def experiment_detail(experiment_name):
             else:
                 results[ed] = []  # Ensure key exists even if folder is missing
 
-        # Add any standalone files directly in the results folder
         standalone_files = []
         for item in os.listdir(results_path):
             item_path = os.path.join(results_path, item)
@@ -506,9 +516,9 @@ def experiment_detail(experiment_name):
     metric_files = [
         "best_metrics.json",
         "best_test_metrics.json",
-        "test_per_class_metrics_ResNet.json",
-        "train_per_class_metrics_ResNet.json",
-        "val_per_class_metrics_ResNet.json"
+        "test_per_class_metrics_Sequential.json",
+        "train_per_class_metrics_Sequential.json",
+        "val_per_class_metrics_Sequential.json"
     ]
     for mf in metric_files:
         mf_path = os.path.join(results_path, mf)
@@ -523,6 +533,7 @@ def experiment_detail(experiment_name):
                            experiment_name=experiment_name,
                            results=results,
                            metrics=metrics)
+
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

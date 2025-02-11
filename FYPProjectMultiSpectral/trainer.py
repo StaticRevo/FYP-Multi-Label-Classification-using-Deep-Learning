@@ -20,7 +20,7 @@ from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
 from utils.logging_utils import setup_logger
 from models.models import *
-from callbacks import BestMetricsCallback
+from callbacks import BestMetricsCallback, LogEpochEndCallback
 
 # Training the model
 def main():
@@ -80,6 +80,8 @@ def main():
     logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
     logger.info(f"Model parameter device: {next(model.parameters()).device}")
 
+    epoch_end_logger_callback = LogEpochEndCallback(logger)
+
     # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
     checkpoint_callback_loss = ModelCheckpoint(
@@ -130,7 +132,8 @@ def main():
                     checkpoint_callback_acc, 
                     best_metrics_callback,
                     final_checkpoint, 
-                    early_stopping
+                    early_stopping,
+                    epoch_end_logger_callback
                 ],
     )
 
@@ -138,10 +141,6 @@ def main():
     trainer.fit(model, data_module)
     logger.info("Model training completed.")
 
-    # Retrieve best checkpoint paths
-    best_acc_checkpoint_path = checkpoint_callback_acc.best_model_path
-    best_loss_checkpoint_path = checkpoint_callback_loss.best_model_path
-    last_checkpoint_path = final_checkpoint.best_model_path
 
     # Save Tensorboard graphs as images
     logger.info("Saving TensorBoard graphs as images...")
@@ -172,6 +171,7 @@ def main():
     logger.info(f"Training Time: {best_metrics.get('training_time_sec', 'N/A'):.2f} seconds")
     logger.info(f"Model Size: {best_metrics.get('model_size_MB', 'N/A'):.2f} MB")
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
+    logger.info("Training completed successfully")
 
     if test_variable == 'True':
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])

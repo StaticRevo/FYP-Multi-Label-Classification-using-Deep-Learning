@@ -1,17 +1,71 @@
 /* custom.css */
+
+:root {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --primary-color: #0d6efd;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Base styles */
+html, body {
+    height: 100%;
+}
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+}
+/* Main content wrapper */
+.wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Container adjustments */
 .container {
-    max-width: 800px;
+    max-width: 900px;
 }
 
-.card {
-    margin-bottom: 20px;
-}
-
+/* Navbar styles */
 .navbar-brand {
     font-weight: bold;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
 }
 
-body {
-    background-color: black !important;
+/* Card styles */
+.card {
+    margin-bottom: 20px;
+    border-radius: 0.5rem;
 }
+
+/* Table styles */
+.table-sm th, .table-sm td {
+    padding: 0.3rem;
+}
+/* Button hover effect */
+.btn {
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Card hover effect */
+.card {
+    border-radius: 0.5rem;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.3s ease;
+}
+.card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Focus states */
+a:focus, button:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+

@@ -13,16 +13,17 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container">
-        <a class="navbar-brand" href="{{ url_for('index') }}">Image Prediction</a>
+        <a class="navbar-brand" href="{{ url_for('index') }}">FYP Image Prediction Interface</a>
         <div class="collapse navbar-collapse">
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{{ url_for('train_page') }}">Train</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('test_page') }}">Test</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('predict_page') }}">Predict</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('experiments_overview') }}">Experiments</a></li>
           </ul>
         </div>
       </div>
-    </nav>    
+    </nav> 
     <!-- Main Content -->
     <div class="container mt-5">
       {% block content %}{% endblock %}

@@ -27,8 +27,6 @@ def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
 
-    print("Trainer working directory:", os.getcwd())
-
     # Initalising the variables from the command line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Experiment Detail - {{ experiment_name }}{% endblock %}
+{% block content %}
+  <h1 class="mb-4">Experiment: {{ experiment_name }}</h1>
+
+  <!-- TensorBoard Graphs Section -->
+  <h2>TensorBoard Graphs</h2>
+  {% if results.tensorboard_graphs and results.tensorboard_graphs|length > 0 %}
+    <div class="row">
+      {% for file in results.tensorboard_graphs %}
+        <div class="col-md-4 mb-4">
+          <div class="card">
+            <img src="{{ url_for('experiment_file', experiment_name=experiment_name, filename='results/tensorboard_graphs/' ~ file) }}" class="card-img-top img-fluid" alt="{{ file }}">
+            <div class="card-body">
+              <p class="card-text">{{ file }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No TensorBoard graphs available.</p>
+  {% endif %}
+
+  <!-- Visualizations Section -->
+  <h2>Visualizations</h2>
+  <div class="row">
+    <div class="col-md-12 mb-4">
+      <div class="card">
+        <div class="card-header text-center">
+          Co-occurrence Matrix
+        </div>
+        <div class="card-body">
+          <img src="{{ url_for('experiment_file', experiment_name=experiment_name, filename='results/visualizations/cooccurrence_matrix.png') }}"
+               class="img-fluid"
+               style="max-height: 800px; width: 100%; object-fit: contain;"
+               alt="Co-occurrence Matrix">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12 mb-4">
+      <div class="card">
+        <div class="card-header text-center">
+          Confusion Matrices Grid
+        </div>
+        <div class="card-body">
+          <img src="{{ url_for('experiment_file', experiment_name=experiment_name, filename='results/visualizations/confusion_matrices_grid.png') }}"
+               class="img-fluid"
+               style="max-height: 800px; width: 100%; object-fit: contain;"
+               alt="Confusion Matrices Grid">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12 mb-4">
+      <div class="card">
+        <div class="card-header text-center">
+          ROC AUC Curve
+        </div>
+        <div class="card-body">
+          <img src="{{ url_for('experiment_file', experiment_name=experiment_name, filename='results/visualizations/roc_auc_curve.png') }}"
+               class="img-fluid"
+               style="max-height: 800px; width: 100%; object-fit: contain;"
+               alt="ROC AUC Curve">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics Section -->
+  <h2>Metrics</h2>
+  {% if metrics %}
+    <div class="accordion" id="metricsAccordion">
+      {% for metric_file, data in metrics.items() %}
+        {% if metric_file == "best_metrics.json" %}
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingBestMetrics">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBestMetrics" aria-expanded="true" aria-controls="collapseBestMetrics">
+                {{ metric_file }}
+              </button>
+            </h2>
+            <div id="collapseBestMetrics" class="accordion-collapse collapse show" aria-labelledby="headingBestMetrics" data-bs-parent="#metricsAccordion">
+              <div class="accordion-body">
+                <h5>Best Epochs</h5>
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Epoch</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for key, val in data.best_epochs.items() %}
+                      <tr>
+                        <td>{{ key }}</td>
+                        <td>{{ val }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+                <h5>Best Metrics Values</h5>
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for key, val in data.best_metrics.items() %}
+                      <tr>
+                        <td>{{ key }}</td>
+                        <td>{{ val }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+                <h5>Other Metrics</h5>
+                <table class="table table-bordered">
+                  <tbody>
+                    <tr>
+                      <th>Inference Rate (images/sec)</th>
+                      <td>{{ data.inference_rate_images_per_sec }}</td>
+                    </tr>
+                    <tr>
+                      <th>Model Size (MB)</th>
+                      <td>{{ data.model_size_MB }}</td>
+                    </tr>
+                    <tr>
+                      <th>Training Time (formatted)</th>
+                      <td>{{ data.training_time_formatted }}</td>
+                    </tr>
+                    <tr>
+                      <th>Training Time (sec)</th>
+                      <td>{{ data.training_time_sec }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ metric_file }}">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ metric_file }}" aria-expanded="false" aria-controls="collapse{{ metric_file }}">
+                {{ metric_file }}
+              </button>
+            </h2>
+            <div id="collapse{{ metric_file }}" class="accordion-collapse collapse" aria-labelledby="heading{{ metric_file }}" data-bs-parent="#metricsAccordion">
+              <div class="accordion-body">
+                <pre>{{ data | tojson(indent=2) }}</pre>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No metrics available.</p>
+  {% endif %}
+{% endblock %}

@@ -1,7 +1,7 @@
 import os
 import sys
 import secrets
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 import json
 
 # Set up directories
@@ -434,6 +434,95 @@ def test_page():
                            weights_options=["None", "DEFAULT"],
                            band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
                            dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"])
+
+
+EXPERIMENTS_DIR = r"C:\Users\isaac\Desktop\experiments"
+def parse_experiment_folder(folder_name):
+    parts = folder_name.split('_')
+    if len(parts) == 7:
+        model = parts[0]
+        weights = parts[1]
+        bands = parts[2] + "_" + parts[3]
+        dataset = parts[4] + "_" + parts[5]
+        epochs = parts[6]
+    elif len(parts) == 5:
+        model, weights, bands, dataset, epochs = parts
+    else:
+        # Fallback: if the naming is unexpected, return the folder name and empty details.
+        model = folder_name
+        weights = ""
+        bands = ""
+        dataset = ""
+        epochs = ""
+    return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
+
+@app.route("/experiments")
+def experiments_overview():
+    experiments = []
+    if os.path.exists(EXPERIMENTS_DIR):
+        for d in os.listdir(EXPERIMENTS_DIR):
+            full_path = os.path.join(EXPERIMENTS_DIR, d)
+            if os.path.isdir(full_path):
+                parsed = parse_experiment_folder(d)
+                parsed['folder_name'] = d  # store the full folder name if needed
+                experiments.append(parsed)
+    return render_template("experiments_overview.html", experiments=experiments)
+
+@app.route("/experiment_file/<experiment_name>/<path:filename>")
+def experiment_file(experiment_name, filename):
+    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
+    return send_from_directory(experiment_path, filename)
+
+@app.route("/experiment/<experiment_name>")
+def experiment_detail(experiment_name):
+    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
+    if not os.path.exists(experiment_path):
+        return "Experiment not found", 404
+
+    results = {}
+    results_path = os.path.join(experiment_path, "results")
+    if os.path.exists(results_path):
+        # Define the expected subfolder names - note "visualizations" now uses a "z"
+        expected_dirs = ["gradcam_visualisations", "tensorboard_graphs", "visualizations"]
+        for ed in expected_dirs:
+            ed_path = os.path.join(results_path, ed)
+            if os.path.exists(ed_path) and os.path.isdir(ed_path):
+                # Get the file list—even if empty
+                results[ed] = os.listdir(ed_path)
+            else:
+                results[ed] = []  # Ensure key exists even if folder is missing
+
+        # Add any standalone files directly in the results folder
+        standalone_files = []
+        for item in os.listdir(results_path):
+            item_path = os.path.join(results_path, item)
+            if not os.path.isdir(item_path) and item not in expected_dirs:
+                standalone_files.append(item)
+        if standalone_files:
+            results["files"] = standalone_files
+
+    # --- Metrics ---
+    metrics = {}
+    metric_files = [
+        "best_metrics.json",
+        "best_test_metrics.json",
+        "test_per_class_metrics_ResNet.json",
+        "train_per_class_metrics_ResNet.json",
+        "val_per_class_metrics_ResNet.json"
+    ]
+    for mf in metric_files:
+        mf_path = os.path.join(results_path, mf)
+        if os.path.exists(mf_path):
+            try:
+                with open(mf_path, 'r') as f:
+                    metrics[mf] = json.load(f)
+            except Exception as e:
+                metrics[mf] = {"error": str(e)}
+
+    return render_template("experiment_detail.html",
+                           experiment_name=experiment_name,
+                           results=results,
+                           metrics=metrics)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

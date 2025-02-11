@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Experiments Overview{% endblock %}
+{% block content %}
+  <h1 class="mb-4">Experiments Overview</h1>
+  {% if experiments %}
+    <div class="row">
+      {% for exp in experiments %}
+        <div class="col-md-4">
+          <a href="{{ url_for('experiment_detail', experiment_name=exp.folder_name) }}" class="text-decoration-none text-reset">
+            <div class="card mb-4">
+              <div class="card-body">
+                <h5 class="card-title">{{ exp.model }}</h5>
+                <p class="card-text">
+                  <strong>Weights:</strong> {{ exp.weights }}<br>
+                  <strong>Bands:</strong> {{ exp.bands }}<br>
+                  <strong>Dataset:</strong> {{ exp.dataset }}<br>
+                  <strong>Epochs:</strong> {{ exp.epochs }}
+                </p>
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No experiments found.</p>
+  {% endif %}
+{% endblock %}

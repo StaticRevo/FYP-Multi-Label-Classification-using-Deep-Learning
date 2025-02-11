@@ -36,6 +36,7 @@ def main():
     bands = json.loads(sys.argv[9]) 
     
     # Create the main path for the experiment
+    print(f"Checkpoint Path: {checkpoint_path}")
     main_path = os.path.dirname(os.path.dirname(checkpoint_path))
     print(f"Main path: {main_path}")
     result_path = os.path.join(main_path, "results")

@@ -1,5 +1,6 @@
 import subprocess
 import tkinter as tk
+import os
 from tkinter import ttk, messagebox, Toplevel
 from threading import Thread  
 
@@ -183,11 +184,14 @@ class ModelSelectionGUI:
 
         def model_training_thread():
             try:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
                 if train_test_choice == 'test':
-                    subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])
+                    tester_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'tester_runner.py')
+                    subprocess.run(['python', tester_script, model_name, weights, selected_bands, selected_dataset])
                     messagebox.showinfo("Success", f"Testing {model_name} with {selected_bands} and {selected_dataset} dataset.")
                 else:
-                    subprocess.run(['python', '../FYPProjectMultiSpectral/trainer.py', model_name, weights, selected_bands, selected_dataset,  test_flag])
+                    trainer_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'trainer.py')
+                    subprocess.run(['python', trainer_script, model_name, weights, selected_bands, selected_dataset, test_flag])
                     messagebox.showinfo("Success", f"Model {model_name} with {selected_bands} and {selected_dataset} dataset is running.")
             except Exception as e:
                 messagebox.showerror("Error", f"An error occurred: {e}")

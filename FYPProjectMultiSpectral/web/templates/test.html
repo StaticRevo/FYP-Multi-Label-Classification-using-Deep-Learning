@@ -2,7 +2,7 @@
 {% block title %}Test Network{% endblock %}
 {% block content %}
   <h1 class="mb-4">Test a Network</h1>
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     <div class="mb-3">
       <label for="model_name" class="form-label">Model Name</label>
       <select class="form-select" id="model_name" name="model_name" required>
@@ -34,6 +34,10 @@
           <option value="{{ opt }}">{{ opt }}</option>
         {% endfor %}
       </select>
+    </div>
+    <div class="mb-3">
+      <label for="checkpoint_file" class="form-label">Select Checkpoint File</label>
+      <input class="form-control" type="file" name="checkpoint_file" id="checkpoint_file" accept=".ckpt" required>
     </div>
     <button type="submit" class="btn btn-primary">Start Testing</button>
   </form>

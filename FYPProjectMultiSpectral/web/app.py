@@ -1,8 +1,8 @@
 import os
 import sys
-import ast
 import secrets
 from flask import Flask, render_template, request, redirect, url_for, session
+import json
 
 # Set up directories
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +22,7 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 import torch.nn.functional as F
+import time
 
 # Local application imports
 from utils.model_utils import get_model_class
@@ -29,10 +30,19 @@ from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from utils.file_utils import initialize_paths
 from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap
+from utils.data_utils import extract_number
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
+
+_cached_training_log = None
+_last_training_log_time = 0
+
+_cached_testing_log = None
+_last_testing_log_time = 0
+
+CACHE_DURATION = 5
 
 # Configure upload and static folders
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -230,7 +240,6 @@ def fetch_actual_labels(patch_id):
 def index():
     return render_template("index.html")
 
-
 # --- Predict Page ---
 @app.route("/predict", methods=['GET', 'POST'])
 def predict_page():
@@ -276,25 +285,57 @@ def predict_page():
                                multiple_models=multiple_models)
     return render_template('upload.html', model_options=MODEL_OPTIONS)
 
-# --- Logs ---
+# --- Logs (for Training) ---
 @app.route('/logs')
 def logs():
+    global _cached_training_log, _last_training_log_time
     # Retrieve the main experiment path from the session.
     main_path = session.get('main_path')
     if not main_path:
         return "No training run information found in session."
 
-    # Construct the log file path (assuming your trainer writes to this file)
+    # Construct the log file path for training logs.
     log_dir = os.path.join(main_path, 'logs')
     training_log_path = os.path.join(log_dir, 'training_logs')
     log_file = os.path.join(training_log_path, 'training.log')
     
-    try:
-        with open(log_file, 'r') as f:
-            log_content = f.read()
-    except Exception as e:
-        log_content = f"Error reading log file: {e}"
-    return log_content
+    current_time = time.time()
+    # Check if we need to re-read the file (once every CACHE_DURATION seconds)
+    if _cached_training_log is None or (current_time - _last_training_log_time) > CACHE_DURATION:
+        try:
+            with open(log_file, 'r') as f:
+                _cached_training_log = f.read()
+        except Exception as e:
+            _cached_training_log = f"Error reading log file: {e}"
+        _last_training_log_time = current_time
+
+    return _cached_training_log
+
+# --- Logs (for Testing) ---
+@app.route('/logs_test')
+def logs_test():
+    global _cached_testing_log, _last_testing_log_time
+    # Retrieve the main experiment path from the session.
+    main_path = session.get('main_path')
+    if not main_path:
+        return "No testing run information found in session."
+
+    # Construct the log file path for testing logs.
+    log_dir = os.path.join(main_path, 'logs')
+    testing_log_path = os.path.join(log_dir, 'testing_logs')
+    log_file = os.path.join(testing_log_path, 'testing.log')
+    
+    current_time = time.time()
+    # Check if we need to re-read the file (once every CACHE_DURATION seconds)
+    if _cached_testing_log is None or (current_time - _last_testing_log_time) > CACHE_DURATION:
+        try:
+            with open(log_file, 'r') as f:
+                _cached_testing_log = f.read()
+        except Exception as e:
+            _cached_testing_log = f"Error reading log file: {e}"
+        _last_testing_log_time = current_time
+
+    return _cached_testing_log
 
 # --- Train Page ---
 @app.route("/train", methods=['GET', 'POST'])
@@ -307,11 +348,8 @@ def train_page():
         test_variable = request.form.get("test_variable", "False")
         
         # Compute the main experiment path using your initialize_paths function.
-        from utils.file_utils import initialize_paths  # Make sure this is imported at the top if not already
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
         
-        # Store the main path in the session
-        from flask import session
         session['main_path'] = main_path
         session['train_params'] = {
             'model_name': model_name,
@@ -322,9 +360,11 @@ def train_page():
         
         # Build command to launch trainer.py using parent_dir
         trainer_script = os.path.join(parent_dir, "trainer.py")
-        cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable]
-        subprocess.Popen(cmd)
+        cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable, main_path]
+        subprocess.Popen(cmd, cwd=parent_dir)
+
         return render_template("train_status.html", message=f"Training for {model_name} has started.")
+    
     return render_template("train.html", 
                            models=MODEL_OPTIONS, 
                            weights_options=["None", "DEFAULT"],
@@ -337,15 +377,56 @@ def train_page():
 @app.route("/test", methods=['GET', 'POST'])
 def test_page():
     if request.method == 'POST':
-        # Extract parameters for testing
+        # Extract form parameters
         model_name = request.form.get("model_name")
         weights = request.form.get("weights")
         selected_bands = request.form.get("selected_bands")
         selected_dataset = request.form.get("selected_dataset")
-        # Build command to launch tester.py (adjust path if necessary)
+        checkpoint_path = request.form.get("checkpoint_path")  
+
+        # Compute additional parameters based on selected_bands
+        if selected_bands == "all_bands":
+            in_channels = len(DatasetConfig.all_bands)
+            bands = DatasetConfig.all_bands
+        elif selected_bands == "rgb_bands":
+            in_channels = len(DatasetConfig.rgb_bands)
+            bands = DatasetConfig.rgb_bands
+        elif selected_bands == "rgb_nir_bands":
+            in_channels = len(DatasetConfig.rgb_nir_bands)
+            bands = DatasetConfig.rgb_nir_bands
+        elif selected_bands == "rgb_swir_bands":
+            in_channels = len(DatasetConfig.rgb_swir_bands)
+            bands = DatasetConfig.rgb_swir_bands
+        elif selected_bands == "rgb_nir_swir_bands":
+            in_channels = len(DatasetConfig.rgb_nir_swir_bands)
+            bands = DatasetConfig.rgb_nir_swir_bands
+        else:
+            in_channels = 3  
+            bands = DatasetConfig.rgb_bands
+
+        num = str(extract_number(selected_dataset))
+        dataset_dir = DatasetConfig.dataset_paths[num]
+        metadata_path = DatasetConfig.metadata_paths[num]
+        metadata_csv = pd.read_csv(metadata_path)
+
+        class_weights, class_weights_array = calculate_class_weights(metadata_csv)
+        class_weights = class_weights_array
+
+        # Build command for tester.py.
         tester_script = os.path.join(parent_dir, "tester.py")
-        cmd = ["python", tester_script, model_name, weights, selected_bands, selected_dataset]
-        subprocess.Popen(cmd)
+        cmd = [
+            "python", tester_script,
+            model_name, 
+            weights, 
+            selected_dataset, 
+            checkpoint_path, 
+            str(in_channels),
+            json.dumps(class_weights.tolist()),
+            metadata_path, 
+            dataset_dir, 
+            json.dumps(bands)
+        ]
+        subprocess.Popen(cmd, cwd=parent_dir)
         return render_template("test_status.html", message=f"Testing for {model_name} has started.")
     # On GET, display testing form
     return render_template("test.html", 

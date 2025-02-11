@@ -113,7 +113,6 @@ def main():
         '../FYPProjectMultiSpectral/tester.py',
         model_name, 
         weights, 
-        selected_bands, 
         selected_dataset, 
         checkpoint_path, 
         str(in_channels),

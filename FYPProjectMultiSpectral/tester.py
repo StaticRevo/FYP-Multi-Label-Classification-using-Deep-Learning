@@ -27,14 +27,13 @@ def main():
     # Parse command-line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
-    selected_bands = sys.argv[3] 
-    selected_dataset = sys.argv[4]
-    checkpoint_path = sys.argv[5]
-    in_channels = int(sys.argv[6])
-    class_weights = json.loads(sys.argv[7])
-    metadata_csv = pd.read_csv(sys.argv[8])
-    dataset_dir = sys.argv[9]
-    bands = json.loads(sys.argv[10]) 
+    selected_dataset = sys.argv[3]
+    checkpoint_path = sys.argv[4]
+    in_channels = int(sys.argv[5])
+    class_weights = json.loads(sys.argv[6])
+    metadata_csv = pd.read_csv(sys.argv[7])
+    dataset_dir = sys.argv[8]
+    bands = json.loads(sys.argv[9]) 
     
     # Create the main path for the experiment
     main_path = os.path.dirname(os.path.dirname(checkpoint_path))

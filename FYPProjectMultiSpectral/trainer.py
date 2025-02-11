@@ -27,6 +27,8 @@ def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
 
+    print("Trainer working directory:", os.getcwd())
+
     # Initalising the variables from the command line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
@@ -34,8 +36,11 @@ def main():
     selected_dataset = sys.argv[4]
     test_variable = sys.argv[5]
 
-    # Create the main path for the experiment
-    main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
+    # Create main path for experiment
+    if len(sys.argv) > 6:
+        main_path = sys.argv[6]
+    else:
+        main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
 
     # Initialize the log directories
     log_dir = os.path.join(main_path, 'logs')

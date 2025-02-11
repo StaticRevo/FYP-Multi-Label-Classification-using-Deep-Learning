@@ -3,7 +3,7 @@
 {% block content %}
   <h1 class="mb-4">Experiment: {{ experiment_name }}</h1>
 
-    <!-- Performance Summary (placed at the top for a quick overview) -->
+    <!-- Performance Summary -->
     {% if metrics["best_metrics.json"] is defined %}
     <div class="card mb-4">
       <div class="card-header">
@@ -103,7 +103,6 @@
 
   <!-- Metrics Section -->
   <h2>Detailed Metrics</h2>
-  <!-- Detailed Metrics Accordion -->
   {% if metrics %}
     <div class="accordion" id="metricsAccordion">
       {% if metrics["best_metrics.json"] is defined %}

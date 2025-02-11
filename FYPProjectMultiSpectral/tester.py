@@ -134,7 +134,7 @@ def main():
         logger = logger
     )
     logger.info("Grad-CAM visualizations generated.")
-    logger.info("Testing complete.")
+    logger.info("Training completed successfully")
 
 if __name__ == "__main__":
     main()

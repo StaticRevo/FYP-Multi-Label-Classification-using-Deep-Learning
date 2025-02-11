@@ -8,7 +8,7 @@
     <div class="card-body">
       <h5 class="card-title">Uploaded File: {{ filename }}</h5>
       <h5 class="card-title">RGB Composite Visualization:</h5>
-      <img src="{{ rgb_url }}" alt="RGB Composite" class="img-fluid" style="max-width:900px;">
+      <img src="{{ rgb_url }}" alt="RGB Composite" style="width: 300px; max-width:500px;">
     </div>
   </div>
   
@@ -81,24 +81,28 @@
     <div class="card-body">
       <h5 class="card-title">GradCAM Visualizations</h5>
       {% if gradcam %}
-        {% if multiple_models %}
-          {% for model_name, model_gradcam in gradcam.items() %}
-            <h6>{{ model_name }}</h6>
-            {% for class_label, gradcam_url in model_gradcam.items() %}
-              <div class="mb-3">
+        <div class="gradcam-container" style="display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 15px; padding: 10px;">
+          {% if multiple_models %}
+            {% for model_name, model_gradcam in gradcam.items() %}
+              <div class="model-gradcam" style="min-width: 300px;">
+                <h6>{{ model_name }}</h6>
+                {% for class_label, gradcam_url in model_gradcam.items() %}
+                  <div class="gradcam-item" style="text-align: center; margin-right: 15px;">
+                    <p>{{ class_label }}</p>
+                    <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          {% else %}
+            {% for class_label, gradcam_url in gradcam.items() %}
+              <div class="gradcam-item" style="text-align: center; margin-right: 15px;">
                 <p>{{ class_label }}</p>
                 <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
               </div>
             {% endfor %}
-          {% endfor %}
-        {% else %}
-          {% for class_label, gradcam_url in gradcam.items() %}
-            <div class="mb-3">
-              <p>{{ class_label }}</p>
-              <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
-            </div>
-          {% endfor %}
-        {% endif %}
+          {% endif %}
+        </div>
       {% else %}
         <p>No GradCAM visualizations generated.</p>
       {% endif %}

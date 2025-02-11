@@ -1,6 +1,12 @@
 # Standard library imports
 import os
 import sys
+
+# Set up directories
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.insert(0, parent_dir)
+
 import json
 import secrets
 import time
@@ -24,11 +30,6 @@ from utils.file_utils import initialize_paths
 from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap 
 from utils.data_utils import extract_number
-
-# Set up directories
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
-sys.path.insert(0, parent_dir)
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
@@ -211,7 +212,6 @@ def generate_gradcam_for_single_image(model, input_tensor, model_name):
     blue  = (rgb_np[2] - rgb_np[2].min()) / (rgb_np[2].max() - rgb_np[2].min() + 1e-8)
     rgb_image = np.stack([red, green, blue], axis=-1)
     base_img = Image.fromarray((rgb_image * 255).astype(np.uint8))
-    # Do not upscale base_img so that it remains clear
 
     gradcam_results = {}
     threshold = 0.5
@@ -394,6 +394,10 @@ def test_page():
         selected_bands = request.form.get("selected_bands")
         selected_dataset = request.form.get("selected_dataset")
         checkpoint_path = request.form.get("checkpoint_path")  
+
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        main_path = os.path.dirname(checkpoint_dir)
+        session['main_path'] = main_path
 
         # Compute additional parameters based on selected_bands
         if selected_bands == "all_bands":

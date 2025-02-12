@@ -450,6 +450,42 @@ def test_page():
                            band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
                            dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"])
 
+# --- Inference Page ---
+@app.route('/detailed_inference', methods=['GET', 'POST'])
+def detailed_inference():
+    if request.method == 'POST':
+        selected_experiments = request.form.getlist('experiments')
+        
+        comparison_data = {}
+        for exp in selected_experiments:
+            metrics = load_experiment_metrics(exp)
+            if 'best_metrics' in metrics:
+                for metric, value in metrics['best_metrics'].items():
+                    comparison_data.setdefault(metric, {})[exp] = value
+            else:
+                pass
+
+        best_models = {}
+        for metric, values in comparison_data.items():
+            # Filter out entries where the value is None
+            valid_values = {k: v for k, v in values.items() if v is not None}
+            if valid_values:
+                best_models[metric] = max(valid_values, key=valid_values.get)
+            else:
+                best_models[metric] = 'N/A'
+
+        return render_template('detailed_inference.html',
+                               comparison_data=comparison_data,
+                               best_models=best_models,
+                               selected_experiments=selected_experiments)
+    else:
+        available_experiments = []
+        if os.path.exists(EXPERIMENTS_DIR):
+            for d in os.listdir(EXPERIMENTS_DIR):
+                full_path = os.path.join(EXPERIMENTS_DIR, d)
+                if os.path.isdir(full_path):
+                    available_experiments.append(d)
+        return render_template('select_experiments.html', experiments=available_experiments)
 
 EXPERIMENTS_DIR = r"C:\Users\isaac\Desktop\experiments"
 def parse_experiment_folder(folder_name):
@@ -460,15 +496,32 @@ def parse_experiment_folder(folder_name):
         bands = parts[2] + "_" + parts[3]
         dataset = parts[4] + "_" + parts[5]
         epochs = parts[6]
-    elif len(parts) == 5:
-        model, weights, bands, dataset, epochs = parts
     else:
-        # Fallback: if the naming is unexpected, return the folder name and empty details.
-        model = folder_name
-        weights = ""
-        bands = ""
-        dataset = ""
-        epochs = ""
+        if any(char.isdigit() for char in parts[-1]):
+            if any(char.isdigit() for char in parts[-2]):
+                epochs = parts[-2] + "_" + parts[-1]
+                dataset = parts[-4] + "_" + parts[-3]
+                remaining = parts[:-4]
+            else:
+                epochs = parts[-1]
+                dataset = parts[-3] + "_" + parts[-2]
+                remaining = parts[:-3]
+        else:
+            # Fallback if last part doesn't contain digits.
+            epochs = parts[-1]
+            dataset = parts[-3] + "_" + parts[-2]
+            remaining = parts[:-3]
+
+        if "None" in remaining:
+            w_index = remaining.index("None")
+            weights = remaining[w_index]
+            model = "_".join(remaining[:w_index])  
+            bands = "_".join(remaining[w_index+1:])  
+        else:
+            # If no "None" found, fallback to defaults:
+            model = remaining[0]
+            weights = ""
+            bands = "_".join(remaining[1:])
     return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
 
 @app.route("/experiments")
@@ -481,6 +534,31 @@ def experiments_overview():
                 parsed = parse_experiment_folder(d)
                 parsed['folder_name'] = d  # store the full folder name if needed
                 experiments.append(parsed)
+
+    # Get filter parameters from the query string.
+    filter_model = request.args.get('model', '').lower()
+    filter_weights = request.args.get('weights', '').lower()
+    filter_bands = request.args.get('bands', '').lower()
+    filter_dataset = request.args.get('dataset', '').lower()
+    filter_epochs = request.args.get('epochs', '').lower()
+    
+    def matches_filter(exp):
+        if filter_model and filter_model not in exp['model'].lower():
+            return False
+        if filter_weights and filter_weights not in exp['weights'].lower():
+            return False
+        if filter_bands and filter_bands not in exp['bands'].lower():
+            return False
+        if filter_dataset and filter_dataset not in exp['dataset'].lower():
+            return False
+        if filter_epochs and filter_epochs not in exp['epochs'].lower():
+            return False
+        return True
+    
+    # Filter the experiments list if any filter is set.
+    if any([filter_model, filter_weights, filter_bands, filter_dataset, filter_epochs]):
+        experiments = [exp for exp in experiments if matches_filter(exp)]
+    
     return render_template("experiments_overview.html", experiments=experiments)
 
 @app.route("/experiment_file/<experiment_name>/<path:filename>")

@@ -2,6 +2,30 @@
 {% block title %}Experiments Overview{% endblock %}
 {% block content %}
   <h1 class="mb-4">Experiments Overview</h1>
+  <!-- Filter Form -->
+  <form method="get" action="{{ url_for('experiments_overview') }}" class="mb-4">
+    <div class="row g-2">
+      <div class="col">
+        <input type="text" name="model" class="form-control" placeholder="Model Name">
+      </div>
+      <div class="col">
+        <input type="text" name="weights" class="form-control" placeholder="Weights">
+      </div>
+      <div class="col">
+        <input type="text" name="bands" class="form-control" placeholder="Bands">
+      </div>
+      <div class="col">
+        <input type="text" name="dataset" class="form-control" placeholder="Dataset">
+      </div>
+      <div class="col">
+        <input type="text" name="epochs" class="form-control" placeholder="Epochs">
+      </div>
+      <div class="col d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{{ url_for('experiments_overview') }}" class="btn btn-secondary">Clear Filter</a>
+      </div>
+    </div>
+  </form>
   {% if experiments %}
     <div class="row">
       {% for exp in experiments %}

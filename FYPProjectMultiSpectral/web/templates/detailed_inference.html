@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Detailed Inference Comparison{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="mb-0">Detailed Inference Comparison</h2>
+      <p>Comparing experiments:</p>
+      <ul class="list-inline">
+        {% for exp in selected_experiments %}
+          <li class="list-inline-item">
+            <span class="badge bg-info text-dark" style="font-size: 0.8rem">{{ exp }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered table-striped table-hover">
+          <thead class="thead-dark">
+            <tr>
+              <th>Metric</th>
+              {% for exp in selected_experiments %}
+                <th>{{ exp }}</th>
+              {% endfor %}
+              <th>Best Model</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for metric, values in comparison_data.items() %}
+              <tr>
+                <td>{{ metric }}</td>
+                {% for exp in selected_experiments %}
+                  <td>{{ values.get(exp, 'N/A') }}</td>
+                {% endfor %}
+                <td><strong>{{ best_models[metric] }}</strong></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Best Model Summary Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h3 class="mb-0">Best Model Summary</h3>
+        </div>
+        <div class="card-body">
+          <ul class="list-group">
+            {% for metric, model in best_models.items() %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>{{ metric }}</span>
+              <span class="badge bg-success rounded-pill" style="font-size: 1rem; padding: 0.6em 0.9em;">
+                {{ model }} ({{ comparison_data[metric].get(model, 'N/A') }})
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer text-end">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

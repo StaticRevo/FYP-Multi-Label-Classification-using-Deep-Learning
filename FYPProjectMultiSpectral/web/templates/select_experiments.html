@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Select Experiments{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">Select Experiments for Comparison</h1>
+  <p class="mb-4">Please select one or more experiments below to compare their performance metrics.</p>
+  
+  <!-- Optional: A "Select All" checkbox -->
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="selectAll">
+    <label class="form-check-label" for="selectAll">Select All</label>
+  </div>
+  
+  <form method="post" action="{{ url_for('detailed_inference') }}">
+    <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+      {% for exp in experiments %}
+      <label class="list-group-item">
+        <input class="form-check-input me-2" type="checkbox" name="experiments" value="{{ exp }}" id="exp{{ loop.index }}">
+        {{ exp }}
+      </label>
+      {% endfor %}
+    </div>
+    <div class="mt-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Compare Selected Experiments</button>
+      <a href="{{ url_for('detailed_inference') }}" class="btn btn-secondary">Clear Selection</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('input[name="experiments"]');
+    checkboxes.forEach(chk => {
+      chk.checked = this.checked;
+    });
+  });
+</script>
+{% endblock %}

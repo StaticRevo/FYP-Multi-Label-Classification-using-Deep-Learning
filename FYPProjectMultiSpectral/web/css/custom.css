@@ -23,7 +23,6 @@ body {
     flex-direction: column;
 }
 
-/* Container adjustments */
 .container {
     max-width: 900px;
 }
@@ -68,4 +67,5 @@ a:focus, button:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }
+
 

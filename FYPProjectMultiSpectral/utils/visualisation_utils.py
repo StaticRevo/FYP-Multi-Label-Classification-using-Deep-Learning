@@ -55,6 +55,7 @@ def visualize_activations(result_path, num_filters=8):
             pdf.savefig(fig)
             plt.close(fig)
 
+# Show the RGB image from a batch of multi-spectral images
 def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
     image_cpu = image_tensor.detach().cpu().numpy()
 
@@ -89,6 +90,7 @@ def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
         plt.close()  # Close the figure to free memory
         print(f"Saved RGB activation visualization to {save_file}")
 
+# Save the tensorboard graphs as images
 def save_tensorboard_graphs(log_dir, output_dir):
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)

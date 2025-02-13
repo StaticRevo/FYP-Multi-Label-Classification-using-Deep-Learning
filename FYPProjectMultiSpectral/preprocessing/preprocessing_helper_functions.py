@@ -12,6 +12,7 @@ import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from pathlib import Path
 
+# Download and extract the BigEarthNet dataset
 def downloadAndExtractDataset(dataset_dir):
     download_url = 'https://zenodo.org/records/10891137/files/BigEarthNet-S2.tar.zst?download=1'
     chunk_size = 1024
@@ -40,6 +41,7 @@ def downloadAndExtractDataset(dataset_dir):
         print(f"Error during dataset decompression: {e}")
         raise
 
+# Remove unnecessary files from the dataset
 def removeUnnecessaryFiles(dataset_dir, unwanted_metadata_file):
     deleted_folders = 0
 
@@ -56,6 +58,7 @@ def removeUnnecessaryFiles(dataset_dir, unwanted_metadata_file):
     
     print(f"Deleted {deleted_folders} folders")
 
+# Create subsets of the dataset based on a percentage
 def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
     metadata_subset = pd.DataFrame(columns=metadata_df.columns)
 
@@ -91,6 +94,7 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
     # Save metadata for the subset
     metadata_subset.to_csv(os.path.join(subset_dir, f'metadata_{percentage}_percent.csv'), index=False)
 
+# Copy a subset of images from the original dataset to a new directory
 def copy_subset_images(original_images_dir, original_metadata_path, subset_metadata_path, subset_images_dir):
     original_images_dir = Path(original_images_dir)
     subset_metadata_path = Path(subset_metadata_path)
@@ -119,6 +123,7 @@ def copy_subset_images(original_images_dir, original_metadata_path, subset_metad
         print(f"Warning: {len(missing_files)} files missing in original dataset")
         print("Missing patch_ids:", missing_files)
 
+# Count the number of .tif images in a folder
 def count_tif_images(folder_path):
     total_images = 0  # Initialize total image counter
 
@@ -132,10 +137,12 @@ def count_tif_images(folder_path):
 
     return total_images
 
+# Display the percentage of a partial count compared to a full count
 def display_percentage(partial_count, full_count, folder_name):
     percentage = (partial_count / full_count) * 100
     print(f"Folder: {folder_name} | Subfolder Count: {partial_count} | Percentage: {percentage:.2f}%")
 
+# Resize a .tif image to a new width and height
 def resizeTiffFiles(input_tiff, output_tiff, new_width, new_height):
     with rasterio.open(input_tiff) as src:
         transform, width, height = calculate_default_transform(src.crs, src.crs, new_width, new_height, *src.bounds)
@@ -158,6 +165,7 @@ def resizeTiffFiles(input_tiff, output_tiff, new_width, new_height):
                     resampling=Resampling.nearest
                 )
 
+# Process folders in a dataset directory
 def process_folders(dataset_dir, combined_dir_name, combine_function, exclude_dirs=[]):
     combined_destination_dir = os.path.join(dataset_dir, combined_dir_name)
 
@@ -178,10 +186,12 @@ def process_folders(dataset_dir, combined_dir_name, combine_function, exclude_di
             dest_subfolder_path = os.path.join(dest_folder_path, f"{subfolder}.tif")
             combine_function(subfolder_path, dest_subfolder_path)
 
+# Generate paths for each band in a multi-spectral image
 def generatePaths(base_path):
     bands = ['B01','B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09','B11', 'B12']
     return [f"{base_path}_{band}.tif" for band in bands]
 
+# Combine multiple .tif files into a single multi-band .tif file
 def combineTiffs(base_path, output_path):
     band_paths = generatePaths(base_path)
     # Read the first image to get metadata
@@ -195,6 +205,7 @@ def combineTiffs(base_path, output_path):
                 # Read each band and write it to the new file
                 dst.write(src.read(1), idx)
 
+# Move all images from subfolders to a single folder
 def move_images_to_single_folder(source_root_dir, target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -228,6 +239,7 @@ def move_images_to_single_folder(source_root_dir, target_dir):
             except OSError:
                 pass 
 
+# Move all subfolders to the main directory
 def move_all_subfolders_to_main_directory(source_root_dir, target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)  # Create destination directory if it doesn't exist
@@ -247,6 +259,7 @@ def move_all_subfolders_to_main_directory(source_root_dir, target_dir):
                     shutil.move(subfolder_path, dest_path)
                     print(f"Moved: {subfolder_path} -> {dest_path}")
 
+# Move images based on a split column in a CSV file
 def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
     if not os.path.exists(target_root_dir):
         os.makedirs(target_root_dir)

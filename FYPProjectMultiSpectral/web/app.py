@@ -57,10 +57,14 @@ if not os.path.exists(STATIC_FOLDER):
 # Model Options
 MODEL_OPTIONS = ["custom_model", "ResNet18", "ResNet50", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
 
-# Precompute class weights (assuming DatasetConfig.metadata_path is valid)
+# Precompute class weights 
 class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path))
 CLASS_WEIGHTS = class_weights_array
 
+# Experiment directory
+EXPERIMENTS_DIR = r"C:\Users\isaac\Desktop\experiments"
+
+# --- Helper Functions ---
 def load_model_from_experiment(experiment_name):
     # Construct the checkpoint path from the experiment folder.
     checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "final.ckpt")
@@ -90,7 +94,6 @@ def load_model_from_experiment(experiment_name):
     print(f"Model from experiment {experiment_name} loaded successfully.")
     return model
 
-# Helper function to load metrics for an experiment.
 def load_experiment_metrics(experiment_name):
     experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
     results_path = os.path.join(experiment_path, "results")
@@ -104,7 +107,6 @@ def load_experiment_metrics(experiment_name):
             metrics = {"error": f"Error loading metrics: {e}"}
     return metrics
 
-# --- TIFF Preprocessing ---
 def preprocess_tiff_image(file_path, selected_bands=None):
     with rasterio.open(file_path) as src:
         image = src.read()
@@ -129,7 +131,6 @@ def preprocess_tiff_image(file_path, selected_bands=None):
         image_tensor = image_tensor.unsqueeze(0)
         return image_tensor
 
-# --- Create an RGB Visualization ---
 def create_rgb_visualization(file_path, selected_bands=None):
     with rasterio.open(file_path) as src:
         image = src.read()
@@ -153,7 +154,6 @@ def create_rgb_visualization(file_path, selected_bands=None):
     Image.fromarray(rgb_image).save(out_path)
     return url_for('static', filename=out_filename)
 
-# --- Prediction Function ---
 def predict_image_for_model(model, image_tensor):
     device = next(model.parameters()).device
     image_tensor = image_tensor.to(device)
@@ -167,7 +167,6 @@ def predict_image_for_model(model, image_tensor):
             predictions.append({"label": label, "probability": prob})
     return predictions
 
-# --- GradCAM Visualization ---
 def generate_gradcam_for_single_image(model, input_tensor, model_name):
     if model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
@@ -224,7 +223,6 @@ def generate_gradcam_for_single_image(model, input_tensor, model_name):
             gradcam_results[class_label] = url_for('static', filename=filename)
     return gradcam_results
 
-# --- Helper Function to Fetch Actual Labels from Metadata ---
 def fetch_actual_labels(patch_id):
     import ast
     metadata_df = pd.read_csv(DatasetConfig.metadata_path)
@@ -244,138 +242,47 @@ def fetch_actual_labels(patch_id):
         labels = labels_str
     return labels
 
-# Homepage that provides options for Train, Test, or Predict
+def parse_experiment_folder(folder_name):
+    parts = folder_name.split('_')
+    if len(parts) == 7:
+        model = parts[0]
+        weights = parts[1]
+        bands = parts[2] + "_" + parts[3]
+        dataset = parts[4] + "_" + parts[5]
+        epochs = parts[6]
+    else:
+        if any(char.isdigit() for char in parts[-1]):
+            if any(char.isdigit() for char in parts[-2]):
+                epochs = parts[-2] + "_" + parts[-1]
+                dataset = parts[-4] + "_" + parts[-3]
+                remaining = parts[:-4]
+            else:
+                epochs = parts[-1]
+                dataset = parts[-3] + "_" + parts[-2]
+                remaining = parts[:-3]
+        else:
+            # Fallback if last part doesn't contain digits.
+            epochs = parts[-1]
+            dataset = parts[-3] + "_" + parts[-2]
+            remaining = parts[:-3]
+
+        if "None" in remaining:
+            w_index = remaining.index("None")
+            weights = remaining[w_index]
+            model = "_".join(remaining[:w_index])  
+            bands = "_".join(remaining[w_index+1:])  
+        else:
+            # If no "None" found, fallback to defaults:
+            model = remaining[0]
+            weights = ""
+            bands = "_".join(remaining[1:])
+    return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
+
+# -- Routes --
+# -- Home Page --
 @app.route("/")
 def index():
     return render_template("index.html")
-
-# -- Predict Page --
-@app.route("/predict", methods=['GET', 'POST'])
-def predict_page():
-    if request.method == 'POST':
-        # Get the list of uploaded files (note the same input name "file")
-        files = request.files.getlist('file')
-        # Get the selected experiment from the form
-        selected_experiment = request.form.get("experiment")
-        if not files or files[0].filename == '':
-            return redirect(request.url)
-        
-        if len(files) == 1:
-            # Single image prediction workflow
-            file = files[0]
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            
-            rgb_url = create_rgb_visualization(file_path)
-            input_tensor = preprocess_tiff_image(file_path)
-            
-            model_instance = load_model_from_experiment(selected_experiment)
-            preds = predict_image_for_model(model_instance, input_tensor)
-            gradcam = generate_gradcam_for_single_image(model_instance, input_tensor, selected_experiment)
-            
-            # Fetch actual labels from metadata (if available)
-            patch_id = os.path.splitext(filename)[0]
-            actual_labels = fetch_actual_labels(patch_id)
-            
-            # Parse experiment details from the folder name
-            experiment_details = parse_experiment_folder(selected_experiment)
-            
-            return render_template('result.html',
-                                   filename=filename,
-                                   predictions={selected_experiment: preds},
-                                   actual_labels=actual_labels,
-                                   rgb_url=rgb_url,
-                                   gradcam=gradcam,
-                                   multiple_models=False,
-                                   experiment_details=experiment_details)
-        else:
-            # Batch prediction workflow
-            results_list = []
-            # Load the model once for the entire batch
-            model_instance = load_model_from_experiment(selected_experiment)
-            
-            for file in files:
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    
-                    rgb_url = create_rgb_visualization(file_path)
-                    input_tensor = preprocess_tiff_image(file_path)
-                    
-                    predictions = predict_image_for_model(model_instance, input_tensor)
-                    patch_id = os.path.splitext(filename)[0]
-                    actual_labels = fetch_actual_labels(patch_id)
-                    
-                    results_list.append({
-                        "filename": filename,
-                        "predictions": predictions,
-                        "rgb_url": rgb_url,
-                        "actual_labels": actual_labels
-                    })
-            return render_template("batch_result.html", results=results_list)
-    else:
-        experiments = []
-        if os.path.exists(EXPERIMENTS_DIR):
-            for d in os.listdir(EXPERIMENTS_DIR):
-                full_path = os.path.join(EXPERIMENTS_DIR, d)
-                if os.path.isdir(full_path):
-                    experiments.append(d)
-        return render_template('upload.html', experiments=experiments)
-
-
-# --- Logs (for Training) ---
-@app.route('/logs')
-def logs():
-    global _cached_training_log, _last_training_log_time
-    # Retrieve the main experiment path from the session.
-    main_path = session.get('main_path')
-    if not main_path:
-        return "No training run information found in session."
-
-    # Construct the log file path for training logs.
-    log_dir = os.path.join(main_path, 'logs')
-    training_log_path = os.path.join(log_dir, 'training_logs')
-    log_file = os.path.join(training_log_path, 'training.log')
-    
-    current_time = time.time()
-    # Check if we need to re-read the file (once every CACHE_DURATION seconds)
-    if _cached_training_log is None or (current_time - _last_training_log_time) > CACHE_DURATION:
-        try:
-            with open(log_file, 'r') as f:
-                _cached_training_log = f.read()
-        except Exception as e:
-            _cached_training_log = f"Error reading log file: {e}"
-        _last_training_log_time = current_time
-
-    return _cached_training_log
-
-# --- Logs (for Testing) ---
-@app.route('/logs_test')
-def logs_test():
-    global _cached_testing_log, _last_testing_log_time
-    # Retrieve the main experiment path from the session.
-    main_path = session.get('main_path')
-    if not main_path:
-        return "No testing run information found in session."
-
-    # Construct the log file path for testing logs.
-    log_dir = os.path.join(main_path, 'logs')
-    testing_log_path = os.path.join(log_dir, 'testing_logs')
-    log_file = os.path.join(testing_log_path, 'testing.log')
-    
-    current_time = time.time()
-    # Check if we need to re-read the file (once every CACHE_DURATION seconds)
-    if _cached_testing_log is None or (current_time - _last_testing_log_time) > CACHE_DURATION:
-        try:
-            with open(log_file, 'r') as f:
-                _cached_testing_log = f.read()
-        except Exception as e:
-            _cached_testing_log = f"Error reading log file: {e}"
-        _last_testing_log_time = current_time
-
-    return _cached_testing_log
 
 # --- Train Page ---
 @app.route("/train", methods=['GET', 'POST'])
@@ -387,7 +294,7 @@ def train_page():
         selected_dataset = request.form.get("selected_dataset")
         test_variable = request.form.get("test_variable", "False")
         
-        # Compute the main experiment path using your initialize_paths function.
+        # Compute the main experiment path 
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
         
         session['main_path'] = main_path
@@ -412,13 +319,35 @@ def train_page():
                            dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"],
                            test_options=["False", "True"])
 
+# --- Logs (for Training) ---
+@app.route('/logs')
+def logs():
+    global _cached_training_log, _last_training_log_time
+    main_path = session.get('main_path') # Retrieve the main experiment path from the session.
+    if not main_path:
+        return "No training run information found in session."
+
+    # Construct the log file path for training logs.
+    log_dir = os.path.join(main_path, 'logs')
+    training_log_path = os.path.join(log_dir, 'training_logs')
+    log_file = os.path.join(training_log_path, 'training.log')
+    
+    current_time = time.time() # Check if we need to re-read the file (once every CACHE_DURATION seconds)
+    if _cached_training_log is None or (current_time - _last_training_log_time) > CACHE_DURATION:
+        try:
+            with open(log_file, 'r') as f:
+                _cached_training_log = f.read()
+        except Exception as e:
+            _cached_training_log = f"Error reading log file: {e}"
+        _last_training_log_time = current_time
+
+    return _cached_training_log
 
 # --- Test Page ---
 @app.route("/test", methods=['GET', 'POST'])
 def test_page():
     if request.method == 'POST':
-        # Extract form parameters
-        experiment = request.form.get("experiment")
+        experiment = request.form.get("experiment") # Extract form parameters
         checkpoint_type = request.form.get("checkpoint_type")
         
         # Build the main experiment path and determine checkpoint file based on type
@@ -434,13 +363,12 @@ def test_page():
             cp_file = "final.ckpt"  # default fallback
         checkpoint_path = os.path.join(checkpoint_dir, cp_file)
         
-        # Save the experiment path in session (if needed)
-        session['main_path'] = main_experiment_path
+        
+        session['main_path'] = main_experiment_path # Save the experiment path in session 
 
         # Parse the experiment folder name to extract details
         experiment_details = parse_experiment_folder(experiment)
         model_name = experiment_details["model"]
-        # These are now extracted from the experiment name:
         weights = experiment_details["weights"]
         selected_bands = experiment_details["bands"]
         selected_dataset = experiment_details["dataset"]
@@ -506,6 +434,221 @@ def test_page():
                                band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
                                dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"])
 
+# --- Logs (for Testing) ---
+@app.route('/logs_test')
+def logs_test():
+    global _cached_testing_log, _last_testing_log_time
+    main_path = session.get('main_path')  # Retrieve the main experiment path from the session.
+    if not main_path:
+        return "No testing run information found in session."
+
+    # Construct the log file path for testing logs.
+    log_dir = os.path.join(main_path, 'logs')
+    testing_log_path = os.path.join(log_dir, 'testing_logs')
+    log_file = os.path.join(testing_log_path, 'testing.log')
+    
+    current_time = time.time()
+    # Check if we need to re-read the file (once every CACHE_DURATION seconds)
+    if _cached_testing_log is None or (current_time - _last_testing_log_time) > CACHE_DURATION:
+        try:
+            with open(log_file, 'r') as f:
+                _cached_testing_log = f.read()
+        except Exception as e:
+            _cached_testing_log = f"Error reading log file: {e}"
+        _last_testing_log_time = current_time
+
+    return _cached_testing_log
+
+# -- Predict Page --
+@app.route("/predict", methods=['GET', 'POST'])
+def predict_page():
+    if request.method == 'POST':
+ 
+        files = request.files.getlist('file')  # Get the list of uploaded files 
+        selected_experiment = request.form.get("experiment") # Get the selected experiment from the form
+        if not files or files[0].filename == '':
+            return redirect(request.url)
+        
+        if len(files) == 1:
+            file = files[0] # Single image prediction 
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            rgb_url = create_rgb_visualization(file_path)
+            input_tensor = preprocess_tiff_image(file_path)
+            
+            model_instance = load_model_from_experiment(selected_experiment)
+            preds = predict_image_for_model(model_instance, input_tensor)
+            gradcam = generate_gradcam_for_single_image(model_instance, input_tensor, selected_experiment)
+            
+            patch_id = os.path.splitext(filename)[0] # Fetch actual labels from metadata 
+            actual_labels = fetch_actual_labels(patch_id)
+            
+            # Parse experiment details from the folder name
+            experiment_details = parse_experiment_folder(selected_experiment)
+            
+            return render_template('result.html',
+                                   filename=filename,
+                                   predictions={selected_experiment: preds},
+                                   actual_labels=actual_labels,
+                                   rgb_url=rgb_url,
+                                   gradcam=gradcam,
+                                   multiple_models=False,
+                                   experiment_details=experiment_details)
+        else:
+            results_list = [] # Batch prediction 
+            model_instance = load_model_from_experiment(selected_experiment) # Load the model once for the entire batch
+            
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_path)
+                    
+                    rgb_url = create_rgb_visualization(file_path)
+                    input_tensor = preprocess_tiff_image(file_path)
+                    
+                    predictions = predict_image_for_model(model_instance, input_tensor)
+                    patch_id = os.path.splitext(filename)[0]
+                    actual_labels = fetch_actual_labels(patch_id)
+                    
+                    results_list.append({
+                        "filename": filename,
+                        "predictions": predictions,
+                        "rgb_url": rgb_url,
+                        "actual_labels": actual_labels
+                    })
+            return render_template("batch_result.html", results=results_list)
+    else:
+        experiments = []
+        if os.path.exists(EXPERIMENTS_DIR):
+            for d in os.listdir(EXPERIMENTS_DIR):
+                full_path = os.path.join(EXPERIMENTS_DIR, d)
+                if os.path.isdir(full_path):
+                    experiments.append(d)
+        return render_template('upload.html', experiments=experiments)
+
+@app.route("/experiments")
+def experiments_overview():
+    experiments = []
+    if os.path.exists(EXPERIMENTS_DIR):
+        for d in os.listdir(EXPERIMENTS_DIR):
+            full_path = os.path.join(EXPERIMENTS_DIR, d)
+            if os.path.isdir(full_path):
+                parsed = parse_experiment_folder(d)
+                parsed['folder_name'] = d  # store the full folder name 
+
+                # Get creation time and store both timestamp and formatted date
+                creation_time = os.path.getctime(full_path)
+                parsed['timestamp'] = creation_time
+                parsed['date_trained'] = datetime.fromtimestamp(creation_time).strftime("%Y-%m-%d %H:%M:%S")
+
+                experiments.append(parsed)
+
+    # Get filter parameters from the query string.
+    filter_model = request.args.get('model', '').lower()
+    filter_weights = request.args.get('weights', '').lower()
+    filter_bands = request.args.get('bands', '').lower()
+    filter_dataset = request.args.get('dataset', '').lower()
+    filter_epochs = request.args.get('epochs', '').lower()
+    
+    def matches_filter(exp):
+        if filter_model and filter_model not in exp['model'].lower():
+            return False
+        if filter_weights and filter_weights not in exp['weights'].lower():
+            return False
+        if filter_bands and filter_bands not in exp['bands'].lower():
+            return False
+        if filter_dataset and filter_dataset not in exp['dataset'].lower():
+            return False
+        if filter_epochs and filter_epochs not in exp['epochs'].lower():
+            return False
+        return True
+    
+    # Apply filtering if any filter is set
+    if any([filter_model, filter_weights, filter_bands, filter_dataset, filter_epochs]):
+        experiments = [exp for exp in experiments if matches_filter(exp)]
+    
+    # Get sorting parameters
+    sort_by = request.args.get('sort_by', 'date_trained')
+    order = request.args.get('order', 'asc')
+    
+    # Apply sorting based on the chosen field and order
+    if sort_by == 'date_trained':
+        experiments = sorted(experiments, key=lambda x: x['timestamp'], reverse=(order == 'desc'))
+    elif sort_by == 'model':
+        experiments = sorted(experiments, key=lambda x: x['model'].lower(), reverse=(order == 'desc'))
+
+    return render_template("experiments_overview.html", experiments=experiments)
+
+# --- Experiment Detail Page ---
+@app.route("/experiment_file/<experiment_name>/<path:filename>")
+def experiment_file(experiment_name, filename):
+    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
+    return send_from_directory(experiment_path, filename)
+
+@app.route("/experiment/<experiment_name>")
+def experiment_detail(experiment_name):
+    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
+    if not os.path.exists(experiment_path):
+        return "Experiment not found", 404
+
+    results = {}
+    results_path = os.path.join(experiment_path, "results")
+    if os.path.exists(results_path):
+        # Define the expected subfolder names
+        expected_dirs = ["gradcam_visualisations", "tensorboard_graphs", "visualizations"]
+        for ed in expected_dirs:
+            ed_path = os.path.join(results_path, ed)
+            if os.path.exists(ed_path) and os.path.isdir(ed_path):
+                results[ed] = os.listdir(ed_path) # Get the file list—even if empty
+            else:
+                results[ed] = []  # Ensure key exists even if folder is missing
+
+        standalone_files = []
+        for item in os.listdir(results_path):
+            item_path = os.path.join(results_path, item)
+            if not os.path.isdir(item_path) and item not in expected_dirs:
+                standalone_files.append(item)
+        if standalone_files:
+            results["files"] = standalone_files
+
+    # Metrics
+    metrics = {}
+    metric_files = [
+        "best_metrics.json",
+        "best_test_metrics.json",
+        "test_per_class_metrics_Sequential.json",
+        "train_per_class_metrics_Sequential.json",
+        "val_per_class_metrics_Sequential.json"
+    ]
+    for mf in metric_files:
+        mf_path = os.path.join(results_path, mf)
+        if os.path.exists(mf_path):
+            try:
+                with open(mf_path, 'r') as f:
+                    metrics[mf] = json.load(f)
+            except Exception as e:
+                metrics[mf] = {"error": str(e)}
+
+    # Hyperparameters
+    hyperparams_content = None
+    hyperparams_path = os.path.join(experiment_path, "hyperparameters.txt")
+    if os.path.exists(hyperparams_path):
+        try:
+            with open(hyperparams_path, 'r') as f:
+                hyperparams_content = f.read()
+        except Exception as e:
+            hyperparams_content = f"Error reading hyperparameters.txt: {e}"
+
+    return render_template("experiment_detail.html",
+                           experiment_name=experiment_name,
+                           results=results,
+                           metrics=metrics,
+                           hyperparams_content=hyperparams_content 
+                           )
+
 # --- Inference Page ---
 @app.route('/detailed_inference', methods=['GET', 'POST'])
 def detailed_inference():
@@ -560,8 +703,7 @@ def detailed_inference():
             else:
                 tb_graphs = []
             
-            # Load best_metrics.json contents (again, if needed separately)
-            best_metrics = None
+            best_metrics = None # Load best_metrics.json contents
             bm_path = os.path.join(results_path, "best_metrics.json")
             if os.path.exists(bm_path):
                 try:
@@ -577,11 +719,10 @@ def detailed_inference():
                 "tensorboard_graphs": tb_graphs
             }
         
-        # Exclude "val_subset_accuracy" from observations
-        if "val_subset_accuracy" in comparison_data:
+        if "val_subset_accuracy" in comparison_data: # Exclude "val_subset_accuracy" from observations
             comparison_data.pop("val_subset_accuracy")
         
-        # Define metrics that should be minimized (lower is better)
+        # Define metrics that should be minimized 
         min_metrics = {"val_loss", "val_hamming_loss", "val_one_error"}
         
         # Compute best_models: for each metric, choose the best experiment (minimize or maximize as needed)
@@ -606,50 +747,50 @@ def detailed_inference():
             if metric_name == "val_acc":
                 observations.append(
                     f"{best_exp} has the highest validation accuracy ({best_value:.4f}), "
-                    "indicating it generally predicts correctly more often than the others."
+                    "indicating it generally predicts correctly more often than the others"
                 )
             elif metric_name == "val_loss":
                 observations.append(
                     f"{best_exp} has the lowest validation loss ({best_value:.4f}), "
-                    "suggesting it fits the data with fewer overall errors."
+                    "suggesting it fits the data with fewer overall errors"
                 )
             elif metric_name == "val_f1":
                 observations.append(
                     f"{best_exp} has the highest F1 score ({best_value:.4f}), "
-                    "indicating a strong balance between precision and recall."
+                    "indicating a strong balance between precision and recall"
                 )
             elif metric_name == "val_precision":
                 observations.append(
                     f"{best_exp} has the highest precision ({best_value:.4f}), "
-                    "meaning it avoids false positives effectively."
+                    "meaning it avoids false positives effectively"
                 )
             elif metric_name == "val_recall":
                 observations.append(
                     f"{best_exp} has the highest recall ({best_value:.4f}), "
-                    "meaning it successfully identifies more true positives."
+                    "meaning it successfully identifies more true positives"
                 )
             elif metric_name == "val_hamming_loss":
                 observations.append(
                     f"{best_exp} has the lowest Hamming loss ({best_value:.4f}), "
-                    "indicating fewer label-wise errors."
+                    "indicating fewer label-wise errors"
                 )
             elif metric_name == "val_one_error":
                 observations.append(
                     f"{best_exp} has the lowest one-error rate ({best_value:.4f}), "
-                    "meaning it has fewer top-1 misclassifications."
+                    "meaning it has fewer top-1 misclassifications"
                 )
             elif metric_name == "val_avg_precision":
                 observations.append(
                     f"{best_exp} has the highest average precision ({best_value:.4f}), "
-                    "indicating strong ranking performance."
+                    "indicating strong ranking performance"
                 )
             elif metric_name == "val_f2":
                 observations.append(
                     f"{best_exp} has the highest F2 score ({best_value:.4f}), "
-                    "which places more emphasis on recall."
+                    "which places more emphasis on recall"
                 )
         
-        # Create a consistent color mapping for each experiment.
+        # Create colour mapping for experiments
         color_classes = [
             "bg-primary text-white",
             "bg-secondary text-white",
@@ -678,10 +819,10 @@ def detailed_inference():
                                  if os.path.isdir(os.path.join(EXPERIMENTS_DIR, d))]
         return render_template('select_experiments.html', experiments=available_experiments)
 
+# -- Bubble Chart Page --
 @app.route("/bubble_chart")
 def bubble_chart():
-    # Get the selected models from query parameters as a list (if any)
-    include_models = request.args.getlist("models")
+    include_models = request.args.getlist("models") # Get the selected models from query parameters as a list (if any)
     if include_models:
         include_models = [m.strip().lower() for m in include_models]
     else:
@@ -726,166 +867,6 @@ def bubble_chart():
                         })
     # Pass both the experiments data and the available model options to the template.
     return render_template("bubble_chart.html", data=experiments_data, model_options=MODEL_OPTIONS)
-
-EXPERIMENTS_DIR = r"C:\Users\isaac\Desktop\experiments"
-def parse_experiment_folder(folder_name):
-    parts = folder_name.split('_')
-    if len(parts) == 7:
-        model = parts[0]
-        weights = parts[1]
-        bands = parts[2] + "_" + parts[3]
-        dataset = parts[4] + "_" + parts[5]
-        epochs = parts[6]
-    else:
-        if any(char.isdigit() for char in parts[-1]):
-            if any(char.isdigit() for char in parts[-2]):
-                epochs = parts[-2] + "_" + parts[-1]
-                dataset = parts[-4] + "_" + parts[-3]
-                remaining = parts[:-4]
-            else:
-                epochs = parts[-1]
-                dataset = parts[-3] + "_" + parts[-2]
-                remaining = parts[:-3]
-        else:
-            # Fallback if last part doesn't contain digits.
-            epochs = parts[-1]
-            dataset = parts[-3] + "_" + parts[-2]
-            remaining = parts[:-3]
-
-        if "None" in remaining:
-            w_index = remaining.index("None")
-            weights = remaining[w_index]
-            model = "_".join(remaining[:w_index])  
-            bands = "_".join(remaining[w_index+1:])  
-        else:
-            # If no "None" found, fallback to defaults:
-            model = remaining[0]
-            weights = ""
-            bands = "_".join(remaining[1:])
-    return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
-
-@app.route("/experiments")
-def experiments_overview():
-    experiments = []
-    if os.path.exists(EXPERIMENTS_DIR):
-        for d in os.listdir(EXPERIMENTS_DIR):
-            full_path = os.path.join(EXPERIMENTS_DIR, d)
-            if os.path.isdir(full_path):
-                parsed = parse_experiment_folder(d)
-                parsed['folder_name'] = d  # store the full folder name if needed
-
-                # Get creation time and store both timestamp and formatted date
-                creation_time = os.path.getctime(full_path)
-                parsed['timestamp'] = creation_time
-                parsed['date_trained'] = datetime.fromtimestamp(creation_time).strftime("%Y-%m-%d %H:%M:%S")
-
-                experiments.append(parsed)
-
-    # Get filter parameters from the query string.
-    filter_model = request.args.get('model', '').lower()
-    filter_weights = request.args.get('weights', '').lower()
-    filter_bands = request.args.get('bands', '').lower()
-    filter_dataset = request.args.get('dataset', '').lower()
-    filter_epochs = request.args.get('epochs', '').lower()
-    
-    def matches_filter(exp):
-        if filter_model and filter_model not in exp['model'].lower():
-            return False
-        if filter_weights and filter_weights not in exp['weights'].lower():
-            return False
-        if filter_bands and filter_bands not in exp['bands'].lower():
-            return False
-        if filter_dataset and filter_dataset not in exp['dataset'].lower():
-            return False
-        if filter_epochs and filter_epochs not in exp['epochs'].lower():
-            return False
-        return True
-    
-    # Apply filtering if any filter is set.
-    if any([filter_model, filter_weights, filter_bands, filter_dataset, filter_epochs]):
-        experiments = [exp for exp in experiments if matches_filter(exp)]
-    
-    # Get sorting parameters
-    sort_by = request.args.get('sort_by', 'date_trained')
-    order = request.args.get('order', 'asc')
-    
-    # Apply sorting based on the chosen field and order.
-    if sort_by == 'date_trained':
-        experiments = sorted(experiments, key=lambda x: x['timestamp'], reverse=(order == 'desc'))
-    elif sort_by == 'model':
-        experiments = sorted(experiments, key=lambda x: x['model'].lower(), reverse=(order == 'desc'))
-
-    return render_template("experiments_overview.html", experiments=experiments)
-    
-
-@app.route("/experiment_file/<experiment_name>/<path:filename>")
-def experiment_file(experiment_name, filename):
-    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
-    return send_from_directory(experiment_path, filename)
-
-@app.route("/experiment/<experiment_name>")
-def experiment_detail(experiment_name):
-    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
-    if not os.path.exists(experiment_path):
-        return "Experiment not found", 404
-
-    results = {}
-    results_path = os.path.join(experiment_path, "results")
-    if os.path.exists(results_path):
-        # Define the expected subfolder names - note "visualizations" now uses a "z"
-        expected_dirs = ["gradcam_visualisations", "tensorboard_graphs", "visualizations"]
-        for ed in expected_dirs:
-            ed_path = os.path.join(results_path, ed)
-            if os.path.exists(ed_path) and os.path.isdir(ed_path):
-                # Get the file list—even if empty
-                results[ed] = os.listdir(ed_path)
-            else:
-                results[ed] = []  # Ensure key exists even if folder is missing
-
-        standalone_files = []
-        for item in os.listdir(results_path):
-            item_path = os.path.join(results_path, item)
-            if not os.path.isdir(item_path) and item not in expected_dirs:
-                standalone_files.append(item)
-        if standalone_files:
-            results["files"] = standalone_files
-
-    # --- Metrics ---
-    metrics = {}
-    metric_files = [
-        "best_metrics.json",
-        "best_test_metrics.json",
-        "test_per_class_metrics_Sequential.json",
-        "train_per_class_metrics_Sequential.json",
-        "val_per_class_metrics_Sequential.json"
-    ]
-    for mf in metric_files:
-        mf_path = os.path.join(results_path, mf)
-        if os.path.exists(mf_path):
-            try:
-                with open(mf_path, 'r') as f:
-                    metrics[mf] = json.load(f)
-            except Exception as e:
-                metrics[mf] = {"error": str(e)}
-
-
-    # --- Hyperparameters ---
-    hyperparams_content = None
-    hyperparams_path = os.path.join(experiment_path, "hyperparameters.txt")
-    if os.path.exists(hyperparams_path):
-        try:
-            with open(hyperparams_path, 'r') as f:
-                hyperparams_content = f.read()
-        except Exception as e:
-            hyperparams_content = f"Error reading hyperparameters.txt: {e}"
-
-    return render_template("experiment_detail.html",
-                           experiment_name=experiment_name,
-                           results=results,
-                           metrics=metrics,
-                           hyperparams_content=hyperparams_content 
-                           )
-
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

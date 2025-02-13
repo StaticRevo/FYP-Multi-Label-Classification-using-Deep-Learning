@@ -1,12 +1,17 @@
+# Standard library imports
+import pandas as pd
+
+# Third-party imports
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pandas as pd
 
+# Local application imports
 from models.models import *
 from config.config import ModelConfig, DatasetConfig
 from config.config_utils import calculate_class_weights
 
+# Ensemble model class
 class EnsembleModel(nn.Module):
     def __init__(self, model_configs, device=ModelConfig.device):
         super().__init__()
@@ -33,6 +38,7 @@ class EnsembleModel(nn.Module):
 
             self.models.append(model) 
 
+    # Create the model based on the architecture
     def _create_model(self, arch, class_weights, num_classes, in_channels, model_weights, main_path):
         if arch == 'custom_model':
             return CustomModel(class_weights, num_classes, in_channels, model_weights, main_path)
@@ -59,8 +65,7 @@ class EnsembleModel(nn.Module):
 
     @torch.no_grad()
     def forward(self, x):
-        # Collect outputs from each model
-        outputs = []
+        outputs = [] # Collect outputs from each model
         for model in self.models:
             out = model(x.to(self.device))  # (batch_size, num_classes)
             outputs.append(out)
@@ -69,5 +74,5 @@ class EnsembleModel(nn.Module):
         all_outputs = torch.stack(outputs, dim=0)
         
         # Average across the model dimension
-        avg_output = torch.mean(all_outputs, dim=0)  # (batch_size, num_classes)
+        avg_output = torch.mean(all_outputs, dim=0) # (batch_size, num_classes)
         return avg_output

@@ -3,7 +3,7 @@
 {% block content %}
   <h1 class="mb-4">Experiments Overview</h1>
   
-  <!-- Filter Form (unchanged) -->
+  <!-- Filter Form  -->
   <form method="get" action="{{ url_for('experiments_overview') }}" class="mb-4">
     <div class="row g-2">
       <div class="col">
@@ -28,9 +28,8 @@
     </div>
   </form>
   
-  <!-- Separate Sort Form -->
+  <!-- Sort Form -->
   <form method="get" action="{{ url_for('experiments_overview') }}" class="mb-4">
-    <!-- Preserve current filter values -->
     <input type="hidden" name="model" value="{{ request.args.get('model', '') }}">
     <input type="hidden" name="weights" value="{{ request.args.get('weights', '') }}">
     <input type="hidden" name="bands" value="{{ request.args.get('bands', '') }}">
@@ -56,6 +55,7 @@
     </div>
   </form>
   
+  <!-- Experiments -->
   {% if experiments %}
     <div class="row">
       {% for exp in experiments %}

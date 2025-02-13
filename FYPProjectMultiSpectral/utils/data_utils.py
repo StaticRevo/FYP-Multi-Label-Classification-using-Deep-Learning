@@ -16,6 +16,7 @@ import pandas as pd
 from config.config import DatasetConfig
 from models.models import *
 
+# Function to extract a number from a string
 def extract_number(string):
     number_str = string.split('%')[0]
     try:
@@ -25,7 +26,8 @@ def extract_number(string):
         return number
     except ValueError:
         raise ValueError(f"Cannot extract a number from the string: {string}")
-    
+
+# Function to get the dataset directory, metadata path and metadata csv
 def get_dataset_info(selected_dataset):
     dataset_num = extract_number(selected_dataset)
     dataset_dir = DatasetConfig.dataset_paths[str(dataset_num)]
@@ -33,6 +35,7 @@ def get_dataset_info(selected_dataset):
     metadata_csv = pd.read_csv(metadata_path)
     return dataset_dir, metadata_path, metadata_csv
 
+# Function to calculate the mean and standard deviation of each band in the dataset
 def calculate_band_stats(root_dir, num_bands):
     band_means = np.zeros(num_bands)
     band_stds = np.zeros(num_bands)
@@ -68,6 +71,7 @@ def get_bands(selected_bands):
     }
     return band_options.get(selected_bands, [])
 
+# Function to denormalize the tensor
 def denormalize(tensors, *, mean, std):
     for c in range(DatasetConfig.band_channels):
         tensors[:, c, :, :].mul_(std[c]).add_(mean[c])

@@ -3,25 +3,25 @@ from config.config import DatasetConfig
 from dataclasses import dataclass
 from .normalisation import BandNormalisation
 
+ # Training transforms Config
 @dataclass
 class TransformsConfig:
-    # Training transforms
     train_transforms = transforms.Compose([
-        # Random flips and rotations for orientation invariance
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(degrees=(0, 180)),
-        transforms.RandomErasing(p=0.2)
+        transforms.Resize((120, 120)), # Resize to 120x120
+        transforms.RandomHorizontalFlip(), # Random horizontal flip
+        transforms.RandomVerticalFlip(), # Random vertical flip
+        transforms.RandomRotation(degrees=(0, 180)), # Random rotation
+        transforms.RandomErasing(p=0.2) # Random erasing
     ])
 
     # Validation transforms 
     val_transforms = transforms.Compose([
-        transforms.Resize((120, 120))
+        transforms.Resize((120, 120)) # Resize to 120x120
     ])
 
     # Test transforms 
     test_transforms = transforms.Compose([
-        transforms.Resize((120, 120))
+        transforms.Resize((120, 120)) # Resize to 120x120
     ])
 
     # Normalizations (applied after spatial transforms)

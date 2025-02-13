@@ -30,6 +30,7 @@ from .Metrics.one_error import OneError
 # Base model class for all models
 device = ModelConfig.device
 
+# Base model class for all models
 class BaseModel(pl.LightningModule):
     def __init__(self, model, num_classes, class_weights, in_channels, metrics_save_dir):
         super(BaseModel, self).__init__()
@@ -251,8 +252,7 @@ class BaseModel(pl.LightningModule):
         avg_f2 = np.mean(self.per_class_metrics[phase]['f2'], axis=0)
         avg_acc = np.mean(self.per_class_metrics[phase]['accuracy'], axis=0)
 
-        # Create a PrettyTable for displaying per-class metrics with labels
-        table = PrettyTable()
+        table = PrettyTable() # Create a PrettyTable for displaying per-class metrics with labels
         table.field_names = ["Class Index", "Class Name", "Precision", "Recall", "F1 Score", "F2 Score", "Accuracy"]
 
         for i in range(self.num_classes):
@@ -292,7 +292,8 @@ class BaseModel(pl.LightningModule):
             'f2': [],
             'accuracy': []
         }
-   
+    
+    # Print the model summary
     def print_summary(self, input_size, filename):
         current_directory = os.getcwd()
         save_dir = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', filename)
@@ -307,6 +308,7 @@ class BaseModel(pl.LightningModule):
             with redirect_stdout(f):
                 torchinfo_summary(self.model, input_size=(1, *input_size))
 
+    # Visualize the model architecture as a graph
     def visualize_model(self, input_size, model_name):
         current_directory = os.getcwd()
         save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', model_name)

@@ -16,6 +16,7 @@ class GradCAM:
         self.model.eval()
         self._register_hooks()
 
+    # Register hooks for the target layer
     def _register_hooks(self):
         def forward_hook(module, input, output): # Forward hook to capture activations
             self.activations = output.detach()
@@ -27,6 +28,7 @@ class GradCAM:
         self.target_layer.register_forward_hook(forward_hook)
         self.target_layer.register_full_backward_hook(backward_hook)
 
+    # Generate the heatmap
     def generate_heatmap(self, input_image, target_class=None):
         output = self.model(input_image)  # Forward pass
 
@@ -57,6 +59,7 @@ class GradCAM:
 
         return cam, target_class
 
+# Function to overlay the heatmap on the image
 def overlay_heatmap(img, heatmap, alpha=0.5, colormap='jet'):
     heatmap = np.uint8(255 * heatmap)
     heatmap = Image.fromarray(heatmap).resize(img.size, Image.LANCZOS)

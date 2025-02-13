@@ -24,6 +24,7 @@ from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap
 from utils.logging_utils import setup_logger
 
+# Calculate metrics and save results
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path, logger=None):
     all_preds, all_labels = [], []
     test_loader = data_module.test_dataloader()
@@ -49,6 +50,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     logger.info(f"Predictions and labels saved to {save_path}")
     return all_preds, all_labels
 
+# Visualize predictions and heatmaps
 def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None, logger=None):
     save_dir = os.path.join(result_path, 'visualizations')
     os.makedirs(save_dir, exist_ok=True)
@@ -69,6 +71,7 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     else:
         logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
+# Generate Grad-CAM visualizations
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels, logger=None):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
@@ -156,6 +159,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
         logger.info(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
 
+# Plot ROC-AUC curve
 def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None):
     logger.info("Plotting ROC-AUC curve...")
     num_classes = all_labels.shape[1]
@@ -194,6 +198,7 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None
         plt.savefig(os.path.join(save_dir, "roc_auc_curve.png"))
         logger.info(f"ROC-AUC curve saved to {save_dir}")
 
+# Predict on a batch of images
 def predict_batch(model, dataloader, threshold=0.5, bands=DatasetConfig.all_bands):
     model.eval()
     all_preds = []
@@ -214,6 +219,7 @@ def predict_batch(model, dataloader, threshold=0.5, bands=DatasetConfig.all_band
 
     return np.array(all_preds), np.array(all_true_labels)
 
+# Save batch predictions
 def saving_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=None, logger=None):
     logger.info("Saving batch predictions...")
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
@@ -269,6 +275,7 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.6, band
 
     print(f"Batch predictions saved to {save_dir}")
 
+# Get sigmoid outputs
 def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands):
     test_metadata = metadata_csv[metadata_csv['split'] == 'test'] # Create dictionaries for mapping between labels and indices
     
@@ -307,6 +314,7 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
 
     return np.array(sigmoid_outputs_list)
 
+# Plot the confusion matrix
 def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=None, cols=4, save_dir=None, logger=None):
     logger.info("Plotting and Saving per-label confusion matrices...")
     mcm = multilabel_confusion_matrix(all_labels, all_preds)
@@ -342,6 +350,7 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
     plt.close()
     logger.info(f"Per-label confusion matrices saved to {save_dir}")
 
+# Compute aggregated metrics
 def compute_aggregated_metrics(all_labels, all_preds, logger=None):
     logger.info("Computing aggregated metrics...")
     metrics_dict = {}
@@ -364,6 +373,7 @@ def compute_aggregated_metrics(all_labels, all_preds, logger=None):
 
     return metrics_dict
 
+# Plot and save the co-occurrence matrix
 def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=None, logger=None):
     logger.info("Plotting and saving co-occurrence matrix...")
     num_classes = all_labels.shape[1]

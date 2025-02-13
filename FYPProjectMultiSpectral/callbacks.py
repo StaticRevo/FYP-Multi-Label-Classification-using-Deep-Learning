@@ -119,8 +119,7 @@ class BestMetricsCallback(pl.Callback):
         print(f"  Inference Rate: {self.inference_rate:.2f} images/second")
 
     def on_test_end(self, trainer, pl_module):
-        # Convert tensors to Python scalars for JSON serialization
-        best_metrics_python = {}
+        best_metrics_python = {} # Convert tensors to Python scalars for JSON serialization
         for metric, value in self.best_metrics.items():
             if isinstance(value, torch.Tensor):
                 best_metrics_python[metric] = value.item()

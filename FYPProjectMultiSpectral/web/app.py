@@ -658,7 +658,7 @@ def detailed_inference():
             "bg-warning text-dark",
             "bg-info text-dark",
             "bg-light text-dark",
-            "bg-dark text-white"
+            "bg-dark text-white",
         ]
         exp_color_map = {}
         for i, exp in enumerate(selected_experiments):
@@ -678,7 +678,54 @@ def detailed_inference():
                                  if os.path.isdir(os.path.join(EXPERIMENTS_DIR, d))]
         return render_template('select_experiments.html', experiments=available_experiments)
 
+@app.route("/bubble_chart")
+def bubble_chart():
+    # Get the selected models from query parameters as a list (if any)
+    include_models = request.args.getlist("models")
+    if include_models:
+        include_models = [m.strip().lower() for m in include_models]
+    else:
+        include_models = None  # No filter—include all experiments
 
+    experiments_data = []
+    if os.path.exists(EXPERIMENTS_DIR):
+        for d in os.listdir(EXPERIMENTS_DIR):
+            exp_path = os.path.join(EXPERIMENTS_DIR, d)
+            if os.path.isdir(exp_path):
+                # Look for the best_metrics.json file in the results folder
+                metrics_path = os.path.join(exp_path, "results", "best_metrics.json")
+                if os.path.exists(metrics_path):
+                    try:
+                        with open(metrics_path, "r") as f:
+                            metrics = json.load(f)
+                    except Exception as e:
+                        print(f"Error loading metrics for {d}: {e}")
+                        continue
+
+                    # Check if required keys exist
+                    if ("best_metrics" in metrics and 
+                        "val_f2" in metrics["best_metrics"] and 
+                        "training_time_sec" in metrics and 
+                        "model_size_MB" in metrics):
+                        
+                        training_time_min = metrics["training_time_sec"] / 60.0
+                        exp_details = parse_experiment_folder(d)
+                        
+                        # Filter based on selected models if provided
+                        if include_models and exp_details.get("model", "").lower() not in include_models:
+                            continue
+                        
+                        experiments_data.append({
+                            "experiment": d,
+                            "model": exp_details.get("model", "N/A"),
+                            "training_time_sec": metrics["training_time_sec"],
+                            "training_time_min": training_time_min,
+                            "val_f2": metrics["best_metrics"]["val_f2"],
+                            "model_size_MB": metrics["model_size_MB"],
+                            "arch_type": exp_details.get("model", "N/A")
+                        })
+    # Pass both the experiments data and the available model options to the template.
+    return render_template("bubble_chart.html", data=experiments_data, model_options=MODEL_OPTIONS)
 
 EXPERIMENTS_DIR = r"C:\Users\isaac\Desktop\experiments"
 def parse_experiment_folder(folder_name):

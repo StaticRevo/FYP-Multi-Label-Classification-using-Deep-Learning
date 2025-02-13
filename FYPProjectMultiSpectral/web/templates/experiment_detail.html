@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Experiment Detail - {{ experiment_name }}{% endblock %}
+
+{# Define a macro to safely round numeric values to 3 decimals #}
+{% macro safe_round(value, decimals=3) %}
+    {% if value is number %}
+        {{ value | round(decimals, 'common') }}
+    {% else %}
+        {{ value | default("N/A") }}
+    {% endif %}
+{% endmacro %}
+
 {% block content %}
   <h1 class="mb-4">Experiment: {{ experiment_name }}</h1>
 
@@ -11,24 +21,54 @@
     </div>
     <div class="card-body">
       <div class="row">
+        <!-- Column 1 -->
         <div class="col-md-4">
-          <strong>Val Acc:</strong> {{ metrics["best_metrics.json"].best_metrics.val_acc | default("N/A") }}<br>
-          <strong>Val Recall:</strong> {{ metrics["best_metrics.json"].best_metrics.val_recall | default("N/A") }}<br>
+          <strong>Val Acc:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_acc) }}<br>
+
+          <strong>Val Recall:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_recall) }}<br>
+
+          <strong>Val Precision:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_precision) }}<br>
+
+          <strong>Val F1:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_f1) }}<br>
         </div>
+
+        <!-- Column 2 -->
         <div class="col-md-4">
-          <strong>Val F1:</strong> {{ metrics["best_metrics.json"].best_metrics.val_f1 | default("N/A") }}<br>
-          <strong>Val Precision:</strong> {{ metrics["best_metrics.json"].best_metrics.val_precision | default("N/A") }}
+          <strong>Val F2:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_f2) }}<br>
+
+          <strong>Val Avg Precision:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_avg_precision) }}<br>
+
+          <strong>Val Hamming Loss:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_hamming_loss) }}<br>
+
+          <strong>Val One Error:</strong>
+          {{ safe_round(metrics["best_metrics.json"].best_metrics.val_one_error) }}<br>
         </div>
+
+        <!-- Column 3 -->
         <div class="col-md-4">
-          <strong>Inference Time (imgs/s):</strong> {{ metrics["best_metrics.json"].inference_rate_images_per_sec | round(0, 'common') | default("N/A") }}<br>
-          <strong>Training Time (hr/min):</strong> {{ metrics["best_metrics.json"].training_time_formatted | default("N/A") }}
+          <strong>Inference Time (imgs/s):</strong>
+          {{ safe_round(metrics["best_metrics.json"].inference_rate_images_per_sec) }}<br>
+
+          <strong>Training Time (hr/min):</strong>
+          {{ metrics["best_metrics.json"].training_time_formatted | default("N/A") }}<br>
+
+          <strong>Model Size (MB):</strong>
+          {{ safe_round(metrics["best_metrics.json"].model_size_MB) }}<br>
         </div>
       </div>
     </div>
   </div>
-  {% else %}
-    <p>No performance summary available.</p>
-  {% endif %}
+{% else %}
+  <p>No performance summary available.</p>
+{% endif %}
+
 
   <!-- Hyperparameters Section -->
   {% if hyperparams_content %}

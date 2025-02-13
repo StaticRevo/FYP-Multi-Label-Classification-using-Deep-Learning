@@ -3,33 +3,45 @@
 {% block content %}
   <h1 class="mb-4">Experiment: {{ experiment_name }}</h1>
 
-    <!-- Performance Summary -->
-    {% if metrics["best_metrics.json"] is defined %}
-    <div class="card mb-4">
-      <div class="card-header">
-        <strong>Performance Summary</strong>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4">
-            <strong>Val Acc:</strong> {{ metrics["best_metrics.json"].best_metrics.val_acc | default("N/A") }}<br>
-            <strong>Val Recall:</strong> {{ metrics["best_metrics.json"].best_metrics.val_recall | default("N/A") }}<br>
-          </div>
-          <div class="col-md-4">
-            <strong>Val F1:</strong> {{ metrics["best_metrics.json"].best_metrics.val_f1 | default("N/A") }}<br>
-            <strong>Val Precision:</strong> {{ metrics["best_metrics.json"].best_metrics.val_precision | default("N/A") }}
-          </div>
-          <div class="col-md-4">
-            <strong>Inference Time (imgs/s):</strong> {{ metrics["best_metrics.json"].inference_rate_images_per_sec | round(0, 'common') | default("N/A") }}<br>
-            <strong>Training Time (hr/min):</strong> {{ metrics["best_metrics.json"].training_time_formatted | default("N/A") }}
-          </div>
+  <!-- Performance Summary -->
+  {% if metrics["best_metrics.json"] is defined %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Performance Summary</strong>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <strong>Val Acc:</strong> {{ metrics["best_metrics.json"].best_metrics.val_acc | default("N/A") }}<br>
+          <strong>Val Recall:</strong> {{ metrics["best_metrics.json"].best_metrics.val_recall | default("N/A") }}<br>
+        </div>
+        <div class="col-md-4">
+          <strong>Val F1:</strong> {{ metrics["best_metrics.json"].best_metrics.val_f1 | default("N/A") }}<br>
+          <strong>Val Precision:</strong> {{ metrics["best_metrics.json"].best_metrics.val_precision | default("N/A") }}
+        </div>
+        <div class="col-md-4">
+          <strong>Inference Time (imgs/s):</strong> {{ metrics["best_metrics.json"].inference_rate_images_per_sec | round(0, 'common') | default("N/A") }}<br>
+          <strong>Training Time (hr/min):</strong> {{ metrics["best_metrics.json"].training_time_formatted | default("N/A") }}
         </div>
       </div>
     </div>
+  </div>
   {% else %}
-
     <p>No performance summary available.</p>
   {% endif %}
+
+  <!-- Hyperparameters Section -->
+  {% if hyperparams_content %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Hyperparameters</strong>
+    </div>
+    <div class="card-body">
+      <pre class="small" style="line-height: 1.2em; white-space: pre-wrap; margin-bottom: 0;">{{ hyperparams_content }}</pre>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- TensorBoard Graphs Section -->
   <h2>TensorBoard Graphs</h2>
   {% if results.tensorboard_graphs and results.tensorboard_graphs|length > 0 %}

@@ -8,9 +8,9 @@
       <input class="form-control" type="file" name="file" accept=".tif,.tiff" id="formFile" required>
     </div>
     <div class="mb-3">
-      <label for="modelSelect" class="form-label">Select Model</label>
-      <select class="form-select" name="model" id="modelSelect" required>
-        {% for option in model_options %}
+      <label for="experimentSelect" class="form-label">Select Experiment</label>
+      <select class="form-select" name="experiment" id="experimentSelect" required>
+        {% for option in experiments %}
           <option value="{{ option }}">{{ option }}</option>
         {% endfor %}
       </select>

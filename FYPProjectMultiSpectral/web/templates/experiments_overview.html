@@ -2,23 +2,24 @@
 {% block title %}Experiments Overview{% endblock %}
 {% block content %}
   <h1 class="mb-4">Experiments Overview</h1>
-  <!-- Filter Form -->
+  
+  <!-- Filter Form (unchanged) -->
   <form method="get" action="{{ url_for('experiments_overview') }}" class="mb-4">
     <div class="row g-2">
       <div class="col">
-        <input type="text" name="model" class="form-control" placeholder="Model Name">
+        <input type="text" name="model" class="form-control" placeholder="Model Name" value="{{ request.args.get('model', '') }}">
       </div>
       <div class="col">
-        <input type="text" name="weights" class="form-control" placeholder="Weights">
+        <input type="text" name="weights" class="form-control" placeholder="Weights" value="{{ request.args.get('weights', '') }}">
       </div>
       <div class="col">
-        <input type="text" name="bands" class="form-control" placeholder="Bands">
+        <input type="text" name="bands" class="form-control" placeholder="Bands" value="{{ request.args.get('bands', '') }}">
       </div>
       <div class="col">
-        <input type="text" name="dataset" class="form-control" placeholder="Dataset">
+        <input type="text" name="dataset" class="form-control" placeholder="Dataset" value="{{ request.args.get('dataset', '') }}">
       </div>
       <div class="col">
-        <input type="text" name="epochs" class="form-control" placeholder="Epochs">
+        <input type="text" name="epochs" class="form-control" placeholder="Epochs" value="{{ request.args.get('epochs', '') }}">
       </div>
       <div class="col d-flex gap-2">
         <button type="submit" class="btn btn-primary">Filter</button>
@@ -26,6 +27,35 @@
       </div>
     </div>
   </form>
+  
+  <!-- Separate Sort Form -->
+  <form method="get" action="{{ url_for('experiments_overview') }}" class="mb-4">
+    <!-- Preserve current filter values -->
+    <input type="hidden" name="model" value="{{ request.args.get('model', '') }}">
+    <input type="hidden" name="weights" value="{{ request.args.get('weights', '') }}">
+    <input type="hidden" name="bands" value="{{ request.args.get('bands', '') }}">
+    <input type="hidden" name="dataset" value="{{ request.args.get('dataset', '') }}">
+    <input type="hidden" name="epochs" value="{{ request.args.get('epochs', '') }}">
+    
+    <div class="row g-2">
+      <div class="col">
+        <select name="sort_by" class="form-control">
+          <option value="date_trained" {% if request.args.get('sort_by') == 'date_trained' %}selected{% endif %}>Date Trained</option>
+          <option value="model" {% if request.args.get('sort_by') == 'model' %}selected{% endif %}>Model</option>
+        </select>
+      </div>
+      <div class="col">
+        <select name="order" class="form-control">
+          <option value="asc" {% if request.args.get('order') == 'asc' %}selected{% endif %}>Ascending</option>
+          <option value="desc" {% if request.args.get('order') == 'desc' %}selected{% endif %}>Descending</option>
+        </select>
+      </div>
+      <div class="col">
+        <button type="submit" class="btn btn-primary">Sort</button>
+      </div>
+    </div>
+  </form>
+  
   {% if experiments %}
     <div class="row">
       {% for exp in experiments %}
@@ -38,7 +68,8 @@
                   <strong>Weights:</strong> {{ exp.weights }}<br>
                   <strong>Bands:</strong> {{ exp.bands }}<br>
                   <strong>Dataset:</strong> {{ exp.dataset }}<br>
-                  <strong>Epochs:</strong> {{ exp.epochs }}
+                  <strong>Epochs:</strong> {{ exp.epochs }}<br>
+                  <strong>Date Trained:</strong> {{ exp.date_trained }}
                 </p>
               </div>
             </div>

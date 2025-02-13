@@ -3,6 +3,8 @@
 {% block content %}
   <h1 class="mb-4">Prediction Result</h1>
   
+
+  
   <!-- Uploaded File and RGB Visualization -->
   <div class="card mb-4">
     <div class="card-body">
@@ -52,8 +54,19 @@
         </div>
       </div>
     </div>
-    <!-- Actual Labels Table -->
+
     <div class="col-md-6">
+    <!-- Experiment Details -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Prediction Details</h5>
+          <p><strong>Model:</strong> {{ experiment_details.model }}</p>
+          <p><strong>Bands:</strong> {{ experiment_details.bands }}</p>
+          <p><strong>Dataset:</strong> {{ experiment_details.dataset }}</p>
+          <p><strong>Epochs:</strong> {{ experiment_details.epochs }}</p>
+        </div>
+     </div>
+      <!-- Actual Labels Table -->
       <div class="card mb-4">
         <div class="card-body">
           <h5 class="card-title">Actual Labels</h5>
@@ -74,6 +87,7 @@
         </div>
       </div>
     </div>
+    
   </div>
   
   <!-- GradCAM Visualizations -->

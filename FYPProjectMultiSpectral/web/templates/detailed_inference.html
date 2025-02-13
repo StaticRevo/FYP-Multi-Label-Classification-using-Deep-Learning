@@ -1,67 +1,188 @@
 {% extends "base.html" %}
-{% block title %}Detailed Inference Comparison{% endblock %}
+{% block title %}Detailed Model Comparison{% endblock %}
 {% block content %}
 <div class="container mt-4">
-  <div class="card">
+  <h1 class="mb-4">Detailed Model Comparison</h1>
+
+  <!-- Summary Table for Validation Metrics -->
+  <div class="card mb-4">
     <div class="card-header">
-      <h2 class="mb-0">Detailed Inference Comparison</h2>
+      <h2>Validation Metrics Comparison</h2>
       <p>Comparing experiments:</p>
       <ul class="list-inline">
         {% for exp in selected_experiments %}
           <li class="list-inline-item">
-            <span class="badge bg-info text-dark" style="font-size: 0.8rem">{{ exp }}</span>
+            <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+              {{ exp }}
+            </span>
           </li>
         {% endfor %}
       </ul>
     </div>
     <div class="card-body">
       <div class="table-responsive mb-4">
-        <table class="table table-bordered table-striped table-hover">
-          <thead class="thead-dark">
+        <!-- Removed the Best Model column from the header -->
+        <table class="table table-bordered table-striped">
+          <thead>
             <tr>
               <th>Metric</th>
               {% for exp in selected_experiments %}
                 <th>{{ exp }}</th>
               {% endfor %}
-              <th>Best Model</th>
             </tr>
           </thead>
           <tbody>
+            {# For each metric row from comparison_data, highlight the best cell #}
             {% for metric, values in comparison_data.items() %}
+              {% set best_experiment = best_models[metric] %}
               <tr>
                 <td>{{ metric }}</td>
                 {% for exp in selected_experiments %}
-                  <td>{{ values.get(exp, 'N/A') }}</td>
+                  <td>
+                    {% if exp == best_experiment %}
+                      <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                        {{ values.get(exp, 'N/A') }}
+                      </span>
+                    {% else %}
+                      {{ values.get(exp, 'N/A') }}
+                    {% endif %}
+                  </td>
                 {% endfor %}
-                <td><strong>{{ best_models[metric] }}</strong></td>
               </tr>
             {% endfor %}
+            {% set ns = namespace(best_inference=None, best_inference_value=-1) %}
+            {% for exp in selected_experiments %}
+              {% set current = experiments_data[exp].best_metrics.inference_rate_images_per_sec | float | default(0.0) %}
+              {% if current > ns.best_inference_value %}
+                {% set ns.best_inference_value = current %}
+                {% set ns.best_inference = exp %}
+              {% endif %}
+            {% endfor %}
+            <tr>
+              <td>Inference Time</td>
+              {% for exp in selected_experiments %}
+                {% set value = experiments_data[exp].best_metrics.inference_rate_images_per_sec | default("N/A") %}
+                <td>
+                  {% if exp == ns.best_inference %}
+                    <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                      {{ value }} imgs/s
+                    </span>
+                  {% else %}
+                    {{ value }} imgs/s
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+
+            {# --- New row for Training Time --- #}
+            {# Compute the best experiment for Training Time (assuming lower is better) #}
+            {% set ns2 = namespace(best_training=None, best_training_value=None) %}
+            {% for exp in selected_experiments %}
+              {% set training_val = experiments_data[exp].best_metrics.training_time_formatted | float | default(9999999) %}
+              {% if ns2.best_training_value is none or training_val < ns2.best_training_value %}
+                {% set ns2.best_training_value = training_val %}
+                {% set ns2.best_training = exp %}
+              {% endif %}
+            {% endfor %}
+            <tr>
+              <td>Training Time</td>
+              {% for exp in selected_experiments %}
+                {% set value = experiments_data[exp].best_metrics.training_time_formatted | default("N/A") %}
+                <td>
+                  {% if exp == ns2.best_training %}
+                    <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                      {{ value }}
+                    </span>
+                  {% else %}
+                    {{ value }}
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
           </tbody>
         </table>
       </div>
-      
-      <!-- Best Model Summary Card -->
-      <div class="card mb-4">
-        <div class="card-header">
-          <h3 class="mb-0">Best Model Summary</h3>
-        </div>
-        <div class="card-body">
-          <ul class="list-group">
-            {% for metric, model in best_models.items() %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <span>{{ metric }}</span>
-              <span class="badge bg-success rounded-pill" style="font-size: 1rem; padding: 0.6em 0.9em;">
-                {{ model }} ({{ comparison_data[metric].get(model, 'N/A') }})
+    </div>
+  </div>
+
+  <!-- Detailed Comparison -->
+  <h2 class="mb-4">Detailed Experiment Information</h2>
+  <div class="row">
+    {% set col_width = 12 // selected_experiments|length %}
+    {% for exp in selected_experiments %}
+      <div class="col-md-{{ col_width }}">
+        <div class="card mb-4">
+          <div class="card-header text-center">
+            <h4>
+              <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                {{ exp }}
               </span>
-            </li>
-            {% endfor %}
-          </ul>
+            </h4>
+          </div>
+          <div class="card-body">
+            <!-- Performance Summary -->
+            {% if experiments_data[exp].best_metrics %}
+              {% set bm = experiments_data[exp].best_metrics %}
+              <h5>Performance Summary</h5>
+              <p>
+                <strong>Val Acc:</strong> {{ bm.best_metrics.val_acc | default("N/A") }}<br>
+                <strong>Val Recall:</strong> {{ bm.best_metrics.val_recall | default("N/A") }}<br>
+                <strong>Val F1:</strong> {{ bm.best_metrics.val_f1 | default("N/A") }}<br>
+                <strong>Val Precision:</strong> {{ bm.best_metrics.val_precision | default("N/A") }}<br>
+                <strong>Inference Time:</strong> {{ bm.inference_rate_images_per_sec | default("N/A") }} imgs/s<br>
+                <strong>Training Time:</strong> {{ bm.training_time_formatted | default("N/A") }}
+              </p>
+            {% else %}
+              <p>No performance summary available.</p>
+            {% endif %}
+
+            <!-- Hyperparameters -->
+            {% if experiments_data[exp].hyperparams %}
+              <h5>Hyperparameters</h5>
+              <p style="white-space: pre-wrap;">{{ experiments_data[exp].hyperparams }}</p>
+            {% endif %}
+
+            <!-- Visualizations -->
+            {% if experiments_data[exp].visualizations %}
+              <h5>Visualizations</h5>
+              {% if experiments_data[exp].visualizations.confusion_matrices %}
+                <p><strong>Confusion Matrix:</strong></p>
+                <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.confusion_matrices) }}"
+                     class="img-fluid" alt="Confusion Matrix for {{ exp }}">
+              {% endif %}
+              {% if experiments_data[exp].visualizations.roc_auc %}
+                <p><strong>ROC AUC Curve:</strong></p>
+                <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.roc_auc) }}"
+                     class="img-fluid" alt="ROC AUC Curve for {{ exp }}">
+              {% endif %}
+              {% if experiments_data[exp].visualizations.cooccurrence %}
+                <p><strong>Co-occurrence Matrix:</strong></p>
+                <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.cooccurrence) }}"
+                     class="img-fluid" alt="Co-occurrence Matrix for {{ exp }}">
+              {% endif %}
+            {% endif %}
+
+            <!-- TensorBoard Graphs -->
+            {% if experiments_data[exp].tensorboard_graphs and experiments_data[exp].tensorboard_graphs|length > 0 %}
+              <h5>TensorBoard Graphs</h5>
+              <ul class="list-unstyled">
+                {% for graph in experiments_data[exp].tensorboard_graphs %}
+                  <li>
+                    <a href="{{ url_for('experiment_file', experiment_name=exp, filename='results/tensorboard_graphs/' ~ graph) }}" target="_blank">
+                      {{ graph }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
         </div>
       </div>
-    </div>
-    <div class="card-footer text-end">
-      <a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
-    </div>
+    {% endfor %}
+  </div>
+
+  <div class="text-end">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
   </div>
 </div>
 {% endblock %}

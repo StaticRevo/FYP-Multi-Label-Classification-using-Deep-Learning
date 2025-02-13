@@ -14,7 +14,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
-from utils.file_utils import initialize_paths
+from utils.file_utils import initialize_paths, save_hyperparameters
 from utils.data_utils import get_dataset_info
 from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
@@ -71,6 +71,7 @@ def main():
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
+    # Get the model class
     model_class, filename = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
     model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights, main_path)
@@ -79,7 +80,6 @@ def main():
 
     logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
     logger.info(f"Model parameter device: {next(model.parameters()).device}")
-
     epoch_end_logger_callback = LogEpochEndCallback(logger)
 
     # Initialize callbacks
@@ -141,7 +141,6 @@ def main():
     trainer.fit(model, data_module)
     logger.info("Model training completed.")
 
-
     # Save Tensorboard graphs as images
     logger.info("Saving TensorBoard graphs as images...")
     output_dir = os.path.join(main_path, 'results', 'tensorboard_graphs')
@@ -172,6 +171,10 @@ def main():
     logger.info(f"Model Size: {best_metrics.get('model_size_MB', 'N/A'):.2f} MB")
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
     logger.info("Training completed successfully")
+
+    # Save hyperparameters
+    file_path = save_hyperparameters(ModelConfig, main_path)
+    logger.info(f"Hyperparameters saved to {file_path}")
 
     if test_variable == 'True':
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])

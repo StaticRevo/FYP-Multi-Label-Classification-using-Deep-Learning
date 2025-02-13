@@ -7,6 +7,7 @@ import time
 import pytorch_lightning as pl
 import torch
 
+# Callback to save the best metrics to a JSON file
 class BestMetricsCallback(pl.Callback):
     def __init__(self, metrics_to_track, save_path=None):
         super().__init__()
@@ -202,6 +203,7 @@ class BestMetricsCallback(pl.Callback):
 
         return inference_rate
 
+# Callback to log the start and end of each epoch
 class LogEpochEndCallback(pl.Callback):
     def __init__(self, logger):
         self.logger = logger

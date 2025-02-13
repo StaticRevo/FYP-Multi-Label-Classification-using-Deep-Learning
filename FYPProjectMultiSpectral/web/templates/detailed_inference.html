@@ -12,7 +12,8 @@
       <ul class="list-inline">
         {% for exp in selected_experiments %}
           <li class="list-inline-item">
-            <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+            <span class="badge {{ exp_color_map[exp] }} text-break" 
+                  style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
               {{ exp }}
             </span>
           </li>
@@ -21,18 +22,19 @@
     </div>
     <div class="card-body">
       <div class="table-responsive mb-4">
-        <!-- Removed the Best Model column from the header -->
         <table class="table table-bordered table-striped">
           <thead>
             <tr>
               <th>Metric</th>
               {% for exp in selected_experiments %}
-                <th>{{ exp }}</th>
+                <th class="text-break" style="overflow-wrap: anywhere; white-space: normal;">
+                  {{ exp }}
+                </th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
-            {# For each metric row from comparison_data, highlight the best cell #}
+            {# Loop through each metric row #}
             {% for metric, values in comparison_data.items() %}
               {% set best_experiment = best_models[metric] %}
               <tr>
@@ -40,7 +42,8 @@
                 {% for exp in selected_experiments %}
                   <td>
                     {% if exp == best_experiment %}
-                      <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                      <span class="badge {{ exp_color_map[exp] }} text-break" 
+                            style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
                         {{ values.get(exp, 'N/A') }}
                       </span>
                     {% else %}
@@ -64,7 +67,8 @@
                 {% set value = experiments_data[exp].best_metrics.inference_rate_images_per_sec | default("N/A") %}
                 <td>
                   {% if exp == ns.best_inference %}
-                    <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                    <span class="badge {{ exp_color_map[exp] }} text-break" 
+                          style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
                       {{ value }} imgs/s
                     </span>
                   {% else %}
@@ -74,8 +78,6 @@
               {% endfor %}
             </tr>
 
-            {# --- New row for Training Time --- #}
-            {# Compute the best experiment for Training Time (assuming lower is better) #}
             {% set ns2 = namespace(best_training=None, best_training_value=None) %}
             {% for exp in selected_experiments %}
               {% set training_val = experiments_data[exp].best_metrics.training_time_formatted | float | default(9999999) %}
@@ -90,7 +92,8 @@
                 {% set value = experiments_data[exp].best_metrics.training_time_formatted | default("N/A") %}
                 <td>
                   {% if exp == ns2.best_training %}
-                    <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+                    <span class="badge {{ exp_color_map[exp] }} text-break" 
+                          style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
                       {{ value }}
                     </span>
                   {% else %}
@@ -105,21 +108,38 @@
     </div>
   </div>
 
-  <!-- Detailed Comparison -->
+  <!-- Insights & Observations Section -->
+  {% if observations and observations|length > 0 %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2>Insights & Observations</h2>
+    </div>
+    <div class="card-body">
+      <ul class="list-unstyled">
+        {% for line in observations %}
+          <li class="mb-2">{{ line }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Detailed Experiment Information -->
   <h2 class="mb-4">Detailed Experiment Information</h2>
   <div class="row">
     {% set col_width = 12 // selected_experiments|length %}
     {% for exp in selected_experiments %}
-      <div class="col-md-{{ col_width }}">
+      <div class="col-md-{{ col_width }} text-break" style="overflow-wrap: anywhere; white-space: normal;">
         <div class="card mb-4">
           <div class="card-header text-center">
             <h4>
-              <span class="badge {{ exp_color_map[exp] }}" style="font-size: 0.8rem">
+              <span class="badge {{ exp_color_map[exp] }} text-break" 
+                    style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
                 {{ exp }}
               </span>
             </h4>
           </div>
-          <div class="card-body">
+          <div class="card-body text-break" style="overflow-wrap: anywhere; white-space: normal;">
             <!-- Performance Summary -->
             {% if experiments_data[exp].best_metrics %}
               {% set bm = experiments_data[exp].best_metrics %}
@@ -165,15 +185,14 @@
             <!-- TensorBoard Graphs -->
             {% if experiments_data[exp].tensorboard_graphs and experiments_data[exp].tensorboard_graphs|length > 0 %}
               <h5>TensorBoard Graphs</h5>
-              <ul class="list-unstyled">
+              <div class="d-flex flex-wrap gap-3">
                 {% for graph in experiments_data[exp].tensorboard_graphs %}
-                  <li>
-                    <a href="{{ url_for('experiment_file', experiment_name=exp, filename='results/tensorboard_graphs/' ~ graph) }}" target="_blank">
-                      {{ graph }}
-                    </a>
-                  </li>
+                  <div class="p-2">
+                    <img src="{{ url_for('experiment_file', experiment_name=exp, filename='results/tensorboard_graphs/' ~ graph) }}" 
+                         class="img-fluid" alt="TensorBoard Graph: {{ graph }}">
+                  </div>
                 {% endfor %}
-              </ul>
+              </div>
             {% endif %}
           </div>
         </div>

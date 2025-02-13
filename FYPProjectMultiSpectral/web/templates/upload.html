@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Upload Image{% endblock %}
+{% block title %}Upload Image(s) for Prediction{% endblock %}
 {% block content %}
-  <h1 class="mb-4">Upload a TIFF Image for Prediction</h1>
+  <h1 class="mb-4">Upload TIFF Image(s) for Prediction</h1>
+  <p>You can select a single image for a single prediction or multiple images for batch prediction.</p>
   <form method="post" enctype="multipart/form-data">
     <div class="mb-3">
-      <label for="formFile" class="form-label">Select Image File</label>
-      <input class="form-control" type="file" name="file" accept=".tif,.tiff" id="formFile" required>
+      <label for="formFiles" class="form-label">Select Image File(s)</label>
+      <input class="form-control" type="file" name="file" accept=".tif,.tiff" id="formFiles" multiple required>
     </div>
     <div class="mb-3">
       <label for="experimentSelect" class="form-label">Select Experiment</label>

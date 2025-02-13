@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Batch Prediction Result{% endblock %}
+{% block content %}
+  <h1 class="mb-4">Batch Prediction Result</h1>
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Filename</th>
+        <th>Predicted Labels</th>
+        <th>Actual Labels</th>
+        <th>RGB Visualization</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+      <tr>
+        <td>{{ result.filename }}</td>
+        <td>
+          <ul>
+            {% for pred in result.predictions %}
+              <li>{{ pred.label }}: {{ pred.probability | round(3) }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+        <td>
+          {% if result.actual_labels and result.actual_labels|length > 0 %}
+            <ul>
+              {% for label in result.actual_labels %}
+                <li>{{ label }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No actual labels available.</p>
+          {% endif %}
+        </td>
+        <td>
+          <img src="{{ result.rgb_url }}" alt="RGB Composite" style="width:150px; max-width:150px;">
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="{{ url_for('predict_page') }}" class="btn btn-secondary">Upload More Images</a>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
+{% endblock %}

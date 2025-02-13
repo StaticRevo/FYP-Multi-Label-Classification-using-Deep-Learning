@@ -4,40 +4,20 @@
   <h1 class="mb-4">Test a Network</h1>
   <form method="post">
     <div class="mb-3">
-      <label for="model_name" class="form-label">Model Name</label>
-      <select class="form-select" id="model_name" name="model_name" required>
-        {% for option in models %}
-          <option value="{{ option }}">{{ option }}</option>
+      <label for="experiment" class="form-label">Select Untested Experiment</label>
+      <select class="form-select" id="experiment" name="experiment" required>
+        {% for exp in untested_experiments %}
+          <option value="{{ exp }}">{{ exp }}</option>
         {% endfor %}
       </select>
     </div>
     <div class="mb-3">
-      <label for="weights" class="form-label">Weights</label>
-      <select class="form-select" id="weights" name="weights" required>
-        {% for opt in weights_options %}
-          <option value="{{ opt }}">{{ opt }}</option>
-        {% endfor %}
+      <label for="checkpoint_type" class="form-label">Checkpoint Type</label>
+      <select class="form-select" id="checkpoint_type" name="checkpoint_type" required>
+         <option value="last">Last</option>
+         <option value="best_acc">Best Accuracy</option>
+         <option value="best_loss">Best Loss</option>
       </select>
-    </div>
-    <div class="mb-3">
-      <label for="selected_bands" class="form-label">Band Combination</label>
-      <select class="form-select" id="selected_bands" name="selected_bands" required>
-        {% for opt in band_options %}
-          <option value="{{ opt }}">{{ opt }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="mb-3">
-      <label for="selected_dataset" class="form-label">Dataset Percentage</label>
-      <select class="form-select" id="selected_dataset" name="selected_dataset" required>
-        {% for opt in dataset_options %}
-          <option value="{{ opt }}">{{ opt }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="mb-3">
-      <label for="checkpoint_path" class="form-label">Checkpoint Path</label>
-      <input class="form-control" type="text" name="checkpoint_path" id="checkpoint_path" placeholder="Enter the full path to the checkpoint" required>
     </div>
     <button type="submit" class="btn btn-primary">Start Testing</button>
   </form>

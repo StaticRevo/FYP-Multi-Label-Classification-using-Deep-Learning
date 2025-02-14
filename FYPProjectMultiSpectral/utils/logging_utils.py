@@ -1,6 +1,7 @@
 import logging
 import os
 
+# Setup the logger
 def setup_logger(name=__name__, level=logging.INFO, log_dir="logs", file_name=None):
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, file_name)

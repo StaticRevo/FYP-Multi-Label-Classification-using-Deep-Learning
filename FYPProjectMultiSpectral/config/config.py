@@ -1,4 +1,4 @@
-# Configuration file for the project
+# -- Configuration file for the project --
 
 # Standard library imports
 from dataclasses import dataclass, field
@@ -11,7 +11,7 @@ import torch.nn as nn
 # Local application imports
 from .config_utils import *
 
-# Dataclass for the dataset configuration
+# -- Dataset Configuration --
 @dataclass
 class DatasetConfig:
     metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\100%_BigEarthNet\\metadata_100_percent.csv"
@@ -84,18 +84,18 @@ class DatasetConfig:
         }
     }
 
-# Dataclass for the model configuration
+# -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 2
+    num_epochs: int = 10
     batch_size: int = 128
     num_workers: int = 8
-    learning_rate: float = 0.0001
-    momentum: float = 0.9
-    weight_decay: float = 1e-4
+    learning_rate: float = 0.001
     lr_step_size: int = 7
     lr_factor: float = 0.1
     lr_patience: int = 5
+    momentum: float = 0.9
+    weight_decay: float = 1e-4
     patience: int = 5
     dropout: float = 0.5
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
@@ -127,7 +127,7 @@ class ModelConfig:
         'vit_transformer': 'layers[-1].attention'
     }
        
-# Dataclass for the module configuration
+# -- Module Configuration --
 @dataclass
 class ModuleConfig:
     reduction: int = 16

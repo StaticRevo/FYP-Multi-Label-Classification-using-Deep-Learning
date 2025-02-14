@@ -4,6 +4,7 @@ import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import pandas as pd
+import os
 
 # Local application imports
 from utils.data_utils import extract_number
@@ -107,10 +108,13 @@ def main():
         print("Error: A checkpoint file must be selected.")
         sys.exit(1)
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    tester_script = os.path.join(script_dir, 'tester.py')
+
     # Prepare the arguments for the subprocess.
     args = [
         'python', 
-        '../FYPProjectMultiSpectral/tester.py',
+        tester_script,
         model_name, 
         weights, 
         selected_dataset, 

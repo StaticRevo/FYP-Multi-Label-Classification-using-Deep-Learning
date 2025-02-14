@@ -59,7 +59,7 @@ class GradCAM:
 
         return cam, target_class
 
-# Function to overlay the heatmap on the image
+# Overlay the heatmap on the image
 def overlay_heatmap(img, heatmap, alpha=0.5, colormap='jet'):
     heatmap = np.uint8(255 * heatmap)
     heatmap = Image.fromarray(heatmap).resize(img.size, Image.LANCZOS)

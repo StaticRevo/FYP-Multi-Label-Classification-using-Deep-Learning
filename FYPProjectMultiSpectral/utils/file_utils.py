@@ -16,7 +16,7 @@ import pandas as pd
 from config.config import DatasetConfig, ModelConfig
 from models.models import *
 
-# Function to initialize paths for saving results
+# Initialize path for saving results
 def initialize_paths(model_name, weights, selected_bands, selected_dataset, epochs):
     experiment_path = DatasetConfig.experiment_path
     main_path = os.path.join(experiment_path, f"{model_name}_{weights}_{selected_bands}_{selected_dataset}_{epochs}epochs")
@@ -31,6 +31,7 @@ def initialize_paths(model_name, weights, selected_bands, selected_dataset, epoc
         os.makedirs(main_path)
     return main_path
 
+# Save the hyperparameters of the model
 def save_hyperparameters(model_config, experiment_main_path):
     # Ensure the experiment directory exists
     os.makedirs(experiment_main_path, exist_ok=True)

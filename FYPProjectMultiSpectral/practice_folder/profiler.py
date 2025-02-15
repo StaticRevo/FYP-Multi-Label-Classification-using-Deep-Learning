@@ -3,38 +3,15 @@ import pandas as pd
 from dataloader import BigEarthNetDataLoader
 from config.config import DatasetConfig, ModelConfig
 import os
+from utils.data_utils import extract_number
 
-def main():
-    bands = DatasetConfig.all_bands
-    dataset_dir = DatasetConfig.dataset_paths["0.5"]
-    metadata_path = DatasetConfig.metadata_paths["0.5"]
+selected = '0.5%_BigEarthNet'
+num = extract_number(selected)
 
-    # Read CSV into a DataFrame
-    metadata_df = pd.read_csv(metadata_path)
+main_path = r'C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet'
+print("Main Path:", main_path)
 
-    # Now pass the DataFrame instead of a string path
-    data_module = BigEarthNetDataLoader(
-        bands=bands,
-        dataset_dir=dataset_dir,
-        metadata_csv=metadata_df
-    )
-
-    data_module.setup(stage='test')
-
-    # Now profile the data loading
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    for i, batch in enumerate(data_module.train_dataloader()):
-        if i == 10:
-            break
-
-    profiler.disable()
-    s = io.StringIO()
-    sortby = 'cumulative'
-    ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
-    ps.print_stats()
-    print(s.getvalue())
-
-if __name__ == '__main__':
-    main()
+# Create the cache file name using an f-string.
+cache_file = f"{num}%_sample_weights.npy"
+cache_path = os.path.join(main_path, cache_file)
+print("Cache Path:", cache_path)

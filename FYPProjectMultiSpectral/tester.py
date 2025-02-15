@@ -12,6 +12,7 @@ import pytorch_lightning as pl
 from config.config import DatasetConfig, ModelConfig
 from callbacks import BestMetricsCallback
 from dataloader import BigEarthNetDataLoader
+from utils.data_utils import extract_number
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
 from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations, get_sigmoid_outputs
@@ -41,6 +42,10 @@ def main():
     print(f"Main path: {main_path}")
     result_path = os.path.join(main_path, "results")
     print(f"Result Path: {result_path}")
+    
+    dataset_num = extract_number(selected_dataset)
+    cache_file = f"{dataset_num}%_sample_weights.npy"
+    cache_path = os.path.join(main_path, cache_file)
 
     # Initialize the log directories
     testing_log_path = os.path.join(main_path, 'logs', 'testing_logs')
@@ -52,7 +57,7 @@ def main():
     model.eval()
     register_hooks(model)
 
-    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
+    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv, cache_path=cache_path)
     data_module.setup(stage='test')
 
     class_labels = DatasetConfig.class_labels

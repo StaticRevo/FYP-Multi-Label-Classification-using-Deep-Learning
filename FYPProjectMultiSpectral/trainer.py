@@ -15,7 +15,7 @@ from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
 from utils.file_utils import initialize_paths, save_hyperparameters
-from utils.data_utils import get_dataset_info
+from utils.data_utils import get_dataset_info, extract_number
 from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
 from utils.logging_utils import setup_logger
@@ -39,6 +39,10 @@ def main():
         main_path = sys.argv[6]
     else:
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
+
+    dataset_num = extract_number(selected_dataset)
+    cache_file = f"{dataset_num}%_sample_weights.npy"
+    cache_path = os.path.join(main_path, cache_file)
 
     # Initialize the log directories
     log_dir = os.path.join(main_path, 'logs')
@@ -68,7 +72,7 @@ def main():
     class_weights = class_weights_array
 
     # Initialize the data module
-    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
+    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv, cache_path=cache_path)
     data_module.setup(stage=None)
 
     # Get the model class

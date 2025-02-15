@@ -2,15 +2,20 @@
 import os
 import random
 import shutil
+import ast
 
 # Third-party imports
 import requests
 import zstandard as zstd
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from pathlib import Path
+from torch.utils.data import WeightedRandomSampler
+from utils.label_utils import encode_label
+from config.config_utils import clean_and_parse_labels
 
 # Download and extract the BigEarthNet dataset
 def downloadAndExtractDataset(dataset_dir):
@@ -285,4 +290,58 @@ def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
                 if os.path.exists(source_file_path):
                     shutil.move(source_file_path, target_file_path)
                     pbar.update(1)
-        
+
+# Precompute sample weights for a dataset based on label frequencies
+def precompute_sample_weights(metadata_csv, num_classes, label_column="labels", cache_path="subset_sample_weights.npy"):
+    # Check if cached weights exist; if so, load and print a message.
+    if os.path.exists(cache_path):
+        cached_weights = np.load(cache_path)
+        return cached_weights
+
+    # Clean and parse the labels for each row.
+    metadata_csv.loc[:, label_column] = metadata_csv[label_column].apply(clean_and_parse_labels)
+    print(metadata_csv[label_column].head())
+
+    # Initialize an array to count the occurrences of each class.
+    label_counts = np.zeros(num_classes, dtype=np.float32)
+
+    # Count occurrences of each class across all samples.
+    for idx, row in metadata_csv.iterrows():
+        label_list = row[label_column]
+        encoded_labels = encode_label(label_list)  # Convert label names to multi-hot encoding
+        label_counts += np.array(encoded_labels, dtype=np.float32)  # Count occurrences of each class
+
+    total_rows = len(metadata_csv)
+    weights = []
+
+    # Compute a weight for each sample based on the inverse frequency of its labels.
+    for idx, row in metadata_csv.iterrows():
+        label_list = row[label_column]
+        encoded_labels = encode_label(label_list)  # Convert to multi-hot encoding
+
+        pos_indices = np.where(np.array(encoded_labels, dtype=np.float32) == 1)[0]
+        if len(pos_indices) == 0:
+            weight = 1.0  
+        else:
+            inv_freqs = [1.0 / label_counts[i] for i in pos_indices]
+            weight = np.mean(inv_freqs)
+
+        weights.append(weight)
+
+
+    sample_weights = np.array(weights, dtype=np.float32)
+    np.save(cache_path, sample_weights)
+
+    return sample_weights
+
+# Create a weighted sampler for a dataset based on precomputed sample weights
+def create_weighted_sampler_from_csv(metadata_csv, num_classes, label_column="labels", cache_path="subset_sample_weights.npy"):
+    sample_weights = precompute_sample_weights(metadata_csv, num_classes, label_column, cache_path)
+    sampler = WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+    return sampler
+
+

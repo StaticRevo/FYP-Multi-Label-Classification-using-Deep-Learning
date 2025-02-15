@@ -84,9 +84,9 @@ def main():
 
     # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
-    checkpoint_callback_loss = ModelCheckpoint(
+    checkpoint_callback_loss = ModelCheckpoint( # Checkpoint callback for val_loss
         dirpath=checkpoint_dir,
-        filename=f'{{epoch:02d}}-{{val_loss:.2f}}',
+        filename='best_loss',
         save_top_k=1,
         verbose=False,
         monitor='val_loss',
@@ -94,7 +94,7 @@ def main():
     )
     checkpoint_callback_acc = ModelCheckpoint( # Checkpoint callback for val_acc
         dirpath=checkpoint_dir,
-        filename=f'{{epoch:02d}}-{{val_acc:.2f}}',
+        filename='best_acc',
         save_top_k=1,
         verbose=False,
         monitor='val_acc',
@@ -102,7 +102,7 @@ def main():
     )
     final_checkpoint = ModelCheckpoint( # Checkpoint callback for final model
         dirpath=checkpoint_dir,
-        filename=f'final',
+        filename='final',
         save_last=True
     )
     early_stopping = EarlyStopping( # Early stopping callback

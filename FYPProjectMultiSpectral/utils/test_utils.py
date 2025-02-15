@@ -92,6 +92,10 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
+    elif model_name == 'CustomModel':
+        target_layer = model.model[25]
+    elif model_name == 'DenstNet121':
+        target_layer = model.model.features.norm5
 
     grad_cam = GradCAM(model, target_layer)
 

@@ -26,6 +26,7 @@ import numpy as np
 from config.config import ModelConfig, DatasetConfig
 from models.modules import *
 from .Metrics.one_error import OneError
+from models.losses import CombinedFocalLossWithPosWeight
 
 # Base model class for all models
 device = ModelConfig.device
@@ -40,8 +41,9 @@ class BaseModel(pl.LightningModule):
         self.class_labels = DatasetConfig.class_labels  
         self.metrics_save_dir = metrics_save_dir
 
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
-
+        self.criterion = CombinedFocalLossWithPosWeight(self.class_weights, alpha=0.25, gamma=2.0, reduction='mean')
+        #self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
+        
         # Aggregate Metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)

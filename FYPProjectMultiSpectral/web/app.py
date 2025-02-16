@@ -24,6 +24,8 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
+from io import BytesIO
 
 # Local application imports
 from utils.model_utils import get_model_class
@@ -73,9 +75,7 @@ def load_model_from_experiment(experiment_name):
     # Parse the experiment folder name to extract model details.
     parsed = parse_experiment_folder(experiment_name)
     model_name = parsed["model"]
-    
-    # Set in_channels as needed (here we use 12 by default; adjust if necessary)
-    in_channels = 12  
+    in_channels = 12  # Default to 12 channels
     
     main_path = os.path.dirname(checkpoint_path)
     model_class, _ = get_model_class(model_name)
@@ -169,8 +169,10 @@ def predict_image_for_model(model, image_tensor):
             predictions.append({"label": label, "probability": prob})
     return predictions
 
-def generate_gradcam_for_single_image(model, input_tensor, model_name, label=None, in_channels=None):
-    # Determine the target layer for Grad-CAM based on model_name
+def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
+    gradcam_results = {}
+
+    # Determine target layer based on model_name
     if model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
     elif model_name == 'ResNet50':
@@ -192,13 +194,57 @@ def generate_gradcam_for_single_image(model, input_tensor, model_name, label=Non
     elif model_name == 'DenstNet121':
         target_layer = model.model.features.norm5
     else:
-        for m in model.modules():
-            if isinstance(m, torch.nn.Conv2d):
-                target_layer = m
-                break
+        print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
+        return gradcam_results
 
-    return None
+    # Ensure img_tensor is batched
+    if img_tensor.dim() == 3:
+        input_tensor = img_tensor.unsqueeze(0).to(model.device)  # (1, C, H, W)
+    elif img_tensor.dim() == 4:
+        input_tensor = img_tensor.to(model.device)
+    else:
+        raise ValueError(f"img_tensor must be 3D or 4D, got {img_tensor.dim()}D.")
 
+    # If predicted_indices are not provided, compute them with a 0.5 threshold.
+    if predicted_indices is None:
+        output = model(input_tensor)  # (1, num_classes)
+        threshold = 0.5
+        predicted_indices = torch.where(output[0] > threshold)[0].tolist()
+
+    # For each predicted class, compute a GradCAM heatmap.
+    heatmaps = {}
+    for idx in predicted_indices:
+        grad_cam = GradCAM(model, target_layer)
+        input_clone = input_tensor.clone()
+        model.zero_grad()
+        _ = model(input_clone)  # (Optional: re-run forward pass)
+        cam, _ = grad_cam.generate_heatmap(input_clone, target_class=idx)
+        # Debug: print norm to ensure there's a signal
+        heatmap_norm = np.linalg.norm(cam)
+        heatmaps[class_labels[idx]] = cam
+
+    # Convert input tensor to a PIL image for visualization.
+    img = input_tensor.squeeze()  # Remove batch dimension
+    rgb_channels = [3, 2, 1] if in_channels == 12 else [2, 1, 0]
+    img = img[rgb_channels, :, :]
+
+    # Normalize each channel.
+    img_cpu = img.detach().cpu().numpy()
+    red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+    green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
+    blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
+    rgb_image = np.stack([red, green, blue], axis=-1)
+    base_img = Image.fromarray((rgb_image * 255).astype(np.uint8))
+
+    # Save each overlay to disk and record its URL.
+    for class_name, heatmap in heatmaps.items():
+        overlay = overlay_heatmap(base_img, heatmap, alpha=0.5)
+        filename = f"gradcam_{model.__class__.__name__}_{class_name}.png"
+        out_path = os.path.join(STATIC_FOLDER, filename)
+        overlay.save(out_path)
+        gradcam_results[class_name] = url_for('static', filename=filename)
+
+    return gradcam_results
 
 def fetch_actual_labels(patch_id):
     import ast
@@ -254,6 +300,37 @@ def parse_experiment_folder(folder_name):
             weights = ""
             bands = "_".join(remaining[1:])
     return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
+
+def save_tensor_as_image(tensor, in_channels=12):
+    """
+    Converts a (C, H, W) tensor to a normalized RGB image, saves to static folder,
+    and returns the URL.
+    """
+    # If the tensor has a batch dimension, remove it
+    if tensor.dim() == 4:
+        tensor = tensor.squeeze(0)
+
+    # Choose channels
+    if in_channels == 12:
+        rgb_channels = [3, 2, 1]
+    else:
+        rgb_channels = [2, 1, 0]
+
+    tensor = tensor[rgb_channels, :, :]
+
+    # Normalize each channel [0..1]
+    arr = tensor.detach().cpu().numpy()
+    red = (arr[0] - arr[0].min()) / (arr[0].max() - arr[0].min() + 1e-8)
+    green = (arr[1] - arr[1].min()) / (arr[1].max() - arr[1].min() + 1e-8)
+    blue = (arr[2] - arr[2].min()) / (arr[2].max() - arr[2].min() + 1e-8)
+    rgb = np.stack([red, green, blue], axis=-1)
+    pil_img = Image.fromarray((rgb * 255).astype(np.uint8))
+
+    # Save to static folder
+    filename = f"original_img_{uuid.uuid4().hex}.png"
+    out_path = os.path.join(STATIC_FOLDER, filename)
+    pil_img.save(out_path)
+    return url_for('static', filename=filename)
 
 # -- Routes --
 # -- Home Page --
@@ -447,18 +524,31 @@ def predict_page():
             return redirect(request.url)
         
         if len(files) == 1:
-            file = files[0] # Single image prediction 
+            file = files[0]  # Single image prediction 
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
-            
+    
             rgb_url = create_rgb_visualization(file_path)
             input_tensor = preprocess_tiff_image(file_path)
-            
+    
             model_instance = load_model_from_experiment(selected_experiment)
+            # Ensure the input tensor is on the same device as the model
+            input_tensor = input_tensor.to(next(model_instance.parameters()).device)
+    
             preds = predict_image_for_model(model_instance, input_tensor)
-            gradcam = generate_gradcam_for_single_image(model_instance, input_tensor, selected_experiment)
-            
+            print("Model Instance Loaded: ", model_instance)
+            with torch.no_grad():
+                output = model_instance(input_tensor)
+                probs = torch.sigmoid(output).squeeze().cpu().numpy()
+            predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
+            gradcam = generate_gradcam_for_single_image(
+                model_instance, input_tensor,
+                class_labels=DatasetConfig.class_labels,
+                model_name='custom_model',
+                in_channels=12,
+                predicted_indices=predicted_indices
+            )
             patch_id = os.path.splitext(filename)[0] # Fetch actual labels from metadata 
             actual_labels = fetch_actual_labels(patch_id)
             
@@ -496,7 +586,7 @@ def predict_page():
                         "rgb_url": rgb_url,
                         "actual_labels": actual_labels
                     })
-            return render_template("batch_result.html", results=results_list)
+            return render_template("batch_result.html", results=results_list, selected_experiment=selected_experiment)
     else:
         experiments = []
         if os.path.exists(EXPERIMENTS_DIR):
@@ -505,6 +595,52 @@ def predict_page():
                 if os.path.isdir(full_path):
                     experiments.append(d)
         return render_template('upload.html', experiments=experiments)
+
+# --- Batch GradCAM Page ---
+@app.route("/batch_gradcam")
+def batch_gradcam():
+    filename = request.args.get("filename")
+    experiment = request.args.get("experiment")
+
+    if not filename or not experiment:
+        return "Missing filename or experiment parameter", 400
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return f"File {filename} not found in uploads folder.", 404
+
+    model_instance = load_model_from_experiment(experiment)
+    input_tensor = preprocess_tiff_image(file_path)
+    input_tensor = input_tensor.to(next(model_instance.parameters()).device)
+
+    with torch.no_grad():
+        output = model_instance(input_tensor)
+        probs = torch.sigmoid(output).squeeze().cpu().numpy()
+    predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
+
+    gradcam_results = generate_gradcam_for_single_image(
+        model=model_instance,
+        img_tensor=input_tensor,
+        class_labels=DatasetConfig.class_labels,
+        model_name='custom_model',
+        in_channels=12,
+        predicted_indices=predicted_indices
+    )
+
+    patch_id = os.path.splitext(filename)[0]
+    actual_labels = fetch_actual_labels(patch_id)
+
+    # (NEW) Save the original image used in GradCAM to disk for display
+    original_img_url = save_tensor_as_image(input_tensor.squeeze(), in_channels=12)
+
+    return render_template(
+        "batch_gradcam_result.html",
+        filename=filename,
+        experiment=experiment,
+        gradcam=gradcam_results,
+        actual_labels=actual_labels,
+        original_img_url=original_img_url  # pass it to the template
+    )
 
 @app.route("/experiments")
 def experiments_overview():

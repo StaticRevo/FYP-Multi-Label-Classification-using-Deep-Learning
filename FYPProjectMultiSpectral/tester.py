@@ -15,10 +15,11 @@ from dataloader import BigEarthNetDataLoader
 from utils.data_utils import extract_number
 from utils.setup_utils import set_random_seeds
 from utils.model_utils import get_model_class
-from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations, get_sigmoid_outputs
+from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations, get_sigmoid_outputs, generate_gradcam_for_single_image
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from utils.logging_utils import setup_logger
 from models.models import *
+from transformations.transforms import TransformsConfig
 
 # Testing the model
 def main():
@@ -136,6 +137,18 @@ def main():
         model_name=model_name,
         result_path=result_path,
         in_channels=in_channels,
+        logger = logger
+    )
+    tiff_file_path = r'C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\CombinedImages\S2A_MSIL2A_20170613T101031_N9999_R022_T33UUP_30_54.tif'
+    generate_gradcam_for_single_image(
+        model=model,
+        tiff_file_path=tiff_file_path, 
+        class_labels=class_labels, 
+        model_name=model_name, 
+        result_path=result_path, 
+        in_channels=in_channels, 
+        transforms=TransformsConfig.test_transforms, 
+        normalisations=TransformsConfig.normalisations,
         logger = logger
     )
     logger.info("Grad-CAM visualizations generated.")

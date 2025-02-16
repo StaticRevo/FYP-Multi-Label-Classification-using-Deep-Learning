@@ -178,6 +178,106 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
 
         logger.info(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
 
+def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model_name, result_path, in_channels, transforms, normalisations, logger):
+    gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
+    os.makedirs(gradcam_save_dir, exist_ok=True)
+
+    if model_name == 'ResNet18':
+        target_layer = model.model.layer3[-1].conv2
+    elif model_name == 'ResNet50':
+        target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'VGG16':
+        target_layer = model.model.features[28]
+    elif model_name == 'VGG19':
+        target_layer = model.model.features[34]
+    elif model_name == 'EfficientNetB0':
+        target_layer = model.model.features[8][0]
+    elif model_name == 'EfficientNet_v2':
+        target_layer = model.modelfeatures[7][4].block[3]
+    elif model_name == 'Swin-Transformer':
+        target_layer = model.model.stages[3].blocks[-1].norm1
+    elif model_name == 'Vit-Transformer':
+        target_layer = model.model.layers[-1].attention
+    elif model_name == 'custom_model':
+        target_layer = model.model[25]
+    elif model_name == 'DenstNet121':
+        target_layer = model.model.features.norm5
+    else:
+        logger.warning(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
+        return
+
+    grad_cam = GradCAM(model, target_layer)
+
+    with rasterio.open(tiff_file_path) as src:
+        image = src.read()
+
+    image = torch.tensor(image, dtype=torch.float32)
+    image = transforms(image)
+    img_tensor = normalisations(image)
+
+    input_tensor = img_tensor.unsqueeze(0).to(model.device)
+    output = model(input_tensor)  # Forward pass to get predictions
+    threshold = 0.5
+    target_classes = torch.where(output[0] > threshold)[0].tolist()  # Get relevant classes
+    predicted_labels = [class_labels[i] for i in target_classes]
+
+    heatmaps = {}  # Generate heatmaps for each relevant class
+    for target_class in target_classes:
+        cam, _ = grad_cam.generate_heatmap(input_tensor, target_class=target_class)
+        heatmaps[class_labels[target_class]] = cam
+
+    # Convert the input tensor to a PIL image for visualization
+    img = input_tensor.squeeze()  # Remove batch dimension
+    if in_channels == 12:
+        rgb_channels = [3, 2, 1]
+    else:
+        rgb_channels = [2, 1, 0]
+    img = img[rgb_channels, :, :]
+
+    # Normalize each channel for visualization
+    img_cpu = img.detach().cpu().numpy()
+    red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+    green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
+    blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
+    rgb_image = np.stack([red, green, blue], axis=-1)  # Stack into an RGB image
+    img = Image.fromarray((rgb_image * 255).astype(np.uint8))  # Convert to PIL Image
+
+    # Save Grad-CAM visualizations for each class
+    for class_name, heatmap in heatmaps.items():  # Display and save heatmaps for each class
+        overlay = overlay_heatmap(img, heatmap, alpha=0.5)  # Overlay heatmap on image
+
+        plt.figure(figsize=(15, 5))  # Plot the results
+        plt.subplot(1, 3, 1)  # Original Image
+        plt.title('Original Image')
+        plt.imshow(img)
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)  # Grad-CAM Heatmap
+        plt.title(f'Heatmap for Class: {class_name}')
+        plt.imshow(heatmap, cmap='jet')
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)  # Overlayed Heatmap
+        plt.title(f'Overlay for Class: {class_name}')
+        plt.imshow(overlay)
+        plt.axis('off')
+
+        plt.suptitle(f'Class: {class_name}', fontsize=16)  # Save and display the visualization
+        plt.tight_layout()
+        plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_single_{class_name}.png'))
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.title('Original Image', fontsize=14)
+    # Add text annotations for predicted labels and TIFF file name.
+    plt.figtext(0.5, 0.01, f'TIFF: {os.path.basename(tiff_file_path)} | Predicted: {predicted_labels}', wrap=True, horizontalalignment='center', fontsize=12)
+    rgb_save_path = os.path.join(gradcam_save_dir, 'gradcam_rgb_single.png')
+    plt.savefig(rgb_save_path, bbox_inches='tight')
+    plt.close()
+
+    logger.info(f"Grad-CAM visualizations saved to {gradcam_save_dir}')")
+
 # Plot ROC-AUC curve
 def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None):
     logger.info("Plotting ROC-AUC curve...")

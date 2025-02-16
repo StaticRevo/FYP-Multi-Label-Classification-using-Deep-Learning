@@ -87,38 +87,52 @@
     
   </div>
   
-  <!-- GradCAM Visualizations -->
-  <div class="card mb-4">
-    <div class="card-body">
-      <h5 class="card-title">GradCAM Visualizations</h5>
-      {% if gradcam %}
-        <div class="gradcam-container" style="display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 15px; padding: 10px;">
-          {% if multiple_models %}
-            {% for model_name, model_gradcam in gradcam.items() %}
-              <div class="model-gradcam" style="min-width: 300px;">
-                <h6>{{ model_name }}</h6>
-                {% for class_label, gradcam_url in model_gradcam.items() %}
-                  <div class="gradcam-item" style="text-align: center; margin-right: 15px;">
-                    <p>{{ class_label }}</p>
-                    <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
-                  </div>
-                {% endfor %}
+ <!-- GradCAM Visualizations -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">GradCAM Visualizations</h5>
+    {% if gradcam %}
+      <!-- Use a Bootstrap row/column layout for the images -->
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+        {% if multiple_models %}
+          {% for model_name, model_gradcam in gradcam.items() %}
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header">
+                  <strong>{{ model_name }}</strong>
+                </div>
+                <div class="card-body">
+                  {% for class_label, gradcam_url in model_gradcam.items() %}
+                    <div class="mb-3 text-center">
+                      <h6>{{ class_label }}</h6>
+                      <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" class="img-fluid">
+                    </div>
+                  {% endfor %}
+                </div>
               </div>
-            {% endfor %}
-          {% else %}
-            {% for class_label, gradcam_url in gradcam.items() %}
-              <div class="gradcam-item" style="text-align: center; margin-right: 15px;">
-                <p>{{ class_label }}</p>
-                <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" style="max-width:300px;">
+            </div>
+          {% endfor %}
+        {% else %}
+          {% for class_label, gradcam_url in gradcam.items() %}
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header text-center">
+                  <strong>{{ class_label }}</strong>
+                </div>
+                <div class="card-body text-center">
+                  <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" class="img-fluid">
+                </div>
               </div>
-            {% endfor %}
-          {% endif %}
-        </div>
-      {% else %}
-        <p>No GradCAM visualizations generated.</p>
-      {% endif %}
-    </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% else %}
+      <p>No GradCAM visualizations generated.</p>
+    {% endif %}
   </div>
+</div>
+
   
   <div class="mt-4">
     <a href="{{ url_for('predict_page') }}" class="btn btn-secondary">Upload Another Image</a>

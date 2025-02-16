@@ -31,7 +31,8 @@ from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from utils.file_utils import initialize_paths
 from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap 
-from utils.data_utils import extract_number
+from utils.data_utils import extract_number, get_band_indices
+from transformations.transforms import TransformsConfig, BandNormalisation
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
@@ -107,29 +108,30 @@ def load_experiment_metrics(experiment_name):
             metrics = {"error": f"Error loading metrics: {e}"}
     return metrics
 
-def preprocess_tiff_image(file_path, selected_bands=None):
-    with rasterio.open(file_path) as src:
-        image = src.read()
-    if selected_bands is None:
-        selected_bands = list(range(image.shape[0]))
-    image = image[selected_bands, :, :]
-    image_tensor = torch.tensor(image, dtype=torch.float32)
-    for i in range(image_tensor.shape[0]):
-        band = image_tensor[i]
-        image_tensor[i] = (band - band.min()) / (band.max() - band.min() + 1e-8)
-    if image_tensor.shape[0] > 4:
-        image_tensor = image_tensor.unsqueeze(0)
-        image_tensor = F.interpolate(image_tensor, size=(224, 224), mode='bilinear', align_corners=False)
-        return image_tensor
-    else:
-        preprocess_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-        ])
-        image_tensor = preprocess_transform(image_tensor)
-        image_tensor = image_tensor.unsqueeze(0)
-        return image_tensor
+def preprocess_tiff_image(file_path, selected_bands=DatasetConfig.all_bands):
+    transforms_pipeline = TransformsConfig.test_transforms
+    normalisation = TransformsConfig.normalisations
+    selected_band_indices = get_band_indices(selected_bands, DatasetConfig.all_bands)
+    
+    try:
+        with rasterio.open(file_path) as src:
+            image = src.read()  # Shape: (channels, height, width)
+            image = image[selected_band_indices, :, :]  # Select only the desired bands
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}. Returning a zero tensor.")
+        image = torch.zeros((len(selected_band_indices), DatasetConfig.image_height, DatasetConfig.image_width), dtype=torch.float32)
+        return image.unsqueeze(0)
+    
+    image = torch.tensor(image, dtype=torch.float32)
+    
+    # Apply the transforms and normalisation 
+    image = transforms_pipeline(image)
+    image = normalisation(image)
+    
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+        
+    return image
 
 def create_rgb_visualization(file_path, selected_bands=None):
     with rasterio.open(file_path) as src:
@@ -167,7 +169,8 @@ def predict_image_for_model(model, image_tensor):
             predictions.append({"label": label, "probability": prob})
     return predictions
 
-def generate_gradcam_for_single_image(model, input_tensor, model_name):
+def generate_gradcam_for_single_image(model, input_tensor, model_name, label=None, in_channels=None):
+    # Determine the target layer for Grad-CAM based on model_name
     if model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
     elif model_name == 'ResNet50':
@@ -194,39 +197,8 @@ def generate_gradcam_for_single_image(model, input_tensor, model_name):
                 target_layer = m
                 break
 
-    grad_cam = GradCAM(model, target_layer)
-    device = next(model.parameters()).device
-    input_tensor = input_tensor.to(device)
-    model.eval()
-    with torch.no_grad():
-        output = model(input_tensor)
-    probs = torch.sigmoid(output).squeeze().cpu().numpy()
-    
-    img_tensor = input_tensor[0].detach().cpu()
-    if img_tensor.shape[0] >= 4:
-        rgb_tensor = img_tensor[[3, 2, 1], :, :]
-    else:
-        rgb_tensor = img_tensor[:3]
+    return None
 
-    rgb_np = rgb_tensor.numpy()
-    red   = (rgb_np[0] - rgb_np[0].min()) / (rgb_np[0].max() - rgb_np[0].min() + 1e-8)
-    green = (rgb_np[1] - rgb_np[1].min()) / (rgb_np[1].max() - rgb_np[1].min() + 1e-8)
-    blue  = (rgb_np[2] - rgb_np[2].min()) / (rgb_np[2].max() - rgb_np[2].min() + 1e-8)
-    rgb_image = np.stack([red, green, blue], axis=-1)
-    base_img = Image.fromarray((rgb_image * 255).astype(np.uint8))
-
-    gradcam_results = {}
-    threshold = 0.5
-    for idx, prob in enumerate(probs):
-        if prob > threshold:
-            cam, _ = grad_cam.generate_heatmap(input_tensor, target_class=idx)
-            overlay_img = overlay_heatmap(base_img, cam, alpha=0.5)
-            filename = f"gradcam_{model_name}_{idx}.png"
-            out_path = os.path.join(STATIC_FOLDER, filename)
-            overlay_img.save(out_path)
-            class_label = DatasetConfig.reversed_class_labels_dict.get(idx, f"Class_{idx}")
-            gradcam_results[class_label] = url_for('static', filename=filename)
-    return gradcam_results
 
 def fetch_actual_labels(patch_id):
     import ast

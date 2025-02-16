@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import datetime
 
 # Third-party imports
 import torch
@@ -72,7 +73,7 @@ def main():
     class_weights = class_weights_array
 
     # Initialize the data module
-    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv, cache_path=cache_path)
+    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage=None)
 
     # Get the model class

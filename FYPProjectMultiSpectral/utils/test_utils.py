@@ -92,10 +92,13 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
-    elif model_name == 'CustomModel':
+    elif model_name == 'custom_model':
         target_layer = model.model[25]
     elif model_name == 'DenstNet121':
         target_layer = model.model.features.norm5
+    else:
+        logger.warning(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
+        return
 
     grad_cam = GradCAM(model, target_layer)
 
@@ -113,9 +116,10 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         input_image = img_tensor.unsqueeze(0).to(model.device)  
 
         output = model(input_image) # Forward pass to get predictions
-
         threshold = 0.5   
         target_classes = torch.where(output[0] > threshold)[0].tolist() # Get relevant classes
+        predicted_labels = [class_labels[i] for i in target_classes]
+        actual_labels = [class_labels[i] for i, val in enumerate(label) if val == 1 or val > 0.5]
 
         heatmaps = {} # Generate heatmaps for each relevant class
         for target_class in target_classes:
@@ -128,17 +132,17 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             rgb_channels = [3, 2, 1]  
         else:
             rgb_channels = [2, 1, 0]
-     
         img = img[rgb_channels, :, :] 
         
-        img_cpu = img.detach().cpu().numpy() # Normalize each channel
+        # Normalize each channel for visualization
+        img_cpu = img.detach().cpu().numpy() 
         red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
         green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
         blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
-
         rgb_image = np.stack([red, green, blue], axis=-1) # Stack into an RGB image
         img = Image.fromarray((rgb_image * 255).astype(np.uint8)) # Convert to PIL Image
 
+        # Save Grad-CAM visualizations for each class
         for class_name, heatmap in heatmaps.items(): # Display and save heatmaps for each class
             overlay = overlay_heatmap(img, heatmap, alpha=0.5) # Overlay heatmap on image
 
@@ -161,6 +165,17 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16) # Save and display the visualization
             plt.tight_layout()
             plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
+
+        plt.figure(figsize=(10, 10))
+        plt.imshow(img)
+        plt.axis('off')
+        plt.title(f'Image Index: {idx}', fontsize=14)
+        # Add text annotations for actual and predicted labels.
+        plt.figtext(0.5, 0.01, f'Actual: {actual_labels} | Predicted: {predicted_labels}', wrap=True, horizontalalignment='center', fontsize=12)
+        rgb_save_path = os.path.join(gradcam_save_dir, f'gradcam_rgb_{idx}.png')
+        plt.savefig(rgb_save_path, bbox_inches='tight')
+        plt.close()
+
         logger.info(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
 
 # Plot ROC-AUC curve

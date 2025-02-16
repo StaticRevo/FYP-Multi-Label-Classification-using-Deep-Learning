@@ -18,7 +18,11 @@
         <td>
           <ul>
             {% for pred in result.predictions %}
-              <li>{{ pred.label }}: {{ pred.probability | round(3) }}</li>
+              {% if result.actual_labels and pred.label in result.actual_labels %}
+                <li style="color: green;">{{ pred.label }}: {{ pred.probability | round(3) }}</li>
+              {% else %}
+                <li>{{ pred.label }}: {{ pred.probability | round(3) }}</li>
+              {% endif %}
             {% endfor %}
           </ul>
         </td>

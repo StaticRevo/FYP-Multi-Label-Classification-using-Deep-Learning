@@ -39,6 +39,7 @@ class GradCAM:
 
         # Backward pass for the target class
         loss = output[:, target_class]
+        torch.use_deterministic_algorithms(False, warn_only=True)
         loss.backward()
 
         # Retrieve captured gradients and activations

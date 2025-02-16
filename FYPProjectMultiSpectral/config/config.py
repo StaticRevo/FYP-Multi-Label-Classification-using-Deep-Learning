@@ -87,8 +87,8 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 10
-    batch_size: int = 256
+    num_epochs: int = 100
+    batch_size: int = 128
     num_workers: int = 8
     learning_rate: float = 0.001
     lr_step_size: int = 7
@@ -96,7 +96,7 @@ class ModelConfig:
     lr_patience: int = 5
     momentum: float = 0.9
     weight_decay: float = 1e-4
-    patience: int = 5
+    patience: int = 7
     dropout: float = 0.5
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
 

@@ -92,15 +92,13 @@ def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
 
 # Save the tensorboard graphs as images
 def save_tensorboard_graphs(log_dir, output_dir):
-    # Create the output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True) # Create the output directory if it doesn't exist
 
     # Load the TensorBoard logs
     event_acc = EventAccumulator(log_dir)
     event_acc.Reload()
 
-    # Get the list of tags (metrics) in the logs
-    tags = event_acc.Tags().get('scalars', [])
+    tags = event_acc.Tags().get('scalars', []) # Get the list of tags (metrics) in the logs
 
     # Filter tags: include tags with '_epoch' or starting with 'val_', exclude 'class' in name
     filtered_tags = [
@@ -117,7 +115,7 @@ def save_tensorboard_graphs(log_dir, output_dir):
         # Plot the graph
         plt.figure()
         plt.plot(steps, values, marker='o', linestyle='-')
-        plt.xlabel('Epoch')
+        plt.xlabel('Step')
         plt.ylabel(tag)
         plt.title(tag.replace('_', ' ').capitalize())
         plt.grid(True)

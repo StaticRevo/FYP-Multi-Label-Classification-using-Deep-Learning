@@ -184,6 +184,10 @@ def generate_gradcam_for_single_image(model, input_tensor, model_name):
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
+    elif model_name == 'custom_model':
+        target_layer = model.model[25]
+    elif model_name == 'DenstNet121':
+        target_layer = model.model.features.norm5
     else:
         for m in model.modules():
             if isinstance(m, torch.nn.Conv2d):
@@ -197,12 +201,13 @@ def generate_gradcam_for_single_image(model, input_tensor, model_name):
     with torch.no_grad():
         output = model(input_tensor)
     probs = torch.sigmoid(output).squeeze().cpu().numpy()
-
+    
     img_tensor = input_tensor[0].detach().cpu()
     if img_tensor.shape[0] >= 4:
         rgb_tensor = img_tensor[[3, 2, 1], :, :]
     else:
         rgb_tensor = img_tensor[:3]
+
     rgb_np = rgb_tensor.numpy()
     red   = (rgb_np[0] - rgb_np[0].min()) / (rgb_np[0].max() - rgb_np[0].min() + 1e-8)
     green = (rgb_np[1] - rgb_np[1].min()) / (rgb_np[1].max() - rgb_np[1].min() + 1e-8)

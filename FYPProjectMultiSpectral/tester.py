@@ -57,7 +57,7 @@ def main():
     model.eval()
     register_hooks(model)
 
-    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv, cache_path=cache_path)
+    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage='test')
 
     class_labels = DatasetConfig.class_labels

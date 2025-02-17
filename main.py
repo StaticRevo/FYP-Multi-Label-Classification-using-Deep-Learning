@@ -5,10 +5,11 @@ from tkinter import ttk, messagebox, Toplevel
 from threading import Thread  
 
 class ModelSelectionGUI:
-    def __init__(self, master): # Initalis the GUI
+    # Initialize the GUI
+    def __init__(self, master): 
         self.master = master
         self.master.title("Model Selection")
-        self.master.geometry("450x850")
+        self.master.geometry("450x900")
         self.setup_style()
         self.setup_options()
         self.create_widgets()
@@ -58,6 +59,7 @@ class ModelSelectionGUI:
         self.create_band_selection_frame()
         self.create_dataset_selection_frame()
         self.create_train_test_frame()
+        self.create_iteration_options_frame()  # New iteration options
         self.create_action_buttons()
 
     # Create frame for model selection
@@ -141,42 +143,81 @@ class ModelSelectionGUI:
             value='test'
         ).grid(row=3, column=0, sticky='w', padx=10)
 
+    # Create iteration options frame for running all models/bands/weights
+    def create_iteration_options_frame(self):
+        self.iteration_frame = ttk.LabelFrame(self.master, text="Iteration Options (For Training Only)", padding="10")
+        self.iteration_frame.grid(row=3, column=0, columnspan=2, padx=20, pady=10, sticky='ew')
+        
+        self.all_models_var = tk.BooleanVar(value=False)
+        self.all_bands_var = tk.BooleanVar(value=False)
+        self.both_weights_var = tk.BooleanVar(value=False)
+        
+        ttk.Checkbutton(
+            self.iteration_frame,
+            text="Run All Models",
+            variable=self.all_models_var
+        ).grid(row=1, column=0, sticky='w', padx=10)
+        
+        ttk.Checkbutton(
+            self.iteration_frame,
+            text="Run All Band Combinations",
+            variable=self.all_bands_var
+        ).grid(row=2, column=0, sticky='w', padx=10)
+        
+        ttk.Checkbutton(
+            self.iteration_frame,
+            text="Run Both Weights (None & Default)",
+            variable=self.both_weights_var
+        ).grid(row=3, column=0, sticky='w', padx=10)
+
     # Create Run and Reset buttons
     def create_action_buttons(self):
         self.run_button = ttk.Button(self.master, text="Run Model", command=self.run_model)
-        self.run_button.grid(row=3, column=0, columnspan=2, pady=20)
+        self.run_button.grid(row=4, column=0, columnspan=2, pady=20)
         
         self.reset_button = ttk.Button(self.master, text="Reset", command=self.reset_selections)
-        self.reset_button.grid(row=4, column=0, columnspan=2, pady=10)
+        self.reset_button.grid(row=5, column=0, columnspan=2, pady=10)
 
-    # Gather selections, show a loading dialog and run the model in a separate thread
+    # Gather selections, show a loading dialog and run the model(s) in a separate thread
     def run_model(self):
-        model_choice = self.model_var.get()
-        model_name = self.models.get(model_choice)
-        
-        weights_choice = self.weights_var.get()
-        weights = 'None' if weights_choice == '1' else f'{model_name}_Weights.DEFAULT'
-        
-        band_choice = self.band_var.get()
-        selected_bands = self.band_selection.get(band_choice)
-        
+        # Determine which models to run
+        if self.all_models_var.get():
+            models_to_run = list(self.models.values())
+        else:
+            models_to_run = [self.models.get(self.model_var.get())]
+
+        # Determine which band combinations to run
+        if self.all_bands_var.get():
+            bands_to_run = list(self.band_selection.values())
+        else:
+            bands_to_run = [self.band_selection.get(self.band_var.get())]
+
+        # Determine which weights options to run
+        if self.both_weights_var.get():
+            use_both_weights = True
+        else:
+            
+            weights_choice = self.weights_var.get() # Use the selected weight option from the weights radio button.
+            selected_model = self.models.get(self.model_var.get())  #When not iterating, build default weight string from the selected model.
+            weights_to_run = ['None'] if weights_choice == '1' else [f'{selected_model}_Weights.DEFAULT']
+            use_both_weights = False
+
+        # Dataset and Train/Test selections remain constant
         dataset_choice = self.dataset_var.get()
         selected_dataset = self.dataset_selection.get(dataset_choice)
-        
         train_test_choice = self.train_test_var.get()
         test_flag = 'True' if train_test_choice == 'train_test' else 'False'
-        
+
         # Create a loading dialog
         loading_window = Toplevel(self.master)
-        loading_window.title("Running Model")
+        loading_window.title("Running Model(s)")
         loading_label = ttk.Label(
             loading_window,
-            text="Running the model, please wait...",
+            text="Running training, please wait...",
             padding="20",
             font=('Arial', 12)
         )
         loading_label.pack(padx=20, pady=20)
-        
         progress = ttk.Progressbar(loading_window, orient="horizontal", length=300, mode="indeterminate")
         progress.pack(padx=20, pady=20)
         progress.start()
@@ -185,14 +226,24 @@ class ModelSelectionGUI:
         def model_training_thread():
             try:
                 script_dir = os.path.dirname(os.path.abspath(__file__))
+                trainer_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'trainer.py')
+                tester_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'tester_runner.py')
                 if train_test_choice == 'test':
-                    tester_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'tester_runner.py')
-                    subprocess.run(['python', tester_script, model_name, weights, selected_bands, selected_dataset])
-                    messagebox.showinfo("Success", f"Testing {model_name} with {selected_bands} and {selected_dataset} dataset.")
+                    subprocess.run(['python', tester_script, models_to_run[0],  weights_to_run[0], bands_to_run[0], selected_dataset])
                 else:
-                    trainer_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'trainer.py')
-                    subprocess.run(['python', trainer_script, model_name, weights, selected_bands, selected_dataset, test_flag])
-                    messagebox.showinfo("Success", f"Model {model_name} with {selected_bands} and {selected_dataset} dataset is running.")
+                    for model_name in models_to_run: # Iterate over each combination
+                    
+                        if use_both_weights: # For each model, determine the weights options if both are requested.
+                            current_weights_options = ['None', f'{model_name}_Weights.DEFAULT']
+                        else:
+                            current_weights_options = weights_to_run
+                        for selected_bands in bands_to_run:
+                            for weights in current_weights_options:
+                                # Log which combination is running 
+                                print(f"Running: model={model_name}, weights={weights}, bands={selected_bands}, dataset={selected_dataset}")
+                                subprocess.run(['python', trainer_script, model_name, weights, selected_bands, selected_dataset, test_flag])
+                        
+                    messagebox.showinfo("Success", "Automatic training completed for selected combinations.")
             except Exception as e:
                 messagebox.showerror("Error", f"An error occurred: {e}")
             finally:
@@ -208,6 +259,9 @@ class ModelSelectionGUI:
         self.band_var.set('1')
         self.dataset_var.set('1')
         self.train_test_var.set('train')
+        self.all_models_var.set(False)
+        self.all_bands_var.set(False)
+        self.both_weights_var.set(False)
 
 def main():
     root = tk.Tk()

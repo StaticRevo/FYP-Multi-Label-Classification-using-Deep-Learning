@@ -114,18 +114,6 @@ class ModelConfig:
         'vgg16',
         'vgg19'
     ])
-
-    gradcam_target_layers = {
-        'resnet18': 'layer3[-1].conv2',
-        'resnet50': 'layer3[-1].conv2',
-        'vgg16': 'features.28',
-        'vgg19': 'features.34',
-        'densenet121': 'features.norm5',
-        'efficientnet-b0': 'features[8][0]',
-        'efficientnet-v2': 'features[7][4].block[3]',
-        'swin_transformer': 'features[-1]',
-        'vit_transformer': 'layers[-1].attention'
-    }
        
 # -- Module Configuration --
 @dataclass
@@ -135,5 +123,7 @@ class ModuleConfig:
     kernel_size: int = 3
     dropout_rt: float = 0.1
     activation: type = nn.ReLU
+
+
 
 

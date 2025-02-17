@@ -12,33 +12,22 @@ import secrets
 import time
 import subprocess
 from datetime import datetime
-import uuid
 
 # Third-party imports
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash
 from werkzeug.utils import secure_filename
-import rasterio
 import torch
-from torchvision import transforms
-import numpy as np
-from PIL import Image
 import pandas as pd
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-from io import BytesIO
 
 # Local application imports
-from utils.model_utils import get_model_class
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from utils.file_utils import initialize_paths
 from models.models import *
-from utils.gradcam import GradCAM, overlay_heatmap 
-from utils.data_utils import extract_number, get_band_indices
-from transformations.transforms import TransformsConfig, BandNormalisation
+from utils.data_utils import extract_number
+from web_helper import *
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
-
 _cached_training_log = None
 _last_training_log_time = 0
 
@@ -46,291 +35,19 @@ _cached_testing_log = None
 _last_testing_log_time = 0
 
 CACHE_DURATION = 5
-
 # Configure upload and static folders
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
-
 # Model Options
 MODEL_OPTIONS = ["custom_model", "ResNet18", "ResNet50", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
-
-# Precompute class weights 
-class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path))
+class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
 CLASS_WEIGHTS = class_weights_array
-
-# Experiment directory
-EXPERIMENTS_DIR = r"C:\Users\isaac\Desktop\experiments"
-
-# --- Helper Functions ---
-def load_model_from_experiment(experiment_name):
-    # Construct the checkpoint path from the experiment folder.
-    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "final.ckpt")
-    
-    # Parse the experiment folder name to extract model details.
-    parsed = parse_experiment_folder(experiment_name)
-    model_name = parsed["model"]
-    in_channels = 12  # Default to 12 channels
-    
-    main_path = os.path.dirname(checkpoint_path)
-    model_class, _ = get_model_class(model_name)
-    if model_class is None:
-        raise ValueError(f"Model class for {model_name} not found!")
-    
-    # Load the model using the checkpoint from the experiment.
-    model = model_class.load_from_checkpoint(
-        checkpoint_path,
-        class_weights=CLASS_WEIGHTS,
-        num_classes=DatasetConfig.num_classes,
-        in_channels=in_channels,
-        model_weights=None,  # or any additional weights if needed
-        main_path=main_path
-    )
-    model.eval()
-    print(f"Model from experiment {experiment_name} loaded successfully.")
-    return model
-
-def load_experiment_metrics(experiment_name):
-    experiment_path = os.path.join(EXPERIMENTS_DIR, experiment_name)
-    results_path = os.path.join(experiment_path, "results")
-    metrics = {}
-    metrics_file = os.path.join(results_path, "best_metrics.json")
-    if os.path.exists(metrics_file):
-        try:
-            with open(metrics_file, 'r') as f:
-                metrics = json.load(f)
-        except Exception as e:
-            metrics = {"error": f"Error loading metrics: {e}"}
-    return metrics
-
-def preprocess_tiff_image(file_path, selected_bands=DatasetConfig.all_bands):
-    transforms_pipeline = TransformsConfig.test_transforms
-    normalisation = TransformsConfig.normalisations
-    selected_band_indices = get_band_indices(selected_bands, DatasetConfig.all_bands)
-    
-    try:
-        with rasterio.open(file_path) as src:
-            image = src.read()  # Shape: (channels, height, width)
-            image = image[selected_band_indices, :, :]  # Select only the desired bands
-    except Exception as e:
-        print(f"Error reading {file_path}: {e}. Returning a zero tensor.")
-        image = torch.zeros((len(selected_band_indices), DatasetConfig.image_height, DatasetConfig.image_width), dtype=torch.float32)
-        return image.unsqueeze(0)
-    
-    image = torch.tensor(image, dtype=torch.float32)
-    
-    # Apply the transforms and normalisation 
-    image = transforms_pipeline(image)
-    image = normalisation(image)
-    
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-        
-    return image
-
-def create_rgb_visualization(file_path, selected_bands=None):
-    with rasterio.open(file_path) as src:
-        image = src.read()
-    if selected_bands is None:
-        if image.shape[0] >= 4:
-            selected_bands = [3, 2, 1]
-        else:
-            selected_bands = [0, 1, 2]
-    red = image[selected_bands[0]].astype(np.float32)
-    green = image[selected_bands[1]].astype(np.float32)
-    blue = image[selected_bands[2]].astype(np.float32)
-    red = (red - red.min()) / (red.max() - red.min() + 1e-8)
-    green = (green - green.min()) / (green.max() - green.min() + 1e-8)
-    blue = (blue - blue.min()) / (blue.max() - blue.min() + 1e-8)
-    rgb_image = np.stack([red, green, blue], axis=-1)
-    rgb_image = (rgb_image * 255).astype(np.uint8)
-    
-    # Generate a unique filename for each visualization
-    out_filename = f"result_image_{uuid.uuid4().hex}.png"
-    out_path = os.path.join(STATIC_FOLDER, out_filename)
-    Image.fromarray(rgb_image).save(out_path)
-    return url_for('static', filename=out_filename)
-
-def predict_image_for_model(model, image_tensor):
-    device = next(model.parameters()).device
-    image_tensor = image_tensor.to(device)
-    with torch.no_grad():
-        output = model(image_tensor)
-        probs = torch.sigmoid(output).squeeze().cpu().numpy()
-    predictions = []
-    for idx, prob in enumerate(probs):
-        if prob > 0.5:
-            label = DatasetConfig.reversed_class_labels_dict.get(idx, f"Class_{idx}")
-            predictions.append({"label": label, "probability": prob})
-    return predictions
-
-def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
-    gradcam_results = {}
-
-    # Determine target layer based on model_name
-    if model_name == 'ResNet18':
-        target_layer = model.model.layer3[-1].conv2
-    elif model_name == 'ResNet50':
-        target_layer = model.model.layer3[-1].conv3
-    elif model_name == 'VGG16':
-        target_layer = model.model.features[28]
-    elif model_name == 'VGG19':
-        target_layer = model.model.features[34]
-    elif model_name == 'EfficientNetB0':
-        target_layer = model.model.features[8][0]
-    elif model_name == 'EfficientNet_v2':
-        target_layer = model.modelfeatures[7][4].block[3]
-    elif model_name == 'Swin-Transformer':
-        target_layer = model.model.stages[3].blocks[-1].norm1
-    elif model_name == 'Vit-Transformer':
-        target_layer = model.model.layers[-1].attention
-    elif model_name == 'custom_model':
-        target_layer = model.model[25]
-    elif model_name == 'DenstNet121':
-        target_layer = model.model.features.norm5
-    else:
-        print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
-        return gradcam_results
-
-    # Ensure img_tensor is batched
-    if img_tensor.dim() == 3:
-        input_tensor = img_tensor.unsqueeze(0).to(model.device)  # (1, C, H, W)
-    elif img_tensor.dim() == 4:
-        input_tensor = img_tensor.to(model.device)
-    else:
-        raise ValueError(f"img_tensor must be 3D or 4D, got {img_tensor.dim()}D.")
-
-    # If predicted_indices are not provided, compute them with a 0.5 threshold.
-    if predicted_indices is None:
-        output = model(input_tensor)  # (1, num_classes)
-        threshold = 0.5
-        predicted_indices = torch.where(output[0] > threshold)[0].tolist()
-
-    # For each predicted class, compute a GradCAM heatmap.
-    heatmaps = {}
-    for idx in predicted_indices:
-        grad_cam = GradCAM(model, target_layer)
-        input_clone = input_tensor.clone()
-        model.zero_grad()
-        _ = model(input_clone)  # (Optional: re-run forward pass)
-        cam, _ = grad_cam.generate_heatmap(input_clone, target_class=idx)
-        # Debug: print norm to ensure there's a signal
-        heatmap_norm = np.linalg.norm(cam)
-        heatmaps[class_labels[idx]] = cam
-
-    # Convert input tensor to a PIL image for visualization.
-    img = input_tensor.squeeze()  # Remove batch dimension
-    rgb_channels = [3, 2, 1] if in_channels == 12 else [2, 1, 0]
-    img = img[rgb_channels, :, :]
-
-    # Normalize each channel.
-    img_cpu = img.detach().cpu().numpy()
-    red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
-    green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
-    blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
-    rgb_image = np.stack([red, green, blue], axis=-1)
-    base_img = Image.fromarray((rgb_image * 255).astype(np.uint8))
-
-    # Save each overlay to disk and record its URL.
-    for class_name, heatmap in heatmaps.items():
-        overlay = overlay_heatmap(base_img, heatmap, alpha=0.5)
-        filename = f"gradcam_{model.__class__.__name__}_{class_name}.png"
-        out_path = os.path.join(STATIC_FOLDER, filename)
-        overlay.save(out_path)
-        gradcam_results[class_name] = url_for('static', filename=filename)
-
-    return gradcam_results
-
-def fetch_actual_labels(patch_id):
-    import ast
-    metadata_df = pd.read_csv(DatasetConfig.metadata_path)
-    row = metadata_df.loc[metadata_df['patch_id'] == patch_id]
-    if row.empty:
-        return []
-    labels_str = row.iloc[0]['labels']
-    if isinstance(labels_str, str):
-        try:
-            # Clean the string similar to the dataset class logic
-            cleaned_labels = labels_str.replace(" '", ", '").replace("[", "[").replace("]", "]")
-            labels = ast.literal_eval(cleaned_labels)
-        except (ValueError, SyntaxError) as e:
-            print(f"Error parsing labels for patch_id {patch_id}: {e}")
-            labels = []
-    else:
-        labels = labels_str
-    return labels
-
-def parse_experiment_folder(folder_name):
-    parts = folder_name.split('_')
-    if len(parts) == 7:
-        model = parts[0]
-        weights = parts[1]
-        bands = parts[2] + "_" + parts[3]
-        dataset = parts[4] + "_" + parts[5]
-        epochs = parts[6]
-    else:
-        if any(char.isdigit() for char in parts[-1]):
-            if any(char.isdigit() for char in parts[-2]):
-                epochs = parts[-2] + "_" + parts[-1]
-                dataset = parts[-4] + "_" + parts[-3]
-                remaining = parts[:-4]
-            else:
-                epochs = parts[-1]
-                dataset = parts[-3] + "_" + parts[-2]
-                remaining = parts[:-3]
-        else:
-            # Fallback if last part doesn't contain digits.
-            epochs = parts[-1]
-            dataset = parts[-3] + "_" + parts[-2]
-            remaining = parts[:-3]
-
-        if "None" in remaining:
-            w_index = remaining.index("None")
-            weights = remaining[w_index]
-            model = "_".join(remaining[:w_index])  
-            bands = "_".join(remaining[w_index+1:])  
-        else:
-            # If no "None" found, fallback to defaults:
-            model = remaining[0]
-            weights = ""
-            bands = "_".join(remaining[1:])
-    return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
-
-def save_tensor_as_image(tensor, in_channels=12):
-    """
-    Converts a (C, H, W) tensor to a normalized RGB image, saves to static folder,
-    and returns the URL.
-    """
-    # If the tensor has a batch dimension, remove it
-    if tensor.dim() == 4:
-        tensor = tensor.squeeze(0)
-
-    # Choose channels
-    if in_channels == 12:
-        rgb_channels = [3, 2, 1]
-    else:
-        rgb_channels = [2, 1, 0]
-
-    tensor = tensor[rgb_channels, :, :]
-
-    # Normalize each channel [0..1]
-    arr = tensor.detach().cpu().numpy()
-    red = (arr[0] - arr[0].min()) / (arr[0].max() - arr[0].min() + 1e-8)
-    green = (arr[1] - arr[1].min()) / (arr[1].max() - arr[1].min() + 1e-8)
-    blue = (arr[2] - arr[2].min()) / (arr[2].max() - arr[2].min() + 1e-8)
-    rgb = np.stack([red, green, blue], axis=-1)
-    pil_img = Image.fromarray((rgb * 255).astype(np.uint8))
-
-    # Save to static folder
-    filename = f"original_img_{uuid.uuid4().hex}.png"
-    out_path = os.path.join(STATIC_FOLDER, filename)
-    pil_img.save(out_path)
-    return url_for('static', filename=filename)
+EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
 
 # -- Routes --
 # -- Home Page --
@@ -359,8 +76,7 @@ def train_page():
             'selected_dataset': selected_dataset
         }
         
-        # Build command to launch trainer.py using parent_dir
-        trainer_script = os.path.join(parent_dir, "trainer.py")
+        trainer_script = os.path.join(parent_dir, "trainer.py") # Build command to launch trainer.py using parent_dir
         cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable, main_path]
         subprocess.Popen(cmd, cwd=parent_dir)
 
@@ -386,7 +102,7 @@ def logs():
     training_log_path = os.path.join(log_dir, 'training_logs')
     log_file = os.path.join(training_log_path, 'training.log')
     
-    current_time = time.time() # Check if we need to re-read the file (once every CACHE_DURATION seconds)
+    current_time = time.time() # Check if need to re-read the file
     if _cached_training_log is None or (current_time - _last_training_log_time) > CACHE_DURATION:
         try:
             with open(log_file, 'r') as f:
@@ -416,8 +132,6 @@ def test_page():
         else:
             cp_file = "final.ckpt"  # default fallback
         checkpoint_path = os.path.join(checkpoint_dir, cp_file)
-        
-        
         session['main_path'] = main_experiment_path # Save the experiment path in session 
 
         # Parse the experiment folder name to extract details
@@ -428,24 +142,7 @@ def test_page():
         selected_dataset = experiment_details["dataset"]
 
         # Set in_channels and bands based on the band combination string
-        if selected_bands.lower() == "all_bands":
-            in_channels = len(DatasetConfig.all_bands)
-            bands = DatasetConfig.all_bands
-        elif selected_bands.lower() == "rgb_bands":
-            in_channels = len(DatasetConfig.rgb_bands)
-            bands = DatasetConfig.rgb_bands
-        elif selected_bands.lower() == "rgb_nir_bands":
-            in_channels = len(DatasetConfig.rgb_nir_bands)
-            bands = DatasetConfig.rgb_nir_bands
-        elif selected_bands.lower() == "rgb_swir_bands":
-            in_channels = len(DatasetConfig.rgb_swir_bands)
-            bands = DatasetConfig.rgb_swir_bands
-        elif selected_bands.lower() == "rgb_nir_swir_bands":
-            in_channels = len(DatasetConfig.rgb_nir_swir_bands)
-            bands = DatasetConfig.rgb_nir_swir_bands
-        else:
-            in_channels = 3  
-            bands = DatasetConfig.rgb_bands
+        in_channels, bands = get_channels_and_bands(selected_bands)
 
         # Get dataset-related parameters using the dataset percentage from the experiment name.
         num = str(extract_number(selected_dataset))
@@ -517,25 +214,58 @@ def logs_test():
 @app.route("/predict", methods=['GET', 'POST'])
 def predict_page():
     if request.method == 'POST':
- 
         files = request.files.getlist('file')  # Get the list of uploaded files 
-        selected_experiment = request.form.get("experiment") # Get the selected experiment from the form
+        selected_experiment = request.form.get("experiment")  # Get the selected experiment from the form
         if not files or files[0].filename == '':
+            flash("No file selected.", "error")
             return redirect(request.url)
         
+        # Parse experiment details to determine dynamic parameters.
+        experiment_details = parse_experiment_folder(selected_experiment)
+        model_name = experiment_details["model"]
+        selected_bands = experiment_details["bands"]
+        
+        # Determine in_channels and the bands list based on the parsed band string.
+        in_channels, bands = get_channels_and_bands(selected_bands)
+        
+        # Single image prediction branch
         if len(files) == 1:
-            file = files[0]  # Single image prediction 
+            file = files[0]
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
-    
-            rgb_url = create_rgb_visualization(file_path)
-            input_tensor = preprocess_tiff_image(file_path)
-    
+            
+            # Validate that the uploaded image has the expected channel count.
+            try:
+                validate_image_channels(file_path, in_channels)
+            except ValueError as ve:
+                flash(str(ve), "error")
+                # Reload the experiments list for the upload page.
+                experiments = []
+                if os.path.exists(EXPERIMENTS_DIR):
+                    for d in os.listdir(EXPERIMENTS_DIR):
+                        full_path = os.path.join(EXPERIMENTS_DIR, d)
+                        if os.path.isdir(full_path):
+                            experiments.append(d)
+                return render_template('upload.html', experiments=experiments)
+            
+            # Proceed with processing if validation passes...
+            try:
+                rgb_url = create_rgb_visualization(file_path)
+            except Exception as e:
+                flash("Error creating RGB visualization: " + str(e), "error")
+                experiments = []
+                if os.path.exists(EXPERIMENTS_DIR):
+                    for d in os.listdir(EXPERIMENTS_DIR):
+                        full_path = os.path.join(EXPERIMENTS_DIR, d)
+                        if os.path.isdir(full_path):
+                            experiments.append(d)
+                return render_template('upload.html', experiments=experiments)
+            
+            input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
             model_instance = load_model_from_experiment(selected_experiment)
-            # Ensure the input tensor is on the same device as the model
             input_tensor = input_tensor.to(next(model_instance.parameters()).device)
-    
+            
             preds = predict_image_for_model(model_instance, input_tensor)
             print("Model Instance Loaded: ", model_instance)
             with torch.no_grad():
@@ -564,8 +294,9 @@ def predict_page():
                                    multiple_models=False,
                                    experiment_details=experiment_details)
         else:
-            results_list = [] # Batch prediction 
-            model_instance = load_model_from_experiment(selected_experiment) # Load the model once for the entire batch
+            # Batch prediction branch
+            results_list = []
+            model_instance = load_model_from_experiment(selected_experiment)
             
             for file in files:
                 if file and file.filename:
@@ -573,9 +304,15 @@ def predict_page():
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(file_path)
                     
-                    rgb_url = create_rgb_visualization(file_path)
-                    input_tensor = preprocess_tiff_image(file_path)
+                    # Validate each file's channel count. For batch, skip files that don't pass.
+                    try:
+                        validate_image_channels(file_path, in_channels)
+                    except ValueError as ve:
+                        flash(f"Skipping {filename}: {ve}", "error")
+                        continue
                     
+                    rgb_url = create_rgb_visualization(file_path)
+                    input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
                     predictions = predict_image_for_model(model_instance, input_tensor)
                     patch_id = os.path.splitext(filename)[0]
                     actual_labels = fetch_actual_labels(patch_id)
@@ -586,6 +323,16 @@ def predict_page():
                         "rgb_url": rgb_url,
                         "actual_labels": actual_labels
                     })
+            if not results_list:
+                flash("No valid files were uploaded with the required channel count.", "error")
+                experiments = []
+                if os.path.exists(EXPERIMENTS_DIR):
+                    for d in os.listdir(EXPERIMENTS_DIR):
+                        full_path = os.path.join(EXPERIMENTS_DIR, d)
+                        if os.path.isdir(full_path):
+                            experiments.append(d)
+                return render_template('upload.html', experiments=experiments)
+                
             return render_template("batch_result.html", results=results_list, selected_experiment=selected_experiment)
     else:
         experiments = []
@@ -595,6 +342,7 @@ def predict_page():
                 if os.path.isdir(full_path):
                     experiments.append(d)
         return render_template('upload.html', experiments=experiments)
+
 
 # --- Batch GradCAM Page ---
 @app.route("/batch_gradcam")
@@ -630,7 +378,7 @@ def batch_gradcam():
     patch_id = os.path.splitext(filename)[0]
     actual_labels = fetch_actual_labels(patch_id)
 
-    # (NEW) Save the original image used in GradCAM to disk for display
+    # Save the original image used in GradCAM to disk for display
     original_img_url = save_tensor_as_image(input_tensor.squeeze(), in_channels=12)
 
     return render_template(

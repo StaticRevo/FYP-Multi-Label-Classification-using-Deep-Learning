@@ -139,18 +139,6 @@ def main():
         in_channels=in_channels,
         logger = logger
     )
-    tiff_file_path = r'C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\CombinedImages\S2A_MSIL2A_20170613T101031_N9999_R022_T33UUP_30_54.tif'
-    generate_gradcam_for_single_image(
-        model=model,
-        tiff_file_path=tiff_file_path, 
-        class_labels=class_labels, 
-        model_name=model_name, 
-        result_path=result_path, 
-        in_channels=in_channels, 
-        transforms=TransformsConfig.test_transforms, 
-        normalisations=TransformsConfig.normalisations,
-        logger = logger
-    )
     logger.info("Grad-CAM visualizations generated.")
     logger.info("Testing completed successfully")
 

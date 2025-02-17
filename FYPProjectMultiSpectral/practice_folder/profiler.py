@@ -1,82 +1,48 @@
-# Standard library imports
-import os
-import sys
-import json
+import rasterio
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Third-party imports
-import pandas as pd
-import torch
-import pytorch_lightning as pl
+def extract_bands(input_path, output_path):
+    # Open the input TIFF file
+    with rasterio.open(input_path) as src:
+        # Read bands 2, 3, and 4 (rasterio uses 1-based indexing)
+        band2 = src.read(2)
+        band3 = src.read(3)
+        band4 = src.read(4)
+        
+        # Stack the selected bands into a single array with shape (3, height, width)
+        stacked_bands = np.stack([band2, band3, band4])
+        
+        # Copy the metadata and update the count for the new bands
+        profile = src.profile.copy()
+        profile.update(count=3)
+        
+        # Write the new TIFF file with the extracted bands
+        with rasterio.open(output_path, 'w', **profile) as dst:
+            dst.write(stacked_bands)
 
-# Local application imports
-from config.config import DatasetConfig, ModelConfig
-from callbacks import BestMetricsCallback
-from dataloader import BigEarthNetDataLoader
-from utils.data_utils import extract_number
-from utils.setup_utils import set_random_seeds
-from utils.model_utils import get_model_class
-from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps, generate_gradcam_visualizations, get_sigmoid_outputs
-from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
-from utils.logging_utils import setup_logger
-from models.models import *
-
-# Testing the model
-def main():
-    set_random_seeds()
-    torch.set_float32_matmul_precision('high')
-
-    # Parse command-line arguments
-    model_name = sys.argv[1]
-    weights = sys.argv[2]
-    selected_dataset = sys.argv[3]
-    checkpoint_path = sys.argv[4]
-    in_channels = int(sys.argv[5])
-    class_weights = json.loads(sys.argv[6])
-    metadata_csv = pd.read_csv(sys.argv[7])
-    dataset_dir = sys.argv[8]
-    bands = json.loads(sys.argv[9]) 
-    
-    
-    # Create the main path for the experiment
-    print(f"Checkpoint Path: {checkpoint_path}")
-    main_path = os.path.dirname(os.path.dirname(checkpoint_path))
-    print(f"Main path: {main_path}")
-    result_path = os.path.join(main_path, "results")
-    print(f"Result Path: {result_path}")
-    
-    dataset_num = extract_number(selected_dataset)
-    cache_file = f"{dataset_num}%_sample_weights.npy"
-    cache_path = os.path.join(main_path, cache_file)
-
-    # Initialize the log directories
-    testing_log_path = os.path.join(main_path, 'logs', 'testing_logs')
-    logger = setup_logger(log_dir=testing_log_path, file_name='testing.log')
-
-    model_class, _ = get_model_class(model_name)
-    model_weights = None if weights == 'None' else weights
-    model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
-    model.eval()
-    register_hooks(model)
-
-    data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
-    data_module.setup(stage='test')
-
-    class_labels = DatasetConfig.class_labels
+#extract_bands(r"C:\Users\isaac\Desktop\S2A_MSIL2A_20170613T101031_N9999_R022_T33UUP_37_67.tif", r"C:\Users\isaac\Desktop\rgb.tif")
 
 
-    # Generate Grad-CAM visualizations
-    logger.info("Generating Grad-CAM visualizations...")
-    generate_gradcam_visualizations(
-        model=model,
-        data_module=data_module,
-        class_labels=class_labels,
-        model_name=model_name,
-        result_path=result_path,
-        in_channels=in_channels,
-        logger = logger
-    )
-    logger.info("Grad-CAM visualizations generated.")
-    logger.info("Testing completed successfully")
+# Open the TIFF file and read the RGB bands
+with rasterio.open(r"C:\Users\isaac\Desktop\rgb.tif") as src:
+    rgb = src.read([1, 2, 3])
+    # Transpose from (bands, height, width) to (height, width, bands)
+    rgb_transposed = np.transpose(rgb, (1, 2, 0))
 
-if __name__ == "__main__":
-    main()
+# Normalize the image: scale each channel to [0, 1]
+rgb_normalized = np.zeros_like(rgb_transposed, dtype=np.float32)
+for i in range(3):
+    band = rgb_transposed[:, :, i]
+    band_min, band_max = band.min(), band.max()
+    # Avoid division by zero in case band_max equals band_min
+    if band_max > band_min:
+        rgb_normalized[:, :, i] = (band - band_min) / (band_max - band_min)
+    else:
+        rgb_normalized[:, :, i] = band
+
+# Display the normalized image using matplotlib
+plt.imshow(rgb_normalized)
+plt.title("RGB TIFF Image")
+plt.axis('off')  # Hide axis ticks
+plt.show()

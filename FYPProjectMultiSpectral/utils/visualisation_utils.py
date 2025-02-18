@@ -10,8 +10,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import rasterio
 
-# Visualisation functions for activations within the model
 activations = {}
+# Register the forward hook for the model
 def forward_hook(module, input, output):
     activations[module] = output
 
@@ -19,10 +19,12 @@ def register_hooks(model):
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
             module.register_forward_hook(forward_hook)
-        
+
+# Clear the activations        
 def clear_activations():
     activations.clear()
 
+# Visualize the activations from the model
 def visualize_activations(result_path, num_filters=8):
     pdf_path = os.path.join(result_path, "activations.pdf")
     with PdfPages(pdf_path) as pdf:

@@ -24,9 +24,7 @@ class BestMetricsCallback(pl.Callback):
 
     def on_fit_start(self, trainer, pl_module):
         self.train_start_time = time.time()
-        
-        # Compute model size
-        self.model_size = self.compute_model_size(pl_module)
+        self.model_size = self.compute_model_size(pl_module) # Compute model size
 
     def on_validation_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics

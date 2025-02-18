@@ -11,7 +11,7 @@ import json
 import uuid
 
 # Third-party imports
-from flask import url_for
+from flask import url_for, flash, render_template
 import rasterio
 import torch
 import numpy as np
@@ -91,11 +91,30 @@ def load_experiment_metrics(experiment_name):
             metrics = {"error": f"Error loading metrics: {e}"}
     return metrics
 
+def get_band_indices_web(band_names, all_band_names):
+    indices = []
+    for band in band_names:
+        try:
+            # Try converting to an integer (for numeric selections)
+            band_int = int(band)
+            idx = band_int - 1  # convert from 1-indexed to 0-indexed
+            if idx < 0 or idx >= len(all_band_names):
+                raise ValueError(f"Band index {band_int} is out of range. Valid indices: 1 to {len(all_band_names)}.")
+            indices.append(idx)
+        except ValueError:
+            # Not a number? Then treat it as a band name.
+            try:
+                idx = all_band_names.index(band)
+                indices.append(idx)
+            except ValueError:
+                raise ValueError(f"Band '{band}' not found in the available bands: {all_band_names}.")
+    return indices
+
 # Preprocess a TIFF image for the model
 def preprocess_tiff_image(file_path, selected_bands=DatasetConfig.all_bands):
     transforms_pipeline = TransformsConfig.test_transforms
     normalisation = TransformsConfig.normalisations
-    selected_band_indices = get_band_indices(selected_bands, DatasetConfig.all_bands)
+    selected_band_indices = get_band_indices_web(selected_bands, DatasetConfig.all_bands)
     
     try:
         with rasterio.open(file_path) as src:
@@ -190,7 +209,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
 
     # Ensure img_tensor is batched
     if img_tensor.dim() == 3:
-        input_tensor = img_tensor.unsqueeze(0).to(model.device)  # (1, C, H, W)
+        input_tensor = img_tensor.unsqueeze(0).to(model.device)  
     elif img_tensor.dim() == 4:
         input_tensor = img_tensor.to(model.device)
     else:
@@ -198,7 +217,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
 
     # If predicted_indices are not provided, compute them with a 0.5 threshold.
     if predicted_indices is None:
-        output = model(input_tensor)  # (1, num_classes)
+        output = model(input_tensor) 
         threshold = 0.5
         predicted_indices = torch.where(output[0] > threshold)[0].tolist()
 
@@ -208,7 +227,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         grad_cam = GradCAM(model, target_layer)
         input_clone = input_tensor.clone()
         model.zero_grad()
-        _ = model(input_clone)  # (Optional: re-run forward pass)
+        _ = model(input_clone)  
         cam, _ = grad_cam.generate_heatmap(input_clone, target_class=idx)
         heatmap_norm = np.linalg.norm(cam)
         heatmaps[class_labels[idx]] = cam
@@ -229,7 +248,8 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
     # Save each overlay to disk and record its URL.
     for class_name, heatmap in heatmaps.items():
         overlay = overlay_heatmap(base_img, heatmap, alpha=0.5)
-        filename = f"gradcam_{model.__class__.__name__}_{class_name}.png"
+        unique_hash = uuid.uuid4().hex  # generate a unique hash code
+        filename = f"gradcam_{model.__class__.__name__}_{class_name}_{unique_hash}.png"
         out_path = os.path.join(STATIC_FOLDER, filename)
         overlay.save(out_path)
         gradcam_results[class_name] = url_for('static', filename=filename)
@@ -340,22 +360,81 @@ def get_channels_and_bands(selected_bands: str):
         return 3, DatasetConfig.rgb_bands  # Default fallback
     
 # Validate the number of channels in an image
-def validate_image_channels(file_path: str, expected_channels: int):
+def validate_image_channels(file_path: str, expected_channels: int) -> int:
     try:
         with rasterio.open(file_path) as src:
-            actual_channels = src.count  # number of bands
+            actual_channels = src.count  # number of bands in the image
     except Exception as e:
         raise ValueError(f"Error reading image: {e}")
 
-    if actual_channels != expected_channels:
+    if actual_channels < expected_channels:
         raise ValueError(
-            f"Invalid image: Expected {expected_channels} channels, but found {actual_channels}. "
-            "Please upload an image with the correct number of bands."
+            f"Invalid image: Expected at least {expected_channels} channels, but found {actual_channels}."
         )
+    return actual_channels
 
-# Validate the number of channels in an image
-def validate_image_channels(file_path, expected_channels):
-    with rasterio.open(file_path) as src:
-        actual_channels = src.count  # Number of bands in the TIFF
-    if actual_channels != expected_channels:
-        raise ValueError(f"Invalid image: Expected {expected_channels} channels but got {actual_channels}.")
+# Get the list of experiments from the experiments directory
+def get_experiments_list():
+    experiments = []
+    if os.path.exists(EXPERIMENTS_DIR):
+        for d in os.listdir(EXPERIMENTS_DIR):
+            full_path = os.path.join(EXPERIMENTS_DIR, d)
+            if os.path.isdir(full_path):
+                experiments.append(d)
+    return experiments
+
+# Process the prediction for a single image
+def process_prediction(file_path, filename, bands, selected_experiment):
+    try:
+        rgb_url = create_rgb_visualization(file_path)
+    except Exception as e:
+        flash("Error creating RGB visualization: " + str(e), "error")
+        experiments = get_experiments_list()
+        return render_template('upload.html', experiments=experiments)
+    
+    input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
+    model_instance = load_model_from_experiment(selected_experiment)
+    input_tensor = input_tensor.to(next(model_instance.parameters()).device)
+    
+    preds = predict_image_for_model(model_instance, input_tensor)
+    print("Model Instance Loaded: ", model_instance)
+    with torch.no_grad():
+        output = model_instance(input_tensor)
+        probs = torch.sigmoid(output).squeeze().cpu().numpy()
+    predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
+    gradcam = generate_gradcam_for_single_image(
+        model_instance, input_tensor,
+        class_labels=DatasetConfig.class_labels,
+        model_name='custom_model',
+        in_channels=len(bands),
+        predicted_indices=predicted_indices
+    )
+    patch_id = os.path.splitext(filename)[0]  # Fetch actual labels from metadata 
+    actual_labels = fetch_actual_labels(patch_id)
+    
+    experiment_details = parse_experiment_folder(selected_experiment)
+    
+    return render_template('result.html',
+                           filename=filename,
+                           predictions={selected_experiment: preds},
+                           actual_labels=actual_labels,
+                           rgb_url=rgb_url,
+                           gradcam=gradcam,
+                           multiple_models=False,
+                           experiment_details=experiment_details)
+
+# Convert an image to a TIFF file
+def convert_image_to_tiff(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in [".png", ".jpeg", ".jpg"]:
+        try:
+            img = Image.open(file_path).convert("RGB")
+            # Append a random UUID so each file is unique
+            unique_suffix = uuid.uuid4().hex
+            base = file_path.rsplit('.', 1)[0]
+            new_file_path = f"{base}_{unique_suffix}.tif"
+            img.save(new_file_path, format="TIFF")
+            return new_file_path
+        except Exception as e:
+            raise ValueError(f"Error converting image to TIFF: {e}")
+    return file_path

@@ -220,13 +220,13 @@ def predict_page():
             flash("No file selected.", "error")
             return redirect(request.url)
         
-        # Parse experiment details to determine dynamic parameters.
+        # Parse experiment details.
         experiment_details = parse_experiment_folder(selected_experiment)
         model_name = experiment_details["model"]
-        selected_bands = experiment_details["bands"]
+        selected_bands_str = experiment_details["bands"]
         
-        # Determine in_channels and the bands list based on the parsed band string.
-        in_channels, bands = get_channels_and_bands(selected_bands)
+        # Determine in_channels and the default bands list based on the experiment.
+        in_channels, default_bands = get_channels_and_bands(selected_bands_str)
         
         # Single image prediction branch
         if len(files) == 1:
@@ -235,66 +235,31 @@ def predict_page():
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
             
-            # Validate that the uploaded image has the expected channel count.
-            try:
-                validate_image_channels(file_path, in_channels)
+            ext = os.path.splitext(filename)[1].lower()
+            if ext not in [".tif", ".tiff"]:
+                file_path = convert_image_to_tiff(file_path)
+
+            try: # Validate image channels.
+                actual_channels = validate_image_channels(file_path, in_channels)
             except ValueError as ve:
                 flash(str(ve), "error")
-                # Reload the experiments list for the upload page.
-                experiments = []
-                if os.path.exists(EXPERIMENTS_DIR):
-                    for d in os.listdir(EXPERIMENTS_DIR):
-                        full_path = os.path.join(EXPERIMENTS_DIR, d)
-                        if os.path.isdir(full_path):
-                            experiments.append(d)
+                experiments = get_experiments_list()  # Reload experiments list for the upload page.
                 return render_template('upload.html', experiments=experiments)
             
-            # Proceed with processing if validation passes...
-            try:
-                rgb_url = create_rgb_visualization(file_path)
-            except Exception as e:
-                flash("Error creating RGB visualization: " + str(e), "error")
-                experiments = []
-                if os.path.exists(EXPERIMENTS_DIR):
-                    for d in os.listdir(EXPERIMENTS_DIR):
-                        full_path = os.path.join(EXPERIMENTS_DIR, d)
-                        if os.path.isdir(full_path):
-                            experiments.append(d)
-                return render_template('upload.html', experiments=experiments)
+            # If the image has extra bands, prompt the user to select bands.
+            if actual_channels > in_channels:
+                return render_template('select_bands.html', 
+                                       filename=filename,
+                                       file_path=file_path,
+                                       available_bands=list(range(1, actual_channels + 1)),
+                                       expected_count=in_channels,
+                                       experiment=selected_experiment)
             
-            input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
-            model_instance = load_model_from_experiment(selected_experiment)
-            input_tensor = input_tensor.to(next(model_instance.parameters()).device)
+            # Otherwise, proceed with prediction using the default band selection.
+            bands = default_bands
+            return process_prediction(file_path, filename, bands, selected_experiment)
             
-            preds = predict_image_for_model(model_instance, input_tensor)
-            print("Model Instance Loaded: ", model_instance)
-            with torch.no_grad():
-                output = model_instance(input_tensor)
-                probs = torch.sigmoid(output).squeeze().cpu().numpy()
-            predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
-            gradcam = generate_gradcam_for_single_image(
-                model_instance, input_tensor,
-                class_labels=DatasetConfig.class_labels,
-                model_name='custom_model',
-                in_channels=12,
-                predicted_indices=predicted_indices
-            )
-            patch_id = os.path.splitext(filename)[0] # Fetch actual labels from metadata 
-            actual_labels = fetch_actual_labels(patch_id)
-            
-            # Parse experiment details from the folder name
-            experiment_details = parse_experiment_folder(selected_experiment)
-            
-            return render_template('result.html',
-                                   filename=filename,
-                                   predictions={selected_experiment: preds},
-                                   actual_labels=actual_labels,
-                                   rgb_url=rgb_url,
-                                   gradcam=gradcam,
-                                   multiple_models=False,
-                                   experiment_details=experiment_details)
         else:
-            # Batch prediction branch
             results_list = []
             model_instance = load_model_from_experiment(selected_experiment)
             
@@ -304,15 +269,22 @@ def predict_page():
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(file_path)
                     
-                    # Validate each file's channel count. For batch, skip files that don't pass.
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext not in [".tif", ".tiff"]:
+                        file_path = convert_image_to_tiff(file_path)
+                        
                     try:
-                        validate_image_channels(file_path, in_channels)
+                        actual_channels = validate_image_channels(file_path, in_channels)
                     except ValueError as ve:
                         flash(f"Skipping {filename}: {ve}", "error")
                         continue
                     
+                    if actual_channels > in_channels:
+                        flash(f"Skipping {filename}: Has extra bands. Please upload files with the expected number of bands for batch processing.", "error")
+                        continue
+                    
                     rgb_url = create_rgb_visualization(file_path)
-                    input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
+                    input_tensor = preprocess_tiff_image(file_path, selected_bands=default_bands)
                     predictions = predict_image_for_model(model_instance, input_tensor)
                     patch_id = os.path.splitext(filename)[0]
                     actual_labels = fetch_actual_labels(patch_id)
@@ -325,24 +297,46 @@ def predict_page():
                     })
             if not results_list:
                 flash("No valid files were uploaded with the required channel count.", "error")
-                experiments = []
-                if os.path.exists(EXPERIMENTS_DIR):
-                    for d in os.listdir(EXPERIMENTS_DIR):
-                        full_path = os.path.join(EXPERIMENTS_DIR, d)
-                        if os.path.isdir(full_path):
-                            experiments.append(d)
+                experiments = get_experiments_list()
                 return render_template('upload.html', experiments=experiments)
                 
             return render_template("batch_result.html", results=results_list, selected_experiment=selected_experiment)
     else:
-        experiments = []
-        if os.path.exists(EXPERIMENTS_DIR):
-            for d in os.listdir(EXPERIMENTS_DIR):
-                full_path = os.path.join(EXPERIMENTS_DIR, d)
-                if os.path.isdir(full_path):
-                    experiments.append(d)
+        experiments = get_experiments_list()
         return render_template('upload.html', experiments=experiments)
 
+# --- Select Bands Page ---
+@app.route("/select_bands", methods=['POST'])
+def select_bands():
+    file_path = request.form.get("file_path")
+    filename = request.form.get("filename")
+    selected_experiment = request.form.get("experiment")
+    selected_bands = request.form.getlist("selected_bands") 
+    
+    # Validate that the number of selected bands is as expected.
+    experiment_details = parse_experiment_folder(selected_experiment)
+    _, expected_bands = get_channels_and_bands(experiment_details["bands"])
+    expected_count = len(expected_bands)
+    
+    if len(selected_bands) != expected_count:
+        flash(f"Please select exactly {expected_count} band(s).", "error")
+        try:
+            with rasterio.open(file_path) as src:
+                actual_channels = src.count
+        except Exception as e:
+            flash("Error reading image: " + str(e), "error")
+            return redirect(url_for('predict_page'))
+        
+        return render_template('select_bands.html', 
+                               filename=filename,
+                               file_path=file_path,
+                               available_bands=list(range(1, actual_channels + 1)),
+                               expected_count=expected_count,
+                               experiment=selected_experiment)
+    
+    selected_bands = sorted([int(b) for b in selected_bands]) # Convert band selections to integers and sort them
+    
+    return process_prediction(file_path, filename, selected_bands, selected_experiment) # Proceed with prediction using the user-selected bands.
 
 # --- Batch GradCAM Page ---
 @app.route("/batch_gradcam")

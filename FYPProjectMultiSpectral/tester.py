@@ -9,7 +9,7 @@ import torch
 import pytorch_lightning as pl
 
 # Local application imports
-from config.config import DatasetConfig, ModelConfig
+from config.config import DatasetConfig
 from callbacks import BestMetricsCallback
 from dataloader import BigEarthNetDataLoader
 from utils.data_utils import extract_number
@@ -19,7 +19,6 @@ from utils.test_utils import calculate_metrics_and_save_results, visualize_predi
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from utils.logging_utils import setup_logger
 from models.models import *
-from transformations.transforms import TransformsConfig
 
 # Testing the model
 def main():
@@ -52,15 +51,17 @@ def main():
     testing_log_path = os.path.join(main_path, 'logs', 'testing_logs')
     logger = setup_logger(log_dir=testing_log_path, file_name='testing.log')
 
+    # Load the model from the checkpoint
     model_class, _ = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
     model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
     model.eval()
+    # Register hooks for visualization of activations
     register_hooks(model)
 
+    # Initialize the data module
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage='test')
-
     class_labels = DatasetConfig.class_labels
 
     # Initialize the BestMetricsCallback

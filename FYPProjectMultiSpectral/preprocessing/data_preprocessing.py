@@ -68,41 +68,11 @@ def bigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
     display_percentage(hundredth_subfolder_count, full_subfolder_count, '1%BigEarthNet')
     display_percentage(half_percent_subfolder_count, full_subfolder_count, '0.5%BigEarthNet')
 
-    # -- Stage 6: Pre-compute sample weights for the subsets --
-
-def precompute_sample_weights_for_subsets(metadata_csv, subset_dirs, num_classes, label_column="labels"):
-    for subset, subset_dir in subset_dirs.items():
-        metadata_path = os.path.join(subset_dir, f"metadata_{subset.replace('%','')}_percent.csv")
-        if not os.path.exists(metadata_path):
-            print(f"[WARNING] Metadata file for subset {subset} not found at {metadata_path}. Skipping.")
-            continue
-
-        subset_df = pd.read_csv(metadata_path)
-        # Define the cache file path within the subset folder.
-        cache_file = os.path.join(subset_dir, f"{subset}_sample_weights.npy")
-        precompute_sample_weights(subset_df, num_classes, label_column, cache_file)
-        print(f"[INFO] Precomputed sample weights for subset '{subset}' saved to {cache_file}")
-
 ############################################################################################################
 if __name__ == '__main__':
-    # dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets2\50_percent' # Full path of the dataset
-    # subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets' # Full path of the subset directory
-    # metadata_file = r'C:\Users\isaac\Downloads\metadata.parquet' # Full path of the metadata file
-    # unwanted_metadata_file = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet' # Full path of the unwanted metadata
+    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets2\50_percent' # Full path of the dataset
+    subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets' # Full path of the subset directory
+    metadata_file = r'C:\Users\isaac\Downloads\metadata.parquet' # Full path of the metadata file
+    unwanted_metadata_file = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet' # Full path of the unwanted metadata
     
-    # bigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)  
-
-    subset_dirs = {
-        "0.5%": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet",
-        # "1%":   r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet",
-        # "5%":   r"C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet",
-        # "10%":  r"C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet",
-        # "50%":  r"C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet"
-    }
-    
-    # For example, use the full metadata (or adjust as needed).
-    metadata_csv = pd.read_csv(DatasetConfig.metadata_paths['100'])
-    num_classes = DatasetConfig.num_classes
-    
-    # Precompute weights for each subset.
-    precompute_sample_weights_for_subsets(metadata_csv, subset_dirs, num_classes, label_column="labels")
+    bigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)

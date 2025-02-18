@@ -45,6 +45,8 @@ class DatasetConfig:
     band_channels: int = 12
     valid_pct: float = 0.1
     img_size: int = 120
+    image_height: int = 120
+    image_width: int = 120
 
     rgb_bands = ["B04", "B03", "B02"]
     rgb_nir_bands = ["B04", "B03", "B02", "B08"]

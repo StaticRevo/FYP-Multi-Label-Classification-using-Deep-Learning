@@ -3,7 +3,6 @@ import json
 import os
 import subprocess
 import sys
-import datetime
 
 # Third-party imports
 import torch
@@ -41,10 +40,6 @@ def main():
     else:
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
 
-    dataset_num = extract_number(selected_dataset)
-    cache_file = f"{dataset_num}%_sample_weights.npy"
-    cache_path = os.path.join(main_path, cache_file)
-
     # Initialize the log directories
     log_dir = os.path.join(main_path, 'logs')
     training_log_path = os.path.join(log_dir, 'training_logs')
@@ -61,6 +56,7 @@ def main():
         'rgb_nir_swir_bands': DatasetConfig.rgb_nir_swir_bands
     }
 
+    # Get the selected bands
     bands = bands_mapping.get(selected_bands)
     if bands is None:
         logger.error(f"Band combination {selected_bands} is not supported.")

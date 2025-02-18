@@ -11,6 +11,7 @@ from utils.data_utils import extract_number
 from config.config_utils import calculate_class_weights
 from config.config import DatasetConfig
 
+# GUI for selecting a checkpoint file
 class CheckpointSelectorGUI:
     def __init__(self, master):
         self.master = master

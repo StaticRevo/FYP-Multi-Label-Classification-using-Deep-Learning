@@ -1,17 +1,21 @@
+# Standard library imports
+import os
+import json
+import logging
+
+# Third-party imports
 import torch
 import torch.nn.functional as F
 import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from torchmetrics.classification import MultilabelAccuracy, MultilabelPrecision, MultilabelRecall, MultilabelF1Score, MultilabelHammingDistance
+from tqdm import tqdm
+
+# Local application imports
 from models.ensemble import EnsembleModel
-from utils.test_utils import calculate_metrics_and_save_results, visualize_predictions_and_heatmaps
 from dataloader import BigEarthNetDataLoader
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
-from torchmetrics.classification import MultilabelAccuracy, MultilabelPrecision, MultilabelRecall, MultilabelF1Score, MultilabelHammingDistance
-import os
-import json
-from tqdm import tqdm
-import logging
 
+# Set up logging
 def run_ensemble_inference():
     device = ModelConfig.device
     num_classes = DatasetConfig.num_classes

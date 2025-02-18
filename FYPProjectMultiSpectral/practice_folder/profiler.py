@@ -23,7 +23,6 @@ def extract_bands(input_path, output_path):
 
 #extract_bands(r"C:\Users\isaac\Desktop\S2A_MSIL2A_20170613T101031_N9999_R022_T33UUP_37_67.tif", r"C:\Users\isaac\Desktop\rgb.tif")
 
-
 # Open the TIFF file and read the RGB bands
 with rasterio.open(r"C:\Users\isaac\Desktop\rgb.tif") as src:
     rgb = src.read([1, 2, 3])

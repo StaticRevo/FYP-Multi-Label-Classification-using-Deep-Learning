@@ -37,10 +37,11 @@ class ModelSelectionGUI:
         }
         self.band_selection = {
             '1': 'all_bands',
-            '2': 'rgb_bands',
-            '3': 'rgb_nir_bands',
-            '4': 'rgb_swir_bands',
-            '5': 'rgb_nir_swir_bands'
+            '2': 'all_imp_bands',
+            '3': 'rgb_bands',
+            '4': 'rgb_nir_bands',
+            '5': 'rgb_swir_bands',
+            '6': 'rgb_nir_swir_bands'
         }
         self.dataset_selection = {
             '1': '100%_BigEarthNet',

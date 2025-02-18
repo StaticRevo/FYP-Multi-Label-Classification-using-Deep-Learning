@@ -46,6 +46,8 @@ def load_model_from_experiment(experiment_name):
     
     if bands_str.lower() == "all_bands":
         in_channels = len(DatasetConfig.all_bands)
+    elif bands_str.lower() == "all_imp_bands":
+        in_channels = len(DatasetConfig.all_imp_bands)
     elif bands_str.lower() == "rgb_bands":
         in_channels = len(DatasetConfig.rgb_bands)
     elif bands_str.lower() == "rgb_nir_bands":
@@ -324,6 +326,8 @@ def get_channels_and_bands(selected_bands: str):
     
     if selected_bands_lower == "all_bands":
         return len(DatasetConfig.all_bands), DatasetConfig.all_bands
+    elif selected_bands_lower == "all_imp_bands":
+        return len(DatasetConfig.all_imp_bands), DatasetConfig.all_imp_bands
     elif selected_bands_lower == "rgb_bands":
         return len(DatasetConfig.rgb_bands), DatasetConfig.rgb_bands
     elif selected_bands_lower == "rgb_nir_bands":

@@ -80,6 +80,9 @@ def main():
     if selected_bands == 'all_bands':
         in_channels = len(DatasetConfig.all_bands)
         bands = DatasetConfig.all_bands
+    elif selected_bands == 'all_imp_bands':
+        in_channels = len(DatasetConfig.all_imp_bands)
+        bands = DatasetConfig.all_imp_bands
     elif selected_bands == 'rgb_bands':
         in_channels = len(DatasetConfig.rgb_bands)
         bands = DatasetConfig.rgb_bands

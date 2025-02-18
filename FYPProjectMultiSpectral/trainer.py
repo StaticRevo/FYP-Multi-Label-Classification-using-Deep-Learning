@@ -54,6 +54,7 @@ def main():
     # Determine the number of input channels based on the selected bands
     bands_mapping = {
         'all_bands': DatasetConfig.all_bands,
+        'all_imp_bands': DatasetConfig.all_imp_bands,
         'rgb_bands': DatasetConfig.rgb_bands,
         'rgb_nir_bands': DatasetConfig.rgb_nir_bands,
         'rgb_swir_bands': DatasetConfig.rgb_swir_bands,

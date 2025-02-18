@@ -85,7 +85,7 @@ def train_page():
     return render_template("train.html", 
                            models=MODEL_OPTIONS, 
                            weights_options=["None", "DEFAULT"],
-                           band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
+                           band_options=["all_bands", "all_imp_bands" ,"rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
                            dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"],
                            test_options=["False", "True"])
 
@@ -181,8 +181,8 @@ def test_page():
                         untested_experiments.append(d)
         return render_template("test.html", 
                                untested_experiments=untested_experiments,
-                               weights_options=["None", "DEFAULT"],  # no longer used, but you might keep them for consistency
-                               band_options=["all_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
+                               weights_options=["None", "DEFAULT"],  
+                               band_options=["all_bands", "all_imp_bands", "rgb_bands", "rgb_nir_bands", "rgb_swir_bands", "rgb_nir_swir_bands"],
                                dataset_options=["100%_BigEarthNet", "50%_BigEarthNet", "10%_BigEarthNet", "5%_BigEarthNet", "1%_BigEarthNet", "0.5%_BigEarthNet"])
 
 # --- Logs (for Testing) ---

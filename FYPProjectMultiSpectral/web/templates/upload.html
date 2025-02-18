@@ -3,6 +3,17 @@
 {% block content %}
   <h1 class="mb-4">Upload TIFF Image(s) for Prediction</h1>
   <p>You can select a single image for a single prediction or multiple images for batch prediction.</p>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  
   <form method="post" enctype="multipart/form-data">
     <div class="mb-3">
       <label for="formFiles" class="form-label">Select Image File(s)</label>

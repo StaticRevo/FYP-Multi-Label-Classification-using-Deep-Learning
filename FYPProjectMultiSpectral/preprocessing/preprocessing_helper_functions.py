@@ -116,7 +116,7 @@ def copy_subset_images(original_images_dir, original_metadata_path, subset_metad
 
     for patch_id in subset_patch_ids:
         # Construct file paths
-        src_path = original_images_dir / f"{patch_id}.tif"  # Assumes .tif extension
+        src_path = original_images_dir / f"{patch_id}.tif"  
         dst_path = subset_images_dir / f"{patch_id}.tif"
         
         if src_path.exists():

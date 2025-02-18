@@ -45,8 +45,6 @@ class BigEarthNetDataLoader(pl.LightningDataModule):
         
     def train_dataloader(self):
         # Create Dataloader for training dataset
-        # num_classes = DatasetConfig.num_classes
-        # sampler = create_weighted_sampler(self.train_dataset, num_classes)
         dataloader = DataLoader(self.train_dataset, 
                                 batch_size=ModelConfig.batch_size, 
                                 num_workers=ModelConfig.num_workers, 

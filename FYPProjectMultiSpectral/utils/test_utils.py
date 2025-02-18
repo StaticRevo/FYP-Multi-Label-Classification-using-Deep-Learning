@@ -71,7 +71,7 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     else:
         logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
-# Generate Grad-CAM visualizations
+# Generate Grad-CAM visualizations for a select number of random images
 def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels, logger=None):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
@@ -178,6 +178,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
 
         logger.info(f"Grad-CAM visualizations saved to {gradcam_save_dir}")
 
+# Generate Grad-CAM visualizations for a single image
 def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model_name, result_path, in_channels, transforms, normalisations, logger):
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
@@ -270,7 +271,6 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     plt.imshow(img)
     plt.axis('off')
     plt.title('Original Image', fontsize=14)
-    # Add text annotations for predicted labels and TIFF file name.
     plt.figtext(0.5, 0.01, f'TIFF: {os.path.basename(tiff_file_path)} | Predicted: {predicted_labels}', wrap=True, horizontalalignment='center', fontsize=12)
     rgb_save_path = os.path.join(gradcam_save_dir, 'gradcam_rgb_single.png')
     plt.savefig(rgb_save_path, bbox_inches='tight')
@@ -363,7 +363,7 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.6, band
         true_labels_indices = [idx for idx, value in enumerate(true) if value == 1]
     
         # Get the image and select RGB bands for visualization
-        image_tensor = dataloader.dataset[i][0]  # Assuming the first element is the image
+        image_tensor = dataloader.dataset[i][0]  
         img = image_tensor[rgb_channels , :, :] 
 
         # Normalize each channel
@@ -372,11 +372,9 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.6, band
         green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
         blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
 
-        # Stack into an RGB image
-        rgb_image = np.stack([red, green, blue], axis=-1)
-
-        # Convert to PIL Image
-        image_rgb = Image.fromarray((rgb_image * 255).astype(np.uint8))
+        
+        rgb_image = np.stack([red, green, blue], axis=-1) # Stack into an RGB image
+        image_rgb = Image.fromarray((rgb_image * 255).astype(np.uint8)) # Convert to PIL Image
     
         # Display the image, true labels, and predicted labels
         plt.figure(figsize=(10, 10))
@@ -498,14 +496,10 @@ def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=N
     num_classes = all_labels.shape[1]
     cooccur = np.zeros((num_classes, num_classes), dtype=int)
 
-    # For each sample
     for n in range(all_labels.shape[0]):
-        # find all true labels
-        true_idxs = np.where(all_labels[n] == 1)[0]
-        # find all predicted labels
-        pred_idxs = np.where(all_preds[n] == 1)[0]
-        # increment co-occurrences
-        for i in true_idxs:
+        true_idxs = np.where(all_labels[n] == 1)[0] # find all true labels
+        pred_idxs = np.where(all_preds[n] == 1)[0] # find all predicted labels
+        for i in true_idxs: # increment co-occurrences
             for j in pred_idxs:
                 cooccur[i, j] += 1
 

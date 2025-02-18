@@ -14,7 +14,7 @@ class ModelSelectionGUI:
         self.setup_options()
         self.create_widgets()
 
-    # Configure the common style for the widgets
+    # Configure common styles for the widgets
     def setup_style(self):
         self.style = ttk.Style()
         self.style.configure("TLabel", padding=5, font=('Arial', 12))
@@ -54,13 +54,12 @@ class ModelSelectionGUI:
 
     # Create the widgets for the GUI
     def create_widgets(self):
-        # Create frames for each option
         self.create_model_selection_frame()
         self.create_weights_selection_frame()
         self.create_band_selection_frame()
         self.create_dataset_selection_frame()
         self.create_train_test_frame()
-        self.create_iteration_options_frame()  # New iteration options
+        self.create_iteration_options_frame()  
         self.create_action_buttons()
 
     # Create frame for model selection
@@ -197,9 +196,8 @@ class ModelSelectionGUI:
         if self.both_weights_var.get():
             use_both_weights = True
         else:
-            
-            weights_choice = self.weights_var.get() # Use the selected weight option from the weights radio button.
-            selected_model = self.models.get(self.model_var.get())  #When not iterating, build default weight string from the selected model.
+            weights_choice = self.weights_var.get() 
+            selected_model = self.models.get(self.model_var.get())  
             weights_to_run = ['None'] if weights_choice == '1' else [f'{selected_model}_Weights.DEFAULT']
             use_both_weights = False
 
@@ -224,6 +222,7 @@ class ModelSelectionGUI:
         progress.start()
         loading_window.grab_set()
 
+        # Run the model training/testing in a separate thread
         def model_training_thread():
             try:
                 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -240,8 +239,7 @@ class ModelSelectionGUI:
                             current_weights_options = weights_to_run
                         for selected_bands in bands_to_run:
                             for weights in current_weights_options:
-                                # Log which combination is running 
-                                print(f"Running: model={model_name}, weights={weights}, bands={selected_bands}, dataset={selected_dataset}")
+                                print(f"Running: model={model_name}, weights={weights}, bands={selected_bands}, dataset={selected_dataset}") # Log which combination is running 
                                 subprocess.run(['python', trainer_script, model_name, weights, selected_bands, selected_dataset, test_flag])
                         
                     messagebox.showinfo("Success", "Automatic training completed for selected combinations.")

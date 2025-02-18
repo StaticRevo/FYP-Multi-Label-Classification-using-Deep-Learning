@@ -24,7 +24,7 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         self.models = {
-            '1': 'custom_model',
+            '1': 'CustomModel',
             '2': 'ResNet18',
             '3': 'ResNet50',
             '4': 'VGG16',

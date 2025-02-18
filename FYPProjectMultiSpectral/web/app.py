@@ -44,7 +44,7 @@ STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static
 if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
 # Model Options
-MODEL_OPTIONS = ["custom_model", "ResNet18", "ResNet50", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
+MODEL_OPTIONS = ["CustomModel", "ResNet18", "ResNet50", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
 class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
 CLASS_WEIGHTS = class_weights_array
 EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
@@ -364,7 +364,7 @@ def batch_gradcam():
         model=model_instance,
         img_tensor=input_tensor,
         class_labels=DatasetConfig.class_labels,
-        model_name='custom_model',
+        model_name='CustomModel',
         in_channels=12,
         predicted_indices=predicted_indices
     )
@@ -504,7 +504,7 @@ def experiment_detail(experiment_name):
                            hyperparams_content=hyperparams_content 
                            )
 
-# --- Inference Page ---
+# --- Inference Page --- 
 @app.route('/detailed_inference', methods=['GET', 'POST'])
 def detailed_inference():
     if request.method == 'POST':
@@ -512,13 +512,30 @@ def detailed_inference():
         
         comparison_data = {}
         experiments_data = {}
+        testing_comparison_data = {}
         
         for exp in selected_experiments:
-            # Load metrics from best_metrics.json
+            # Load validation metrics from best_metrics.json
             metrics = load_experiment_metrics(exp)
             if 'best_metrics' in metrics:
                 for metric, value in metrics['best_metrics'].items():
                     comparison_data.setdefault(metric, {})[exp] = value
+            
+            # Load testing metrics from best_test_metrics.json
+            test_metrics_path = os.path.join(EXPERIMENTS_DIR, exp, "results", "best_test_metrics.json")
+            if os.path.exists(test_metrics_path):
+                try:
+                    with open(test_metrics_path, 'r') as f:
+                        test_metrics = json.load(f)
+                    if 'best_metrics' in test_metrics:
+                        for metric, value in test_metrics['best_metrics'].items():
+                            testing_comparison_data.setdefault(metric, {})[exp] = value
+                except Exception as e:
+                    # If there's an error, set a default value or error message
+                    for metric in ['test_acc', 'test_loss', 'test_f1', 'test_f2', 
+                                   'test_precision', 'test_recall', 'test_one_error', 
+                                   'test_hamming_loss', 'test_avg_precision']:
+                        testing_comparison_data.setdefault(metric, {})[exp] = f"Error: {e}"
             
             # Load hyperparameters
             exp_path = os.path.join(EXPERIMENTS_DIR, exp)
@@ -558,7 +575,8 @@ def detailed_inference():
             else:
                 tb_graphs = []
             
-            best_metrics = None # Load best_metrics.json contents
+            # Also load best_metrics.json contents into experiments_data
+            best_metrics = None
             bm_path = os.path.join(results_path, "best_metrics.json")
             if os.path.exists(bm_path):
                 try:
@@ -574,13 +592,14 @@ def detailed_inference():
                 "tensorboard_graphs": tb_graphs
             }
         
-        if "val_subset_accuracy" in comparison_data: # Exclude "val_subset_accuracy" from observations
+        # Optionally, remove any unwanted key from validation metrics
+        if "val_subset_accuracy" in comparison_data:
             comparison_data.pop("val_subset_accuracy")
         
         # Define metrics that should be minimized 
         min_metrics = {"val_loss", "val_hamming_loss", "val_one_error"}
         
-        # Compute best_models: for each metric, choose the best experiment (minimize or maximize as needed)
+        # Compute best_models: for each validation metric, choose the best experiment (minimize or maximize as needed)
         best_models = {}
         for metric, values in comparison_data.items():
             valid_values = {k: v for k, v in values.items() if v is not None}
@@ -592,7 +611,7 @@ def detailed_inference():
                 else:
                     best_models[metric] = max(valid_values, key=valid_values.get)
         
-        # Generate natural-language observations (insights) for each metric (except val_subset_accuracy)
+        # Generate natural-language observations (insights) for each validation metric
         observations = []
         for metric_name, best_exp in best_models.items():
             if best_exp == 'N/A':
@@ -664,6 +683,7 @@ def detailed_inference():
             'detailed_inference.html',
             selected_experiments=selected_experiments,
             comparison_data=comparison_data,
+            testing_comparison_data=testing_comparison_data,  # Pass testing metrics
             best_models=best_models,
             experiments_data=experiments_data,
             exp_color_map=exp_color_map,
@@ -673,6 +693,7 @@ def detailed_inference():
         available_experiments = [d for d in os.listdir(EXPERIMENTS_DIR)
                                  if os.path.isdir(os.path.join(EXPERIMENTS_DIR, d))]
         return render_template('select_experiments.html', experiments=available_experiments)
+
 
 # -- Bubble Chart Page --
 @app.route("/bubble_chart")

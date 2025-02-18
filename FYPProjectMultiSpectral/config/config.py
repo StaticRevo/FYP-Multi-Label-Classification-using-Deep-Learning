@@ -89,7 +89,7 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 10
+    num_epochs: int = 1
     batch_size: int = 256
     num_workers: int = 8
     learning_rate: float = 0.001
@@ -101,21 +101,6 @@ class ModelConfig:
     patience: int = 7
     dropout: float = 0.5
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
-
-    model_names: list = field(default_factory=lambda: [
-        'resnet18', 
-        'resnet34', 
-        'resnet50', 
-        'resnet101', 
-        'resnet152', 
-        'densenet121', 
-        'densenet169', 
-        'densenet201', 
-        'densenet161',
-        'efficientnet-b0',
-        'vgg16',
-        'vgg19'
-    ])
        
 # -- Module Configuration --
 @dataclass

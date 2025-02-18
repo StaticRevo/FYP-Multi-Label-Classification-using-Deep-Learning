@@ -95,14 +95,12 @@ def get_band_indices_web(band_names, all_band_names):
     indices = []
     for band in band_names:
         try:
-            # Try converting to an integer (for numeric selections)
             band_int = int(band)
             idx = band_int - 1  # convert from 1-indexed to 0-indexed
             if idx < 0 or idx >= len(all_band_names):
                 raise ValueError(f"Band index {band_int} is out of range. Valid indices: 1 to {len(all_band_names)}.")
             indices.append(idx)
         except ValueError:
-            # Not a number? Then treat it as a band name.
             try:
                 idx = all_band_names.index(band)
                 indices.append(idx)
@@ -199,7 +197,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
-    elif model_name == 'custom_model':
+    elif model_name == 'CustomModel':
         target_layer = model.model[25]
     elif model_name == 'DenstNet121':
         target_layer = model.model.features.norm5
@@ -405,7 +403,7 @@ def process_prediction(file_path, filename, bands, selected_experiment):
     gradcam = generate_gradcam_for_single_image(
         model_instance, input_tensor,
         class_labels=DatasetConfig.class_labels,
-        model_name='custom_model',
+        model_name='CustomModel',
         in_channels=len(bands),
         predicted_indices=predicted_indices
     )

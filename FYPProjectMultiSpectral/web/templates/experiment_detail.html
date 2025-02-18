@@ -69,6 +69,50 @@
   <p>No performance summary available.</p>
 {% endif %}
 
+<!-- Test Performance Summary -->
+{% if metrics["best_test_metrics.json"] is defined %}
+<div class="card mb-4">
+  <div class="card-header">
+    <strong>Test Performance Summary</strong>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <!-- Column 1 -->
+      <div class="col-md-6">
+        <strong>Test Acc:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_acc) }}<br>
+
+        <strong>Test Recall:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_recall) }}<br>
+
+        <strong>Test Precision:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_precision) }}<br>
+
+        <strong>Test F1:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_f1) }}<br>
+      </div>
+
+      <!-- Column 2 -->
+      <div class="col-md-6">
+        <strong>Test F2:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_f2) }}<br>
+
+        <strong>Test One Error:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_one_error) }}<br>
+
+        <strong>Test Hamming Loss:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_hamming_loss) }}<br>
+
+        <strong>Test Avg Precision:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_avg_precision) }}<br>
+        
+        <strong>Test Loss:</strong>
+        {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_loss) }}<br>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
   <!-- Hyperparameters Section -->
   {% if hyperparams_content %}

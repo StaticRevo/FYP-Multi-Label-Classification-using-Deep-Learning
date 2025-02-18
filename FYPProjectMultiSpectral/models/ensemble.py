@@ -40,7 +40,7 @@ class EnsembleModel(nn.Module):
 
     # Create the model based on the architecture
     def _create_model(self, arch, class_weights, num_classes, in_channels, model_weights, main_path):
-        if arch == 'custom_model':
+        if arch == 'CustomModel':
             return CustomModel(class_weights, num_classes, in_channels, model_weights, main_path)
         elif arch == 'resnet18':
             return ResNet18(class_weights, num_classes, in_channels, model_weights, main_path)

@@ -38,12 +38,9 @@
 
   <!-- Bubble Chart Container -->
   <div id="bubbleChart" class="container mt-4" style="width: 100%; height: 600px;"></div>
-
-  <!-- Include Plotly.js from CDN -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script>
-    // Parse the JSON data passed from Flask
-    const experimentsData = JSON.parse('{{ data|tojson|safe }}');
+    const experimentsData = JSON.parse('{{ data|tojson|safe }}'); // Parse the JSON data passed from Flask
 
     // Extract arrays for the plot
     const xValues = experimentsData.map(d => d.training_time_min);
@@ -62,7 +59,7 @@
       else return 'gray';
     });
 
-    // Scale bubble sizes (e.g., model_size_MB mapped from 10 to 60)
+    // Scale bubble sizes 
     const minSize = 10, maxSize = 60;
     const minVal = Math.min(...sizes);
     const maxVal = Math.max(...sizes);

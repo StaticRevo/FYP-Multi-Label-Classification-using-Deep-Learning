@@ -3,7 +3,7 @@ from models.models import *
 # Get the model class
 def get_model_class(model_name):
     model_mapping = {
-        'custom_model': (CustomModel, 'custom_model'),
+        'CustomModel': (CustomModel, 'custom_model'),
         'ResNet18': (ResNet18, 'resnet18'),
         'ResNet50': (ResNet50, 'resnet50'),
         'VGG16': (VGG16, 'vgg16'),

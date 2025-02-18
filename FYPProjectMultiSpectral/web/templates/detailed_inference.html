@@ -34,7 +34,7 @@
             </tr>
           </thead>
           <tbody>
-            {# Loop through each metric row #}
+            {# Loop through each metric row for validation metrics #}
             {% for metric, values in comparison_data.items() %}
               {% set best_experiment = best_models[metric] %}
               <tr>
@@ -108,6 +108,72 @@
     </div>
   </div>
 
+  <!-- Summary Table for Testing Metrics -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2>Testing Metrics Comparison</h2>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              {% for exp in selected_experiments %}
+                <th class="text-break" style="overflow-wrap: anywhere; white-space: normal;">{{ exp }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for metric, values in testing_comparison_data.items() %}
+              {# Use a namespace to track the best experiment and value for this testing metric #}
+              {% set ns_test = namespace(best_experiment=None, best_value=None) %}
+              {% for exp in selected_experiments %}
+                {% set current = values.get(exp, 'N/A') %}
+                {% if current != 'N/A' %}
+                  {% set current_val = current | float %}
+                  {% if ns_test.best_value is none %}
+                    {% set ns_test.best_value = current_val %}
+                    {% set ns_test.best_experiment = exp %}
+                  {% else %}
+                    {# For metrics to be minimized #}
+                    {% if metric in ['test_loss', 'test_hamming_loss', 'test_one_error'] %}
+                      {% if current_val < ns_test.best_value %}
+                        {% set ns_test.best_value = current_val %}
+                        {% set ns_test.best_experiment = exp %}
+                      {% endif %}
+                    {% else %}
+                      {# For metrics to be maximized #}
+                      {% if current_val > ns_test.best_value %}
+                        {% set ns_test.best_value = current_val %}
+                        {% set ns_test.best_experiment = exp %}
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+              <tr>
+                <td>{{ metric }}</td>
+                {% for exp in selected_experiments %}
+                  <td>
+                    {% if exp == ns_test.best_experiment %}
+                      <span class="badge {{ exp_color_map[exp] }} text-break" 
+                            style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                        {{ values.get(exp, 'N/A') }}
+                      </span>
+                    {% else %}
+                      {{ values.get(exp, 'N/A') }}
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- Insights & Observations Section -->
   {% if observations and observations|length > 0 %}
   <div class="card mb-4">
@@ -125,79 +191,87 @@
   {% endif %}
 
   <!-- Detailed Experiment Information -->
-  <h2 class="mb-4">Detailed Experiment Information</h2>
-  <div class="row">
-    {% set col_width = 12 // selected_experiments|length %}
-    {% for exp in selected_experiments %}
-      <div class="col-md-{{ col_width }} text-break" style="overflow-wrap: anywhere; white-space: normal;">
-        <div class="card mb-4">
-          <div class="card-header text-center">
-            <h4>
-              <span class="badge {{ exp_color_map[exp] }} text-break" 
-                    style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
-                {{ exp }}
-              </span>
-            </h4>
-          </div>
-          <div class="card-body text-break" style="overflow-wrap: anywhere; white-space: normal;">
-            <!-- Performance Summary -->
-            {% if experiments_data[exp].best_metrics %}
-              {% set bm = experiments_data[exp].best_metrics %}
-              <h5>Performance Summary</h5>
-              <p>
-                <strong>Val Acc:</strong> {{ bm.best_metrics.val_acc | default("N/A") }}<br>
-                <strong>Val Recall:</strong> {{ bm.best_metrics.val_recall | default("N/A") }}<br>
-                <strong>Val F1:</strong> {{ bm.best_metrics.val_f1 | default("N/A") }}<br>
-                <strong>Val Precision:</strong> {{ bm.best_metrics.val_precision | default("N/A") }}<br>
-                <strong>Inference Time:</strong> {{ bm.inference_rate_images_per_sec | default("N/A") }} imgs/s<br>
-                <strong>Training Time:</strong> {{ bm.training_time_formatted | default("N/A") }}
-              </p>
-            {% else %}
-              <p>No performance summary available.</p>
-            {% endif %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2>Detailed Experiment Information</h2>
+    </div>
+    <div class="card-body">
+      {# Wrap the experiment cards in a horizontally scrollable container #}
+      <div style="overflow-x: auto;">
+        <div class="d-flex">
+          {% for exp in selected_experiments %}
+            <div class="p-2" style="min-width: 300px;">
+              <div class="card">
+                <div class="card-header text-center">
+                  <h4>
+                    <span class="badge {{ exp_color_map[exp] }} text-break" 
+                          style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                      {{ exp }}
+                    </span>
+                  </h4>
+                </div>
+                <div class="card-body text-break" style="overflow-wrap: anywhere; white-space: normal;">
+                  <!-- Performance Summary -->
+                  {% if experiments_data[exp].best_metrics %}
+                    {% set bm = experiments_data[exp].best_metrics %}
+                    <h5>Performance Summary</h5>
+                    <p>
+                      <strong>Val Acc:</strong> {{ bm.best_metrics.val_acc | default("N/A") }}<br>
+                      <strong>Val Recall:</strong> {{ bm.best_metrics.val_recall | default("N/A") }}<br>
+                      <strong>Val F1:</strong> {{ bm.best_metrics.val_f1 | default("N/A") }}<br>
+                      <strong>Val Precision:</strong> {{ bm.best_metrics.val_precision | default("N/A") }}<br>
+                      <strong>Inference Time:</strong> {{ bm.inference_rate_images_per_sec | default("N/A") }} imgs/s<br>
+                      <strong>Training Time:</strong> {{ bm.training_time_formatted | default("N/A") }}
+                    </p>
+                  {% else %}
+                    <p>No performance summary available.</p>
+                  {% endif %}
 
-            <!-- Hyperparameters -->
-            {% if experiments_data[exp].hyperparams %}
-              <h5>Hyperparameters</h5>
-              <p style="white-space: pre-wrap;">{{ experiments_data[exp].hyperparams }}</p>
-            {% endif %}
+                  <!-- Hyperparameters -->
+                  {% if experiments_data[exp].hyperparams %}
+                    <h5>Hyperparameters</h5>
+                    <p style="white-space: pre-wrap;">{{ experiments_data[exp].hyperparams }}</p>
+                  {% endif %}
 
-            <!-- Visualizations -->
-            {% if experiments_data[exp].visualizations %}
-              <h5>Visualizations</h5>
-              {% if experiments_data[exp].visualizations.confusion_matrices %}
-                <p><strong>Confusion Matrix:</strong></p>
-                <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.confusion_matrices) }}"
-                     class="img-fluid" alt="Confusion Matrix for {{ exp }}">
-              {% endif %}
-              {% if experiments_data[exp].visualizations.roc_auc %}
-                <p><strong>ROC AUC Curve:</strong></p>
-                <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.roc_auc) }}"
-                     class="img-fluid" alt="ROC AUC Curve for {{ exp }}">
-              {% endif %}
-              {% if experiments_data[exp].visualizations.cooccurrence %}
-                <p><strong>Co-occurrence Matrix:</strong></p>
-                <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.cooccurrence) }}"
-                     class="img-fluid" alt="Co-occurrence Matrix for {{ exp }}">
-              {% endif %}
-            {% endif %}
+                  <!-- Visualizations -->
+                  {% if experiments_data[exp].visualizations %}
+                    <h5>Visualizations</h5>
+                    {% if experiments_data[exp].visualizations.confusion_matrices %}
+                      <p><strong>Confusion Matrix:</strong></p>
+                      <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.confusion_matrices) }}"
+                           class="img-fluid" alt="Confusion Matrix for {{ exp }}">
+                    {% endif %}
+                    {% if experiments_data[exp].visualizations.roc_auc %}
+                      <p><strong>ROC AUC Curve:</strong></p>
+                      <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.roc_auc) }}"
+                           class="img-fluid" alt="ROC AUC Curve for {{ exp }}">
+                    {% endif %}
+                    {% if experiments_data[exp].visualizations.cooccurrence %}
+                      <p><strong>Co-occurrence Matrix:</strong></p>
+                      <img src="{{ url_for('experiment_file', experiment_name=exp, filename=experiments_data[exp].visualizations.cooccurrence) }}"
+                           class="img-fluid" alt="Co-occurrence Matrix for {{ exp }}">
+                    {% endif %}
+                  {% endif %}
 
-            <!-- TensorBoard Graphs -->
-            {% if experiments_data[exp].tensorboard_graphs and experiments_data[exp].tensorboard_graphs|length > 0 %}
-              <h5>TensorBoard Graphs</h5>
-              <div class="d-flex flex-wrap gap-3">
-                {% for graph in experiments_data[exp].tensorboard_graphs %}
-                  <div class="p-2">
-                    <img src="{{ url_for('experiment_file', experiment_name=exp, filename='results/tensorboard_graphs/' ~ graph) }}" 
-                         class="img-fluid" alt="TensorBoard Graph: {{ graph }}">
-                  </div>
-                {% endfor %}
+                  <!-- TensorBoard Graphs -->
+                  {% if experiments_data[exp].tensorboard_graphs and experiments_data[exp].tensorboard_graphs|length > 0 %}
+                    <h5>TensorBoard Graphs</h5>
+                    <div class="d-flex flex-wrap gap-3">
+                      {% for graph in experiments_data[exp].tensorboard_graphs %}
+                        <div class="p-2">
+                          <img src="{{ url_for('experiment_file', experiment_name=exp, filename='results/tensorboard_graphs/' ~ graph) }}" 
+                               class="img-fluid" alt="TensorBoard Graph: {{ graph }}">
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
               </div>
-            {% endif %}
-          </div>
+            </div>
+          {% endfor %}
         </div>
       </div>
-    {% endfor %}
+    </div>
   </div>
 
   <div class="text-end">

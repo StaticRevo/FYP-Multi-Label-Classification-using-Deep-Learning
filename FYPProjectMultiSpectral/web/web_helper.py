@@ -400,10 +400,13 @@ def process_prediction(file_path, filename, bands, selected_experiment):
         output = model_instance(input_tensor)
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
+
+    experiment_details = parse_experiment_folder(selected_experiment)
+    model_name = experiment_details["model"]
     gradcam = generate_gradcam_for_single_image(
         model_instance, input_tensor,
         class_labels=DatasetConfig.class_labels,
-        model_name='CustomModel',
+        model_name=model_name,
         in_channels=len(bands),
         predicted_indices=predicted_indices
     )

@@ -71,11 +71,8 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     else:
         logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
-# Generate Grad-CAM visualizations for a select number of random images
-def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels, logger=None):
-    gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
-    os.makedirs(gradcam_save_dir, exist_ok=True)
-
+# Get the Grad-CAM target layer
+def get_target_layer(model, model_name, logger=None):
     if model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
     elif model_name == 'ResNet50':
@@ -92,7 +89,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
-    elif model_name == 'custom_model':
+    elif model_name == 'CustomModel':
         target_layer = model.model[25]
     elif model_name == 'DenstNet121':
         target_layer = model.model.features.norm5
@@ -100,7 +97,19 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         logger.warning(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
         return
 
-    grad_cam = GradCAM(model, target_layer)
+    return target_layer
+
+# Generate Grad-CAM visualizations for a select number of random images
+def generate_gradcam_visualizations(model, data_module, class_labels, model_name, result_path, in_channels, logger=None):
+    gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
+    os.makedirs(gradcam_save_dir, exist_ok=True)
+
+    # Get the target layer for Grad-CAM
+    target_layer = get_target_layer(model, model_name, logger)
+    if target_layer is None:
+        return
+
+    grad_cam = GradCAM(model, target_layer) # Initialize Grad-CAM
 
     test_dataset = data_module.test_dataloader().dataset
     num_images = len(test_dataset)
@@ -183,31 +192,12 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     gradcam_save_dir = os.path.join(result_path, 'gradcam_visualizations')
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
-    if model_name == 'ResNet18':
-        target_layer = model.model.layer3[-1].conv2
-    elif model_name == 'ResNet50':
-        target_layer = model.model.layer3[-1].conv3
-    elif model_name == 'VGG16':
-        target_layer = model.model.features[28]
-    elif model_name == 'VGG19':
-        target_layer = model.model.features[34]
-    elif model_name == 'EfficientNetB0':
-        target_layer = model.model.features[8][0]
-    elif model_name == 'EfficientNet_v2':
-        target_layer = model.modelfeatures[7][4].block[3]
-    elif model_name == 'Swin-Transformer':
-        target_layer = model.model.stages[3].blocks[-1].norm1
-    elif model_name == 'Vit-Transformer':
-        target_layer = model.model.layers[-1].attention
-    elif model_name == 'custom_model':
-        target_layer = model.model[25]
-    elif model_name == 'DenstNet121':
-        target_layer = model.model.features.norm5
-    else:
-        logger.warning(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
+    # Get the target layer for Grad-CAM
+    target_layer = get_target_layer(model, model_name, logger)
+    if target_layer is None:
         return
 
-    grad_cam = GradCAM(model, target_layer)
+    grad_cam = GradCAM(model, target_layer) # Initialize Grad-CAM
 
     with rasterio.open(tiff_file_path) as src:
         image = src.read()

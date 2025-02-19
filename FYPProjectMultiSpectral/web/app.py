@@ -360,12 +360,15 @@ def batch_gradcam():
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
 
+    experiment_details = parse_experiment_folder(experiment)
+    model_name = experiment_details["model"]  
+    in_channels, bands = get_channels_and_bands(experiment_details["bands"])
     gradcam_results = generate_gradcam_for_single_image(
         model=model_instance,
         img_tensor=input_tensor,
         class_labels=DatasetConfig.class_labels,
-        model_name='CustomModel',
-        in_channels=12,
+        model_name=model_name,
+        in_channels=in_channels,
         predicted_indices=predicted_indices
     )
 

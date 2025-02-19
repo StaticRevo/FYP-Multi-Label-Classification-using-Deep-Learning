@@ -124,7 +124,7 @@ class BaseModel(pl.LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate)
+        optimizer = optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
         return {
             'optimizer': optimizer,

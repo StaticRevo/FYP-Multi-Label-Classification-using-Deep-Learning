@@ -36,25 +36,6 @@ class SE(nn.Module):
         y = self.sigmoid(y)
         return x * y
 
-# Convolutional Block Attention Module (CBAM)
-class ChannelAttention(nn.Module):
-    def __init__(self, in_channels):
-        super(ChannelAttention, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.max_pool = nn.AdaptiveMaxPool2d(1)
-        
-        self.fc1 = nn.Conv2d(in_channels, in_channels // ModuleConfig.reduction, kernel_size=1, padding=0)
-        self.fc2 = nn.Conv2d(in_channels // ModuleConfig.reduction, in_channels, kernel_size=1, padding=0)
-        
-        self.activation = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        avg_out = self.fc2(self.activation(self.fc1(self.avg_pool(x))))
-        max_out = self.fc2(self.activation(self.fc1(self.max_pool(x))))
-        out = avg_out + max_out
-        return x * self.sigmoid(out)
-
 # Efficient Channel Attention Module (ECA)
 class ECA(nn.Module):
     def __init__(self, in_channels, k_size=3):
@@ -70,6 +51,56 @@ class ECA(nn.Module):
         y = self.sigmoid(y).unsqueeze(-1).unsqueeze(-1) 
         return x * y
 
+# Drop Path Module (DropPath)
+class DropPath(nn.Module):
+    def __init__(self, drop_prob=ModuleConfig.dropout_rt):
+        super(DropPath, self).__init__()
+        self.drop_prob = drop_prob
+
+    def forward(self, x):
+        if self.drop_prob == 0. or not self.training:
+            return x
+        # Compute a binary mask
+        keep_prob = 1 - self.drop_prob
+        shape = (x.shape[0],) + (1,) * (x.ndim - 1)
+        random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
+        random_tensor.floor_()  # binarize
+        return x.div(keep_prob) * random_tensor
+
+# Residual Block Module (ResidualBlock)
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(ModuleConfig.dropout_rt)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        
+        self.downsample = None
+        if in_channels != out_channels:
+            self.downsample = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
+        self.drop_path = DropPath(ModuleConfig.dropout_rt)
+    
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.drop_path(out)
+        if self.downsample:
+            residual = self.downsample(x)
+        out += residual
+        out = self.relu(out)
+        return out
+    
 # Spatial Attention Module (SA)
 class SpatialAttention(nn.Module):
     def __init__(self, kernel_size=7):
@@ -83,36 +114,6 @@ class SpatialAttention(nn.Module):
         y = torch.cat([avg_out, max_out], dim=1)
         y = self.conv(y)
         return x * self.sigmoid(y)
-
-# Residual Block Module (ResidualBlock)
-class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
-        super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        
-        self.downsample = None
-        if in_channels != out_channels:
-            self.downsample = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels)
-            )
-    
-    def forward(self, x):
-        residual = x
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        if self.downsample:
-            residual = self.downsample(x)
-        out += residual
-        out = self.relu(out)
-        return out
     
 # Spectral Attention Module (SA)
 class SpectralAttention(nn.Module):
@@ -136,7 +137,7 @@ class SpectralAttention(nn.Module):
 class DualAttention(nn.Module):
     def __init__(self, in_channels):
         super(DualAttention, self).__init__()
-        self.channel_att = SpectralAttention(in_channels) # Channel Attention
+        self.channel_att = SpectralAttention(in_channels) # Spectral Attention
         self.spatial_att = SpatialAttention(kernel_size=7) # Spatial Attention
     
     def forward(self, x):
@@ -169,13 +170,11 @@ class CoordinateAttention(nn.Module):
 
     def forward(self, x):
         n, c, h, w = x.size()
-        # Pool along height and width separately
-        x_h = F.adaptive_avg_pool2d(x, (h, 1))  
+        
+        x_h = F.adaptive_avg_pool2d(x, (h, 1)) # Pool along height and width separately
         x_w = F.adaptive_avg_pool2d(x, (1, w)) 
-        # Permute x_w so its spatial dimensions match for concatenation
-        x_w = x_w.permute(0, 1, 3, 2)  
-        # Concatenate along the height dimension (dim=2)
-        y = torch.cat([x_h, x_w], dim=2)  
+        x_w = x_w.permute(0, 1, 3, 2) # Permute x_w so its spatial dimensions match for concatenation
+        y = torch.cat([x_h, x_w], dim=2) # Concatenate along the height dimension (dim=2)
         y = self.conv1(y)  
         y = self.bn1(y)
         y = self.act(y)

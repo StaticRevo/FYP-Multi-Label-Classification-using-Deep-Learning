@@ -48,6 +48,7 @@ MODEL_OPTIONS = ["CustomModel", "ResNet18", "ResNet50", "VGG16", "VGG19", "Dense
 class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
 CLASS_WEIGHTS = class_weights_array
 EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
+ARCHITECTURES_DIR = os.path.join(parent_dir, "models", "Architecture")
 
 # -- Routes --
 # -- Home Page --
@@ -746,6 +747,46 @@ def bubble_chart():
                         })
     # Pass both the experiments data and the available model options to the template.
     return render_template("bubble_chart.html", data=experiments_data, model_options=MODEL_OPTIONS)
+
+# -- Architecture Page --
+@app.route("/architectures")
+def architectures():
+    architectures_list = []
+    if os.path.exists(ARCHITECTURES_DIR):
+        for folder in os.listdir(ARCHITECTURES_DIR):
+            folder_path = os.path.join(ARCHITECTURES_DIR, folder)
+            if os.path.isdir(folder_path):
+                files_data = []
+                for file in os.listdir(folder_path):
+                    file_path = os.path.join(folder_path, file)
+                    content = None
+                    is_text = False
+                    if file.endswith('.txt'):
+                        is_text = True
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                        except Exception as e:
+                            content = f"Error reading file: {e}"
+                    files_data.append({
+                        "name": file,
+                        "content": content,
+                        "is_text": is_text
+                    })
+                architectures_list.append({
+                    "name": folder,
+                    "files": files_data
+                })
+    else:
+        flash("Architectures directory not found.", "error")
+    return render_template("architectures.html", architectures=architectures_list)
+
+@app.route("/architecture_file/<architecture>/<filename>")
+def architecture_file(architecture, filename):
+    folder_path = os.path.join(ARCHITECTURES_DIR, architecture) # Build the full path to the file
+    if not os.path.exists(os.path.join(folder_path, filename)):
+        return f"File {filename} not found in {architecture} folder.", 404
+    return send_from_directory(folder_path, filename)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

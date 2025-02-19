@@ -89,11 +89,10 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 1
+    num_epochs: int = 5
     batch_size: int = 256
     num_workers: int = 8
     learning_rate: float = 0.001
-    lr_step_size: int = 7
     lr_factor: float = 0.1
     lr_patience: int = 5
     momentum: float = 0.9
@@ -108,7 +107,7 @@ class ModuleConfig:
     reduction: int = 16
     ratio: int = 8
     kernel_size: int = 3
-    dropout_rt: float = 0.1
+    dropout_rt: float = 0.2
     activation: type = nn.ReLU
 
 

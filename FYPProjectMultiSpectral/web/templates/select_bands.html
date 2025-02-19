@@ -5,7 +5,6 @@
   <p>The uploaded image has more bands than required (expected {{ expected_count }}). Please select exactly {{ expected_count }} band(s) from the available list:</p>
   
   <form method="post" action="{{ url_for('select_bands') }}">
-    <!-- Pass along file path and experiment as hidden inputs -->
     <input type="hidden" name="file_path" value="{{ file_path }}">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="experiment" value="{{ experiment }}">

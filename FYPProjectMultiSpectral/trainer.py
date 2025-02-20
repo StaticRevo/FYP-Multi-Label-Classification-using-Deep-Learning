@@ -129,6 +129,7 @@ def main():
         precision='16-mixed',
         log_every_n_steps=1,
         accumulate_grad_batches=2,
+        gradient_clip_val=1.0,
         callbacks=[
                     checkpoint_callback_loss, 
                     checkpoint_callback_acc, 

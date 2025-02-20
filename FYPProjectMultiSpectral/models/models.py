@@ -50,7 +50,7 @@ class CustomModel(BaseModel):
             nn.ReLU(inplace=True),
             MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
             ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
-            SE(in_channels=128, kernel_size=1, stride=1, padding=1), # Squeeze and Excitation Module
+            SE(in_channels=128, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
 
             # -- Block 4 -- 
             DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 

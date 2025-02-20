@@ -60,13 +60,14 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
             DualAttention(in_channels=256, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
 
+            #TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape"),
+
             # Global Pool and Classifier
             nn.AdaptiveAvgPool2d(output_size=1),
             nn.Flatten(),
             nn.Dropout(p=ModelConfig.dropout),
             nn.Linear(in_features=256, out_features=num_classes, bias=True)
         )
-
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)
         
 # ResNet18 Model

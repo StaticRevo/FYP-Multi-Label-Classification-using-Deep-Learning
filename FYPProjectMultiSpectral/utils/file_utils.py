@@ -11,6 +11,8 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from tqdm import tqdm
 from PIL import Image
 import pandas as pd
+from torchinfo import summary as torchinfo_summary
+from contextlib import redirect_stdout
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig
@@ -59,3 +61,15 @@ def save_hyperparameters(model_config, experiment_main_path):
     return file_path
 
 
+def save_model_architecture(model, input_size, hyperparams_file_path, filename="model_architecture"):
+    save_dir = os.path.dirname(hyperparams_file_path) # Extract the directory where hyperparameters are saved
+    save_path = os.path.join(save_dir, f'{filename}.txt')
+    os.makedirs(save_dir, exist_ok=True)
+    
+    device = ModelConfig.device
+    model.to(device)
+    
+    with open(save_path, 'w', encoding='utf-8') as f: # Redirect stdout to write the summary to a file
+        with redirect_stdout(f):
+            torchinfo_summary(model, input_size=(1, *input_size))
+    return save_path

@@ -14,7 +14,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from dataloader import BigEarthNetDataLoader
 from utils.setup_utils import set_random_seeds
-from utils.file_utils import initialize_paths, save_hyperparameters
+from utils.file_utils import initialize_paths, save_hyperparameters, save_model_architecture
 from utils.data_utils import get_dataset_info, extract_number
 from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
@@ -178,6 +178,9 @@ def main():
     # Save hyperparameters
     file_path = save_hyperparameters(ModelConfig, main_path)
     logger.info(f"Hyperparameters saved to {file_path}")
+
+    arch_path = save_model_architecture(model, (in_channels, 120, 120), file_path, filename=model_name)
+    logger.info(f"Model architecture saved to {arch_path}")
 
     if test_variable == 'True':
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])

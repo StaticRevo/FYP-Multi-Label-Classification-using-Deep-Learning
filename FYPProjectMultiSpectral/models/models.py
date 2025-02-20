@@ -20,46 +20,51 @@ class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         custom_model = nn.Sequential(
             # Spectral Mixing 
-            nn.Conv2d(in_channels, 16, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=1, stride=1, 
+                      padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
 
             # -- Block 1 --
-            DepthwiseSeparableConv(16, 32, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(32),
+            DepthwiseSeparableConv(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (16->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
             ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
-            SpectralAttention(in_channels=32), # SpectralAttention Module
-            CoordinateAttention(32),
+            SpectralAttention(in_channels=32), # SpectralAttention Module (32->32)
+            CoordinateAttention(in_channels=32, reduction=32), # CoordinateAttention Module (32->32)
 
             # -- Block 2 --
-            DepthwiseSeparableConv(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64),
+            DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            MultiScaleBlock(64, 64),
+            MultiScaleBlock(in_channels=64, out_channels=64, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (64->64)
             ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
             ECA(in_channels=64, k_size=3), # ECA Module
 
             # -- BLock 3 -- 
-            DepthwiseSeparableConv(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+            DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, 
+                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
+            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            MultiScaleBlock(128, 128),
+            MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
             ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
-            SE(in_channels=128), # Squeeze and Excitation Module
+            SE(in_channels=128, kernel_size=1, stride=1, padding=1), # Squeeze and Excitation Module
 
             # -- Block 4 -- 
-            DepthwiseSeparableConv(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
+            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
-            DualAttention(in_channels=256), # DualAttention Module
+            DualAttention(in_channels=256, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
 
             # Global Pool and Classifier
-            nn.AdaptiveAvgPool2d(1),
+            nn.AdaptiveAvgPool2d(output_size=1),
             nn.Flatten(),
-            nn.Dropout(ModelConfig.dropout),
-            nn.Linear(256, num_classes)
+            nn.Dropout(p=ModelConfig.dropout),
+            nn.Linear(in_features=256, out_features=num_classes, bias=True)
         )
 
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)

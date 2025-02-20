@@ -9,14 +9,16 @@ from config.config import ModuleConfig
 
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, kernel_size, stride, padding):
         super(SE, self).__init__()
         # Squeeze
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
         # Excitation
-        self.fc1 = nn.Conv2d(in_channels, in_channels // ModuleConfig.reduction, kernel_size=1, padding=0)
+        self.fc1 = nn.Conv2d(in_channels=in_channels, out_channels=(in_channels // ModuleConfig.reduction), kernel_size=kernel_size, 
+                             stride=stride, padding=padding, dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.activation = ModuleConfig.activation(inplace=True) if ModuleConfig.activation.__name__ != "Sigmoid" else ModuleConfig.activation()
-        self.fc2 = nn.Conv2d(in_channels // ModuleConfig.reduction, in_channels, kernel_size=1, padding=0)
+        self.fc2 = nn.Conv2d(in_channels=(in_channels // ModuleConfig.reduction), out_channels=in_channels, kernel_size=kernel_size, 
+                             stride=stride, padding=padding, dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.sigmoid = nn.Sigmoid()
 
         self.use_dropout = ModuleConfig.dropout_rt is not None and ModuleConfig.dropout_rt > 0
@@ -40,8 +42,9 @@ class SE(nn.Module):
 class ECA(nn.Module):
     def __init__(self, in_channels, k_size=3):
         super(ECA, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
+        self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
+        self.conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k_size, stride=1, padding=(k_size - 1) // 2,
+                              dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -69,20 +72,23 @@ class DropPath(nn.Module):
 
 # Residual Block Module (ResidualBlock)
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
+    def __init__(self, in_channels, out_channels, stride):
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, 
+                               padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros')
+        self.bn1 = nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout(ModuleConfig.dropout_rt)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.dropout = nn.Dropout(p=ModuleConfig.dropout_rt)
+        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=stride, 
+                               padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros')
+        self.bn2 = nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         
         self.downsample = None
         if in_channels != out_channels:
             self.downsample = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels)
+                nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, 
+                          padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
+                nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
             )
         self.drop_path = DropPath(ModuleConfig.dropout_rt)
     
@@ -103,9 +109,10 @@ class ResidualBlock(nn.Module):
     
 # Spatial Attention Module (SA)
 class SpatialAttention(nn.Module):
-    def __init__(self, kernel_size=7):
+    def __init__(self, kernel_size, stride):
         super(SpatialAttention, self).__init__()
-        self.conv = nn.Conv2d(2, 1, kernel_size, padding=(kernel_size - 1) // 2, bias=False)
+        self.conv = nn.Conv2d(in_channels=2, out_channels=1, kernel_size=kernel_size, stride=stride, padding=(kernel_size - 1) // 2,
+                              dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -119,9 +126,9 @@ class SpatialAttention(nn.Module):
 class SpectralAttention(nn.Module):
     def __init__(self, in_channels):
         super(SpectralAttention, self).__init__()
-        self.fc1 = nn.Linear(in_channels, in_channels // ModuleConfig.reduction)
+        self.fc1 = nn.Linear(in_features=in_channels, out_features=(in_channels // ModuleConfig.reduction), bias=True)
         self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(in_channels // ModuleConfig.reduction, in_channels)
+        self.fc2 = nn.Linear(in_features=(in_channels // ModuleConfig.reduction), out_features=in_channels, bias=True)
         self.sigmoid = nn.Sigmoid()
     
     def forward(self, x):
@@ -135,10 +142,10 @@ class SpectralAttention(nn.Module):
 
 # Dual Attention Module (DA) - Combines Channel Attention and Spatial Attention
 class DualAttention(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, kernel_size, stride):
         super(DualAttention, self).__init__()
-        self.channel_att = SpectralAttention(in_channels) # Spectral Attention
-        self.spatial_att = SpatialAttention(kernel_size=7) # Spatial Attention
+        self.channel_att = SpectralAttention(in_channels=in_channels) # Spectral Attention
+        self.spatial_att = SpatialAttention(kernel_size=kernel_size, stride=stride) # Spatial Attention
     
     def forward(self, x):
         x = self.channel_att(x)
@@ -147,10 +154,12 @@ class DualAttention(nn.Module):
     
 # Depthwise Separable Convolution Module (DepthwiseSeparableConv)
 class DepthwiseSeparableConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=1, bias=False):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dilation, bias, padding_mode):
         super(DepthwiseSeparableConv, self).__init__()
-        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=padding, groups=in_channels, bias=bias)
-        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=bias)
+        self.depthwise = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, stride=stride, 
+                                   padding=padding, dilation=dilation, groups=in_channels, bias=bias, padding_mode=padding_mode)
+        self.pointwise = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0,
+                                   dilation=dilation, groups=1, bias=bias, padding_mode=padding_mode)
     
     def forward(self, x):
         x = self.depthwise(x)
@@ -162,17 +171,19 @@ class CoordinateAttention(nn.Module):
     def __init__(self, in_channels, reduction=32):
         super(CoordinateAttention, self).__init__()
         mid_channels = max(8, in_channels // reduction)
-        self.conv1 = nn.Conv2d(in_channels, mid_channels, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(mid_channels)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=mid_channels, kernel_size=1, stride=1, 
+                               padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros')
+        self.bn1 = nn.BatchNorm2d(num_features=mid_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.act = nn.ReLU(inplace=True)
-        self.conv_h = nn.Conv2d(mid_channels, in_channels, kernel_size=1, bias=False)
+        self.conv_h = nn.Conv2d(in_channels=mid_channels, out_channels=in_channels, kernel_size=1, stride=1, 
+                                padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.conv_w = nn.Conv2d(mid_channels, in_channels, kernel_size=1, bias=False)
 
     def forward(self, x):
         n, c, h, w = x.size()
         
-        x_h = F.adaptive_avg_pool2d(x, (h, 1)) # Pool along height and width separately
-        x_w = F.adaptive_avg_pool2d(x, (1, w)) 
+        x_h = F.adaptive_avg_pool2d(x, (h, 1)) # Pool along height
+        x_w = F.adaptive_avg_pool2d(x, (1, w)) # Pool along width
         x_w = x_w.permute(0, 1, 3, 2) # Permute x_w so its spatial dimensions match for concatenation
         y = torch.cat([x_h, x_w], dim=2) # Concatenate along the height dimension (dim=2)
         y = self.conv1(y)  
@@ -188,15 +199,16 @@ class CoordinateAttention(nn.Module):
 
 # Multi-Scale Block Module (MultiScaleBlock)
 class MultiScaleBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, groups, bias, padding_mode):
         super(MultiScaleBlock, self).__init__()
-        self.conv_dil1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1,
-                                   padding=1, dilation=1)
-        self.conv_dil2 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1,
-                                   padding=2, dilation=2)
-        self.conv_dil3 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1,
-                                   padding=3, dilation=3)
-        self.fuse = nn.Conv2d(out_channels * 3, out_channels, kernel_size=1)
+        self.conv_dil1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride,
+                                   padding=1, dilation=1, groups=groups, bias=bias, padding_mode=padding_mode)
+        self.conv_dil2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride,
+                                   padding=2, dilation=2, groups=groups, bias=bias, padding_mode=padding_mode)
+        self.conv_dil3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride,
+                                   padding=3, dilation=3, groups=groups, bias=bias, padding_mode=padding_mode)
+        self.fuse = nn.Conv2d(in_channels=(out_channels * 3), out_channels=out_channels, kernel_size=1, stride=stride,
+                              padding=0, dilation=1, groups=groups, bias=bias, padding_mode=padding_mode)
 
     def forward(self, x):
         dil1 = self.conv_dil1(x)

@@ -23,7 +23,7 @@ from prettytable import PrettyTable
 import numpy as np
 
 # Local application imports
-from config.config import ModelConfig, DatasetConfig
+from config.config import ModelConfig, DatasetConfig, ModuleConfig
 from models.modules import *
 from .Metrics.one_error import OneError
 from models.losses import CombinedFocalLossWithPosWeight
@@ -41,7 +41,7 @@ class BaseModel(pl.LightningModule):
         self.class_labels = DatasetConfig.class_labels  
         self.metrics_save_dir = metrics_save_dir
 
-        self.criterion = CombinedFocalLossWithPosWeight(self.class_weights, alpha=0.25, gamma=2.0, reduction='mean')
+        self.criterion = CombinedFocalLossWithPosWeight(self.class_weights, alpha=ModuleConfig.focal_alpha, gamma=ModuleConfig.focal_gamma, reduction='mean')
         #self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
         
         # Aggregate Metrics

@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from config.config import ModuleConfig
 
 class CombinedFocalLossWithPosWeight(nn.Module):
-    def __init__(self, pos_weight, alpha=0.25, gamma=2.0, reduction='mean'):
+    def __init__(self, pos_weight, alpha=ModuleConfig.focal_alpha, gamma=ModuleConfig.focal_gamma, reduction='mean'):
         super(CombinedFocalLossWithPosWeight, self).__init__()
         self.pos_weight = pos_weight
         self.alpha = alpha

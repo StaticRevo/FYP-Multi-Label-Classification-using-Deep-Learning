@@ -20,52 +20,54 @@ class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         feature_extractor = nn.Sequential(
             # Spectral Mixing 
-            nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=1, stride=1, 
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, 
                       padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
-            nn.BatchNorm2d(num_features=16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-
-            # -- Block 1 --
-            DepthwiseSeparableConv(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (16->32)
             nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
-            SpectralAttention(in_channels=32), # SpectralAttention Module (32->32)
-            CoordinateAttention(in_channels=32, reduction=32), # CoordinateAttention Module (32->32)
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-             # -- Block 2 --
-            DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
+            # -- Block 1 --
+            DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (16->32)
             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            MultiScaleBlock(in_channels=64, out_channels=64, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (64->64)
-            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
-            ECA(in_channels=64, k_size=3), # ECA Module
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (32->32)  
+            SpectralAttention(in_channels=64), # SpectralAttention Module (32->32)
+            CoordinateAttention(in_channels=64, reduction=32), # CoordinateAttention Module (32->32)
 
-             # -- BLock 3 -- 
+             # -- Block 2 --
             DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, 
-                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
             nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
-            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
-            SE(in_channels=128, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
+            MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (64->64)
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (64->64) 
+            ECA(in_channels=128, k_size=3), # ECA Module
 
-            # -- Block 4 -- 
+             # -- BLock 3 -- 
             DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
+                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
             nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
-            DualAttention(in_channels=256, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
+            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (128->128) 
+            SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
+
+            # -- Block 4 -- 
+            DepthwiseSeparableConv(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
+            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=512, out_channels=512, stride=1), # Residual Block (256->256)
+            DualAttention(in_channels=512, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
         )
         
         transformer_classifier = nn.Sequential(
-            nn.AdaptiveAvgPool2d((8,8)), # Adaptive Average Pooling Layer
-            TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="pool"), # Transformer Module
+            TransformerModule(d_model=512, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape"),
+            nn.AdaptiveAvgPool2d(output_size=1),
+            nn.Flatten(),
             nn.Dropout(p=ModelConfig.dropout),
-            nn.Linear(in_features=256, out_features=num_classes, bias=True)
+            nn.Linear(in_features=512, out_features=num_classes, bias=True)
         )
 
         custom_model = nn.Sequential( # Combine the feature extractor and transformer classifier

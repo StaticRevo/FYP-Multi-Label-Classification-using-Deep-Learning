@@ -229,10 +229,18 @@ class ModelSelectionGUI:
                 trainer_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'trainer.py')
                 tester_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'tester_runner.py')
                 if train_test_choice == 'test':
-                    subprocess.run(['python', tester_script, models_to_run[0],  weights_to_run[0], bands_to_run[0], selected_dataset])
+                    for model_name in models_to_run:
+                        for selected_bands in bands_to_run:
+                            if use_both_weights:
+                                current_weights_options = ['None', f'{model_name}_Weights.DEFAULT']
+                            else:
+                                current_weights_options = weights_to_run
+                            for weights in current_weights_options:
+                                print(f"Testing: model={model_name}, weights={weights}, bands={selected_bands}, dataset={selected_dataset}")
+                                subprocess.run(['python', tester_script, model_name, weights, selected_bands, selected_dataset])
+                    #subprocess.run(['python', tester_script, models_to_run[0],  weights_to_run[0], bands_to_run[0], selected_dataset])
                 else:
                     for model_name in models_to_run: # Iterate over each combination
-                    
                         if use_both_weights: # For each model, determine the weights options if both are requested.
                             current_weights_options = ['None', f'{model_name}_Weights.DEFAULT']
                         else:

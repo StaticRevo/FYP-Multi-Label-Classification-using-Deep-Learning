@@ -60,7 +60,7 @@ def save_hyperparameters(model_config, experiment_main_path):
     
     return file_path
 
-
+# Save the Model Architecture to a file
 def save_model_architecture(model, input_size, hyperparams_file_path, filename="model_architecture"):
     save_dir = os.path.dirname(hyperparams_file_path) # Extract the directory where hyperparameters are saved
     save_path = os.path.join(save_dir, f'{filename}.txt')

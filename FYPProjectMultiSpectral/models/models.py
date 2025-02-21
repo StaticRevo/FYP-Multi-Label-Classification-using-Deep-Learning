@@ -18,7 +18,7 @@ from models.modules import *
 # Custom Model
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
-        custom_model = nn.Sequential(
+        feature_extractor = nn.Sequential(
             # Spectral Mixing 
             nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=1, stride=1, 
                       padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
@@ -34,7 +34,7 @@ class CustomModel(BaseModel):
             SpectralAttention(in_channels=32), # SpectralAttention Module (32->32)
             CoordinateAttention(in_channels=32, reduction=32), # CoordinateAttention Module (32->32)
 
-            # -- Block 2 --
+             # -- Block 2 --
             DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1, 
                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -43,7 +43,7 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
             ECA(in_channels=64, k_size=3), # ECA Module
 
-            # -- BLock 3 -- 
+             # -- BLock 3 -- 
             DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, 
                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
             nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -59,15 +59,20 @@ class CustomModel(BaseModel):
             nn.ReLU(inplace=True),
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
             DualAttention(in_channels=256, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
-
-            #TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape"),
-
-            # Global Pool and Classifier
-            nn.AdaptiveAvgPool2d(output_size=1),
-            nn.Flatten(),
+        )
+        
+        transformer_classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d((8,8)), # Adaptive Average Pooling Layer
+            TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="pool"), # Transformer Module
             nn.Dropout(p=ModelConfig.dropout),
             nn.Linear(in_features=256, out_features=num_classes, bias=True)
         )
+
+        custom_model = nn.Sequential( # Combine the feature extractor and transformer classifier
+            feature_extractor,
+            transformer_classifier
+        )
+    
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)
         
 # ResNet18 Model

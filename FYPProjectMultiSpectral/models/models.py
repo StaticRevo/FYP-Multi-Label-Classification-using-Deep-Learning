@@ -23,42 +23,43 @@ class CustomModel(BaseModel):
             nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, 
                       padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
             nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
+            nn.GELU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # -- Block 1 --
             DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (16->32)
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (32->32)  
-            SpectralAttention(in_channels=64), # SpectralAttention Module (32->32)
-            CoordinateAttention(in_channels=64, reduction=32), # CoordinateAttention Module (32->32)
+            nn.GELU(),
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64)  
+            SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
+            CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)
 
              # -- Block 2 --
             DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
             nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (64->64)
-            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (64->64) 
+            nn.GELU(),
+            MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, 
+                            bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
             ECA(in_channels=128, k_size=3), # ECA Module
 
              # -- BLock 3 -- 
             DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 
-                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
+                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
             nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
-            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (128->128) 
+            nn.GELU(),
+            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
             SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
 
             # -- Block 4 -- 
             DepthwiseSeparableConv(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->512)
             nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=512, out_channels=512, stride=1), # Residual Block (256->256)
+            nn.GELU(),
+            ResidualBlock(in_channels=512, out_channels=512, stride=1), # Residual Block (512->512)
             DualAttention(in_channels=512, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
         )
         

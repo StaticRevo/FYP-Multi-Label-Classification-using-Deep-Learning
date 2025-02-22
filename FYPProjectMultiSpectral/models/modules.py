@@ -80,7 +80,7 @@ class ResidualBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(p=ModuleConfig.dropout_rt)
-        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=stride, 
+        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, 
                                padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.bn2 = nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         
@@ -257,3 +257,91 @@ class TransformerModule(nn.Module):
         else:
             raise ValueError("Unsupported return_mode. Choose 'reshape' or 'pool'.")
         return tokens
+    
+# ASPP Module (ASPP)
+class ASPPModule(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_sizes, strides, dilations, bias, padding_mode):
+        super(ASPPModule, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[0], stride=strides[0],
+                               padding=dilations[0], dilation=dilations[0], groups=1, bias=bias, padding_mode=padding_mode)
+        self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[1], stride=strides[1],
+                               padding=dilations[1], dilation=dilations[1], groups=1, bias=bias, padding_mode=padding_mode)
+        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[2], stride=strides[2],
+                               padding=dilations[2], dilation=dilations[2], groups=1, bias=bias, padding_mode=padding_mode)
+        self.conv4 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[3], stride=strides[3],
+                               padding=dilations[3], dilation=dilations[3], groups=1, bias=bias, padding_mode=padding_mode)
+        self.conv5 = nn.Conv2d(in_channels=(4 * out_channels), out_channels=out_channels, kernel_size=1, stride=1, padding=0, dilation=1,
+                               groups=1, bias=bias, padding_mode=padding_mode)
+        self.upsample = nn.Upsample(mode="bilinear", align_corners=True)  
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.conv2(x)
+        x3 = self.conv3(x)
+        x4 = self.conv4(x)
+
+        target_size = x1.shape[2:]  
+        x2 = F.interpolate(x2, size=target_size, mode="bilinear", align_corners=True)
+        x3 = F.interpolate(x3, size=target_size, mode="bilinear", align_corners=True)
+        x4 = F.interpolate(x4, size=target_size, mode="bilinear", align_corners=True)
+
+        x = torch.cat([x1, x2, x3, x4], dim=1)
+        x = self.conv5(x)
+        return x
+
+# Swin Transformer Block Module (SwinTransformerBlock)
+class SwinTransformerBlock(nn.Module):
+    def __init__(self, dim, num_heads, window_size, shift_size):
+        super(SwinTransformerBlock, self).__init__()
+        self.norm1 = nn.LayerNorm(dim)  
+        self.attn = nn.MultiheadAttention(embed_dim=dim, num_heads=num_heads, batch_first=True)  
+        self.norm2 = nn.LayerNorm(dim)  
+        self.mlp = nn.Sequential(nn.Linear(dim, 4 * dim), nn.GELU(), nn.Linear(4 * dim, dim))
+        self.window_size = window_size
+        self.shift_size = shift_size
+
+    def forward(self, x):
+        B, C, H, W = x.shape  # Extract batch, channels, height, width
+        
+        # Ensure dim matches the expected feature size
+        assert C == self.norm1.normalized_shape[0], f"Expected {self.norm1.normalized_shape[0]} channels, got {C}"
+
+        x = x.flatten(2).permute(0, 2, 1)  # Change to (B, H*W, C) for attention
+        x = self.norm1(x)  # Normalize along feature dimension
+        attn_out, _ = self.attn(x, x, x)
+        x = attn_out + x  # Residual connection
+        
+        x = self.norm2(x)
+        x = self.mlp(x) + x  # Residual connection for MLP
+        
+        return x.permute(0, 2, 1).view(B, C, H, W)  # Reshape back to (B, C, H, W)
+
+    
+# CBAM Module
+class CBAM(nn.Module):
+    def __init__(self, in_channels):
+        super(CBAM, self).__init__()
+        reduced_channels = max(16, in_channels // 8)
+
+        # Channel Attention
+        self.channel_att = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels, reduced_channels, 1, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(reduced_channels, in_channels, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+        # Spatial Attention
+        self.spatial_att = nn.Sequential(
+            nn.Conv2d(2, 1, kernel_size=7, padding=3, bias=False),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x = x * self.channel_att(x)  
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        x = torch.cat([avg_out, max_out], dim=1)
+        return x * self.spatial_att(x)

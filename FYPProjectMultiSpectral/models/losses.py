@@ -67,3 +67,8 @@ class HybridBCEF1Loss(nn.Module):
 
     def forward(self, inputs, targets):
         return self.alpha * self.bce(inputs, targets) + (1 - self.alpha) * self.f1_loss(inputs, targets)
+
+
+#self.criterion = CombinedFocalLossWithPosWeight(self.class_weights, alpha=ModuleConfig.focal_alpha, gamma=ModuleConfig.focal_gamma, reduction='mean')
+#self.criterion = AsymmetricLoss(gamma_neg=4, gamma_pos=1, eps=1e-8)
+#self.criterion = SoftF1Loss(smooth=1e-7)

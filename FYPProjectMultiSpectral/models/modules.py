@@ -152,20 +152,6 @@ class DualAttention(nn.Module):
         x = self.channel_att(x)
         x = self.spatial_att(x)
         return x
-    
-# Depthwise Separable Convolution Module (DepthwiseSeparableConv)
-class DepthwiseSeparableConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dilation, bias, padding_mode):
-        super(DepthwiseSeparableConv, self).__init__()
-        self.depthwise = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, stride=stride, 
-                                   padding=padding, dilation=dilation, groups=in_channels, bias=bias, padding_mode=padding_mode)
-        self.pointwise = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0,
-                                   dilation=dilation, groups=1, bias=bias, padding_mode=padding_mode)
-    
-    def forward(self, x):
-        x = self.depthwise(x)
-        x = self.pointwise(x)
-        return x
 
 # Coordinate Attention Module (CA)
 class CoordinateAttention(nn.Module):
@@ -197,6 +183,22 @@ class CoordinateAttention(nn.Module):
         a_w = a_w.permute(0, 1, 3, 2)  
         out = x * a_h * a_w  # Multiply the attention maps with the original input
         return out
+    
+# Depthwise Separable Convolution Module (DepthwiseSeparableConv)
+class DepthwiseSeparableConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dilation, bias, padding_mode):
+        super(DepthwiseSeparableConv, self).__init__()
+        self.depthwise = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, stride=stride, 
+                                   padding=padding, dilation=dilation, groups=in_channels, bias=bias, padding_mode=padding_mode)
+        self.pointwise = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0,
+                                   dilation=dilation, groups=1, bias=bias, padding_mode=padding_mode)
+    
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        return x
+
+
 
 # Multi-Scale Block Module (MultiScaleBlock)
 class MultiScaleBlock(nn.Module):
@@ -302,21 +304,17 @@ class SwinTransformerBlock(nn.Module):
 
     def forward(self, x):
         B, C, H, W = x.shape  # Extract batch, channels, height, width
-        
-        # Ensure dim matches the expected feature size
         assert C == self.norm1.normalized_shape[0], f"Expected {self.norm1.normalized_shape[0]} channels, got {C}"
 
         x = x.flatten(2).permute(0, 2, 1)  # Change to (B, H*W, C) for attention
         x = self.norm1(x)  # Normalize along feature dimension
         attn_out, _ = self.attn(x, x, x)
         x = attn_out + x  # Residual connection
-        
         x = self.norm2(x)
         x = self.mlp(x) + x  # Residual connection for MLP
         
         return x.permute(0, 2, 1).view(B, C, H, W)  # Reshape back to (B, C, H, W)
 
-    
 # CBAM Module
 class CBAM(nn.Module):
     def __init__(self, in_channels):
@@ -345,3 +343,18 @@ class CBAM(nn.Module):
         max_out, _ = torch.max(x, dim=1, keepdim=True)
         x = torch.cat([avg_out, max_out], dim=1)
         return x * self.spatial_att(x)
+    
+# Mixed Depthwise Convolution Module
+class MixedDepthwiseConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5], stride=1, groups=1):
+        super(MixedDepthwiseConv, self).__init__()
+        self.convs = nn.ModuleList([
+            nn.Conv2d(in_channels, out_channels, kernel_size=k, stride=stride, 
+                      padding=k//2, groups=groups, bias=False)
+            for k in kernel_sizes
+        ])
+        self.pointwise = nn.Conv2d(len(kernel_sizes) * out_channels, out_channels, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        x = torch.cat([conv(x) for conv in self.convs], dim=1)
+        return self.pointwise(x)

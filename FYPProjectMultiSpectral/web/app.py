@@ -789,5 +789,11 @@ def architecture_file(architecture, filename):
         return f"File {filename} not found in {architecture} folder.", 404
     return send_from_directory(folder_path, filename)
 
+# -- Visualize Model Page --
+@app.route("/visualize_model")
+def visualize_model():
+    return render_template("visualize.html")
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)
+

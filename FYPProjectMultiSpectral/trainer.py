@@ -22,9 +22,25 @@ from utils.logging_utils import setup_logger
 from models.models import *
 from callbacks import BestMetricsCallback, LogEpochEndCallback
 
+def log_gradient_norms(model):
+    total_norm = 0.0
+    for p in model.parameters():
+        if p.grad is not None:
+            param_norm = p.grad.data.norm(2)  # Compute L2 norm
+            total_norm += param_norm.item() ** 2
+    total_norm = total_norm ** 0.5
+    print(f"Gradient Norm before clipping: {total_norm:.4f}")
+    return total_norm
+
+class GradientLoggingCallback(pl.Callback):
+    def on_after_backward(self, trainer, pl_module):
+        norm = log_gradient_norms(pl_module)
+
 # Training the model
 def main():
+    # Set random seeds and enable cuDNN benchmark
     set_random_seeds()
+    torch.backends.cudnn.benchmark = True
     torch.set_float32_matmul_precision('high')
 
     # Initalising the variables from the command line arguments
@@ -66,8 +82,8 @@ def main():
     
     # Get dataset information
     dataset_dir, metadata_path, metadata_csv = get_dataset_info(selected_dataset)
-    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
-    class_weights = class_weights_array
+    class_weights = calculate_class_weights(metadata_csv)
+    logger.info(f"Class weights: {class_weights}")
 
     # Initialize the data module
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
@@ -119,24 +135,25 @@ def main():
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
     
+    num_gpus = torch.cuda.device_count()
     # Model Training with custom callbacks
     trainer = pl.Trainer(
         default_root_dir=checkpoint_dir,
         max_epochs=ModelConfig.num_epochs,
         logger=tb_logger,
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
-        devices=1 if torch.cuda.is_available() else None,
-        precision='16-mixed',
+        devices=num_gpus if torch.cuda.is_available() else 1,
+        precision='32',
         log_every_n_steps=1,
-        accumulate_grad_batches=2,
-        gradient_clip_val=1.0,
+        accumulate_grad_batches=1,
         callbacks=[
                     checkpoint_callback_loss, 
                     checkpoint_callback_acc, 
                     best_metrics_callback,
                     final_checkpoint, 
                     early_stopping,
-                    epoch_end_logger_callback
+                    epoch_end_logger_callback,
+                    GradientLoggingCallback()
                 ],
     )
 

@@ -114,6 +114,41 @@
 </div>
 {% endif %}
 
+<!-- Per Class Validation Performance Summary -->
+{% if metrics["val_per_class_metrics_Sequential.json"] is defined %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Validation Per Class Metrics</strong>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered table-sm">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1</th>
+            <th>F2</th>
+            <th>Accuracy</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label in metrics["val_per_class_metrics_Sequential.json"].class_labels %}
+            {% set i = loop.index0 %}
+            <tr>
+              <td>{{ label | default("N/A") }}</td>
+              <td>{{ safe_round(metrics["val_per_class_metrics_Sequential.json"].precision[i]) }}</td>
+              <td>{{ safe_round(metrics["val_per_class_metrics_Sequential.json"].recall[i]) }}</td>
+              <td>{{ safe_round(metrics["val_per_class_metrics_Sequential.json"].f1[i]) }}</td>
+              <td>{{ safe_round(metrics["val_per_class_metrics_Sequential.json"].f2[i]) }}</td>
+              <td>{{ safe_round(metrics["val_per_class_metrics_Sequential.json"].accuracy[i]) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
   <!-- Hyperparameters Section -->
   {% if hyperparams_content %}
   <div class="card mb-4">

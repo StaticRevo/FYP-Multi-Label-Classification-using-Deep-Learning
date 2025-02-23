@@ -241,7 +241,7 @@ class PositionalEncoding(nn.Module):
 class TransformerModule(nn.Module):
     def __init__(self, d_model, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape"):
         super(TransformerModule, self).__init__()
-        encoder_layer = TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout)
+        encoder_layer = TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True)
         self.transformer_encoder = TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.positional_encoding = PositionalEncoding(d_model)
         self.return_mode = return_mode

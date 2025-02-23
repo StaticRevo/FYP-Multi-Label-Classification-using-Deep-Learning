@@ -51,7 +51,8 @@ class BigEarthNetDataLoader(pl.LightningDataModule):
                                 prefetch_factor=2, 
                                 pin_memory=True, 
                                 shuffle=True,  # sampler=sampler,
-                                persistent_workers=True)
+                                persistent_workers=True
+                                )
         return dataloader
 
     def val_dataloader(self):

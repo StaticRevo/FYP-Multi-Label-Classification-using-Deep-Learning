@@ -41,7 +41,9 @@ class BaseModel(pl.LightningModule):
         self.class_labels = DatasetConfig.class_labels  
         self.metrics_save_dir = metrics_save_dir
 
-        self.criterion = HybridBCEF1Loss(alpha=0.5)
+        #self.criterion = HybridBCEF1Loss(alpha=0.5)
+        #self.criterion = AsymmetricLoss(gamma_neg=4, gamma_pos=1, eps=1e-8)
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.class_weights) 
 
         # Aggregate Metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
@@ -123,7 +125,7 @@ class BaseModel(pl.LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.model.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
+        optimizer = optim.AdamW(self.model.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
         return {
             'optimizer': optimizer,

@@ -22,15 +22,15 @@ class CustomModel(BaseModel):
             # Spectral Mixing 
             nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, 
                       padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
-            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # or GroupNorm
+            nn.GELU(), 
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # -- Block 1 --
             DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, 
                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
+            nn.GELU(), 
             ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64)  
             SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
             CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)

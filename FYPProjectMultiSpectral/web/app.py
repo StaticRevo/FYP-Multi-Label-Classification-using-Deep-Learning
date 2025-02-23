@@ -1,6 +1,8 @@
 # Standard library imports
 import os
-#os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+env = os.environ.copy()  
+env["CUDA_VISIBLE_DEVICES"] = "0"  
+
 import sys
 
 # Set up directories
@@ -46,8 +48,7 @@ if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
 # Model Options
 MODEL_OPTIONS = ["CustomModel", "ResNet18", "ResNet50", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
-class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
-CLASS_WEIGHTS = class_weights_array
+CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
 EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
 ARCHITECTURES_DIR = os.path.join(parent_dir, "models", "Architecture")
 
@@ -80,7 +81,7 @@ def train_page():
         
         trainer_script = os.path.join(parent_dir, "trainer.py") # Build command to launch trainer.py using parent_dir
         cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable, main_path]
-        subprocess.Popen(cmd, cwd=parent_dir)
+        subprocess.Popen(cmd, cwd=parent_dir, env=env)
 
         return render_template("train_status.html", message=f"Training for {model_name} has started.")
     
@@ -151,8 +152,7 @@ def test_page():
         dataset_dir = DatasetConfig.dataset_paths[num]
         metadata_path = DatasetConfig.metadata_paths[num]
         metadata_csv = pd.read_csv(metadata_path)
-        class_weights, class_weights_array = calculate_class_weights(metadata_csv)
-        class_weights = class_weights_array
+        class_weights = calculate_class_weights(metadata_csv)
 
         # Build command for tester.py.
         tester_script = os.path.join(parent_dir, "tester.py")

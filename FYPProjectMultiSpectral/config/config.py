@@ -92,7 +92,7 @@ class ModelConfig:
     num_epochs: int = 20
     batch_size: int = 256
     num_workers: int = 8
-    learning_rate: float = 0.0003
+    learning_rate: float = 0.0001
     lr_factor: float = 0.1
     lr_patience: int = 5
     lr_step_size: int = 5

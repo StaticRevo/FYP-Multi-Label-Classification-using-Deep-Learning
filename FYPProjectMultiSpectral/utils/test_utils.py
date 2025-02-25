@@ -90,7 +90,7 @@ def get_target_layer(model, model_name, logger=None):
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
     elif model_name == 'CustomModel':
-        target_layer = model.model[25]
+        target_layer = model.block4[0]
     elif model_name == 'DenstNet121':
         target_layer = model.model.features.norm5
     else:

@@ -18,15 +18,18 @@ from models.modules import *
 # Custom Model
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
-        feature_extractor = nn.Sequential(
-            # Spectral Mixing 
-            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, 
-                      padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
-            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        dummy_model = nn.Identity()
+        super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+    
+        # Spectral Mixing & Initial Feature Extraction
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, bias=False),
+            nn.BatchNorm2d(32),
             nn.GELU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-
-            # -- Block 1 --
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        # -- Block 1 --
+        self.block1 = nn.Sequential(
             DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, 
                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -34,8 +37,9 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64)  
             SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
             CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)
-
-             # -- Block 2 --
+        )
+        # -- Block 2 --
+        self.block2 = nn.Sequential(
             DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, 
                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
             nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -44,8 +48,9 @@ class CustomModel(BaseModel):
                             bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
             ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
             ECA(in_channels=128, k_size=3), # ECA Module
-
-             # -- BLock 3 -- 
+        )
+        # -- BLock 3 --
+        self.block3 = nn.Sequential(
             DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 
                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
             nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -53,8 +58,12 @@ class CustomModel(BaseModel):
             MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
             SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
+        )
+        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape", batch_first=True)
+        self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
-            # -- Block 4 -- 
+        # -- Block 4 -- 
+        self.block4 = nn.Sequential(
             DepthwiseSeparableConv(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1, 
                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->512)
             nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -62,25 +71,61 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=512, out_channels=512, stride=1), # Residual Block (512->512)
             DualAttention(in_channels=512, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
         )
-        
-        transformer_classifier = nn.Sequential(
-            TransformerModule(d_model=512, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape"),
-            nn.AdaptiveAvgPool2d(output_size=1),
-            nn.Flatten(),
-            nn.Dropout(p=ModelConfig.dropout),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True)
+        # -- Block 5 -- 
+        self.classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d(output_size=(1, 1)), # Adaptive Average Pooling Layer
+            nn.Flatten(), # Flatten Layer
+            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+            nn.Linear(in_features=512, out_features=num_classes) # Fully Connected Layer
         )
-
-        custom_model = nn.Sequential( # Combine the feature extractor and transformer classifier
-            feature_extractor,
-            transformer_classifier
-        )
+    # Override forward function for CustomModel
+    def forward(self, x):
+        x = self.spectral_mixer(x)                      # Step 1: Spectral mixing
+        features_low = self.block1(x)                   # Step 2: Extract low-level features.
+        features_mid = self.block2(features_low)         # Step 3: Compute mid-level features.
+        features_deep = self.block3(features_mid)        # Step 4: Compute deep features.
+        features_deep = self.transformer_block(features_deep)  # Apply transformer block for global context
+        adapted_features_low = self.skip_adapter(features_low) # Adjust low-level features
     
-        super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)
+        # If spatial dimensions differ, interpolate adapted_features_low to match features_deep.
+        if adapted_features_low.shape[2:] != features_deep.shape[2:]:
+            adapted_features_low = torch.nn.functional.interpolate(
+                adapted_features_low,
+                size=features_deep.shape[2:],
+                mode='bilinear',
+                align_corners=False
+            )
+    
+        fused_features = features_deep + adapted_features_low  # Step 5: Fuse features.
+        features_high = self.block4(fused_features)      # Step 6: Refine high-level representations.
+        out = self.classifier(features_high)             # Step 7: Final classification.
+        return out
+
+    # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(),
+                                      lr=ModelConfig.learning_rate,
+                                      weight_decay=ModelConfig.weight_decay)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                               mode='min',
+                                                               factor=ModelConfig.lr_factor,
+                                                               patience=ModelConfig.lr_patience)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
         
 # ResNet18 Model
 class ResNet18(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
+
         resnet_model = resnet18(weights=model_weights)
 
         if in_channels == 3:
@@ -106,6 +151,8 @@ class ResNet18(BaseModel):
 # ResNet50 Model
 class ResNet50(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
         resnet_model = resnet50(weights=model_weights)
 
         if in_channels == 3:

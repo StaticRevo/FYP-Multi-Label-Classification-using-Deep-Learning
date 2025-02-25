@@ -223,3 +223,14 @@ class LogEpochEndCallback(pl.Callback):
 
     def on_test_epoch_end(self, trainer, pl_module):
         self.logger.info(f"Test epoch {trainer.current_epoch} finished.")
+
+class GradientLoggingCallback(pl.Callback):
+    def on_after_backward(self, trainer, pl_module):
+        total_norm = 0.0
+        for p in pl_module.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)  # Compute L2 norm
+                total_norm += param_norm.item() ** 2
+        total_norm = total_norm ** 0.5
+        print(f"Gradient Norm before clipping: {total_norm:.4f}")
+        return total_norm

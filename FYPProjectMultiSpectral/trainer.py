@@ -20,21 +20,7 @@ from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
 from utils.logging_utils import setup_logger
 from models.models import *
-from callbacks import BestMetricsCallback, LogEpochEndCallback
-
-def log_gradient_norms(model):
-    total_norm = 0.0
-    for p in model.parameters():
-        if p.grad is not None:
-            param_norm = p.grad.data.norm(2)  # Compute L2 norm
-            total_norm += param_norm.item() ** 2
-    total_norm = total_norm ** 0.5
-    print(f"Gradient Norm before clipping: {total_norm:.4f}")
-    return total_norm
-
-class GradientLoggingCallback(pl.Callback):
-    def on_after_backward(self, trainer, pl_module):
-        norm = log_gradient_norms(pl_module)
+from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback
 
 # Training the model
 def main():

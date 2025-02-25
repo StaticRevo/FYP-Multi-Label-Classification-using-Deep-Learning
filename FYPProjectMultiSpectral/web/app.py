@@ -150,8 +150,7 @@ def test_page():
         dataset_dir = DatasetConfig.dataset_paths[num]
         metadata_path = DatasetConfig.metadata_paths[num]
         metadata_csv = pd.read_csv(metadata_path)
-        class_weights, class_weights_array = calculate_class_weights(metadata_csv)
-        class_weights = class_weights_array
+        class_weights = calculate_class_weights(metadata_csv)
 
         # Build command for tester.py.
         tester_script = os.path.join(parent_dir, "tester.py")
@@ -162,7 +161,7 @@ def test_page():
             selected_dataset, 
             checkpoint_path, 
             str(in_channels),
-            json.dumps(class_weights.tolist()),
+            json.dumps(class_weights),
             metadata_path, 
             dataset_dir, 
             json.dumps(bands)

@@ -32,8 +32,7 @@ def main():
 
         print("Normalized channel means:", normalized_means)
         print("Normalized channel stds:", normalized_stds)
-        
-        # If normalization is applied correctly, these should be roughly 0 and 1 respectively.
+    
         break
 
 if __name__ == '__main__':

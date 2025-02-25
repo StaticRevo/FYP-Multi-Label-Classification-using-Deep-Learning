@@ -7,6 +7,7 @@ import sys
 # Third-party imports
 import torch
 import pytorch_lightning as pl
+import torch.nn.utils as nn_utils
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
@@ -93,8 +94,8 @@ def main():
     model_class, filename = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
     model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights, main_path)
-    model.print_summary((in_channels, 120, 120), filename) 
-    model.visualize_model((in_channels, 120, 120), filename)
+    model.print_summary((in_channels, DatasetConfig.image_height, DatasetConfig.image_width), filename) 
+    model.visualize_model((in_channels,  DatasetConfig.image_height, DatasetConfig.image_width), filename)
 
     logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
     logger.info(f"Model parameter device: {next(model.parameters()).device}")
@@ -143,9 +144,9 @@ def main():
         logger=tb_logger,
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=num_gpus if torch.cuda.is_available() else 1,
-        precision='32',
+        precision='16-mixed',
         log_every_n_steps=1,
-        accumulate_grad_batches=1,
+        accumulate_grad_batches=2,
         callbacks=[
                     checkpoint_callback_loss, 
                     checkpoint_callback_acc, 

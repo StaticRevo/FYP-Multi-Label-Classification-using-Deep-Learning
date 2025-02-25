@@ -63,17 +63,16 @@ class CustomModel(BaseModel):
             DualAttention(in_channels=512, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
         )
         
-        transformer_classifier = nn.Sequential(
-            TransformerModule(d_model=512, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape"),
+        classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d(output_size=1),
             nn.Flatten(),
             nn.Dropout(p=ModelConfig.dropout),
             nn.Linear(in_features=512, out_features=num_classes, bias=True)
         )
 
-        custom_model = nn.Sequential( # Combine the feature extractor and transformer classifier
+        custom_model = nn.Sequential( # Combine the feature extractor and classifier
             feature_extractor,
-            transformer_classifier
+            classifier
         )
     
         super(CustomModel, self).__init__(custom_model, num_classes, class_weights, in_channels, main_path)

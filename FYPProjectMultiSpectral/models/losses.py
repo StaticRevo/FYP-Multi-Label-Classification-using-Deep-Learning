@@ -44,7 +44,7 @@ class AsymmetricLoss(nn.Module):
 
 # --Soft F1 Loss--
 class SoftF1Loss(nn.Module):
-    def __init__(self, smooth=1e-4):
+    def __init__(self, smooth=1e-7):
         super(SoftF1Loss, self).__init__()
         self.smooth = smooth
 
@@ -59,7 +59,7 @@ class SoftF1Loss(nn.Module):
     
 # --Hybrid BCE F1 Loss--
 class HybridBCEF1Loss(nn.Module):
-    def __init__(self, alpha=0.6):
+    def __init__(self, alpha=0.5):
         super(HybridBCEF1Loss, self).__init__()
         self.alpha = alpha
         self.bce = nn.BCEWithLogitsLoss()

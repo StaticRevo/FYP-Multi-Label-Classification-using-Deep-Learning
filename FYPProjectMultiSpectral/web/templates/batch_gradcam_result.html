@@ -1,45 +1,47 @@
 {% extends "base.html" %}
+
 {% block title %}GradCAM Result{% endblock %}
+
 {% block content %}
-<h2>GradCAM for {{ filename }}</h2>
-<p><strong>Experiment:</strong> {{ experiment }}</p>
+  <h2>GradCAM for {{ filename }}</h2>
+  <p><strong>Experiment:</strong> {{ experiment }}</p>
 
-{% if actual_labels %}
-  <p><strong>Actual Labels:</strong> {{ actual_labels }}</p>
-{% endif %}
+  {% if actual_labels %}
+    <p><strong>Actual Labels:</strong> {{ actual_labels }}</p>
+  {% endif %}
 
-<div class="container">
-  <!-- Row 1: Original Image -->
-  <div class="row mb-4 justify-content-center">
-    <div class="col-md-6 text-center">
-      <h5>Original Image</h5>
-      {% if original_img_url %}
-        <img src="{{ original_img_url }}" alt="Original Image" class="img-fluid" style="width: 250px;">
-      {% else %}
-        <p>No original image available.</p>
-      {% endif %}
+  <div class="container">
+    <!-- Row 1: Original Image -->
+    <div class="row mb-4 justify-content-center">
+      <div class="col-md-6 text-center">
+        <h5>Original Image</h5>
+        {% if original_img_url %}
+          <img src="{{ original_img_url }}" alt="Original Image" class="img-fluid" style="width: 250px;">
+        {% else %}
+          <p>No original image available.</p>
+        {% endif %}
+      </div>
     </div>
+
+    <!-- Row 2: GradCAM Overlays -->
+    {% if gradcam %}
+      <div class="row">
+        {% for class_label, gradcam_url in gradcam.items() %}
+          <div class="col-md-4 mb-4 text-center">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">{{ class_label }}</h5>
+                <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" class="img-fluid">
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No GradCAM results available.</p>
+    {% endif %}
   </div>
 
-  <!-- Row 2: GradCAM Overlays -->
-  {% if gradcam %}
-    <div class="row">
-      {% for class_label, gradcam_url in gradcam.items() %}
-      <div class="col-md-4 mb-4" style="text-align:center;">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">{{ class_label }}</h5>
-            <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" class="img-fluid">
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p>No GradCAM results available.</p>
-  {% endif %}
-</div>
-
-<a href="javascript:history.back()" class="btn btn-secondary mt-4">Back to Predictions</a>
-<a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Return Home</a>
+  <a href="javascript:history.back()" class="btn btn-secondary mt-4">Back to Predictions</a>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Return Home</a>
 {% endblock %}

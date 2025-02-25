@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+
 {% block title %}Model Architectures{% endblock %}
+
 {% block content %}
   <h1 class="mb-4">Available Model Architectures</h1>
 
@@ -25,9 +27,8 @@
             <li>
               <strong>{{ file.name }}</strong>
               {% if file.is_text %}
-                <!-- Display the content inline -->
                 <pre style="background-color: black; padding: 1em; border: 1px solid #ddd; margin-top: 0.5em;">
-{{ file.content }}
+                  {{ file.content }}
                 </pre>
               {% else %}
                 <a href="{{ url_for('architecture_file', architecture=arch.name, filename=file.name) }}" target="_blank">

@@ -87,14 +87,13 @@ class CustomModel(BaseModel):
         features_deep = self.transformer_block(features_deep)  # Apply transformer block for global context
         adapted_features_low = self.skip_adapter(features_low) # Adjust low-level features
     
-        # If spatial dimensions differ, interpolate adapted_features_low to match features_deep.
-        if adapted_features_low.shape[2:] != features_deep.shape[2:]:
-            adapted_features_low = torch.nn.functional.interpolate(
-                adapted_features_low,
-                size=features_deep.shape[2:],
-                mode='bilinear',
-                align_corners=False
-            )
+        # If spatial dimensions differ interpolate adapted_features_low to match features_deep
+        adapted_features_low = torch.nn.functional.interpolate(
+            adapted_features_low,
+            size=(15, 15),  # fixed size based on your network architecture with a 120x120 input
+            mode='bilinear',
+            align_corners=False
+        )
     
         fused_features = features_deep + adapted_features_low  # Step 5: Fuse features.
         features_high = self.block4(fused_features)      # Step 6: Refine high-level representations.
@@ -103,13 +102,8 @@ class CustomModel(BaseModel):
 
     # Override optimizer configuration for CustomModel
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(),
-                                      lr=ModelConfig.learning_rate,
-                                      weight_decay=ModelConfig.weight_decay)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                               mode='min',
-                                                               factor=ModelConfig.lr_factor,
-                                                               patience=ModelConfig.lr_patience)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
         return {
             'optimizer': optimizer,
             'lr_scheduler': {

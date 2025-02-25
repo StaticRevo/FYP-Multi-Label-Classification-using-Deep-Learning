@@ -167,20 +167,20 @@ class CoordinateAttention(nn.Module):
         self.conv_w = nn.Conv2d(mid_channels, in_channels, kernel_size=1, bias=False)
 
     def forward(self, x):
-        n, c, h, w = x.size()
-        
-        x_h = F.adaptive_avg_pool2d(x, (h, 1)) # Pool along height
-        x_w = F.adaptive_avg_pool2d(x, (1, w)) # Pool along width
-        x_w = x_w.permute(0, 1, 3, 2) # Permute x_w so its spatial dimensions match for concatenation
+        h, w = 60, 60 # n, c, h, w = x.size()
+        x_h = F.adaptive_avg_pool2d(x, (h, 1))  # Pool along height
+        x_w = F.adaptive_avg_pool2d(x, (1, w))  # Pool along width
+        x_w = x_w.permute(0, 1, 3, 2)  # Permute x_w so its spatial dimensions match for concatenation
         y = torch.cat([x_h, x_w], dim=2) # Concatenate along the height dimension (dim=2)
-        y = self.conv1(y)  
+        y = self.conv1(y)
         y = self.bn1(y)
         y = self.act(y)
+
         # Split features back into height and width parts
-        x_h, x_w = torch.split(y, [h, w], dim=2)  # x_h: (n, mid_channels, h, 1), x_w: (n, mid_channels, w, 1)
-        a_h = self.conv_h(x_h).sigmoid()  
-        a_w = self.conv_w(x_w).sigmoid()  
-        a_w = a_w.permute(0, 1, 3, 2)  
+        x_h, x_w = torch.split(y, [h, w], dim=2)  #
+        a_h = self.conv_h(x_h).sigmoid()
+        a_w = self.conv_w(x_w).sigmoid()
+        a_w = a_w.permute(0, 1, 3, 2)
         out = x * a_h * a_w  # Multiply the attention maps with the original input
         return out
     
@@ -197,8 +197,6 @@ class DepthwiseSeparableConv(nn.Module):
         x = self.depthwise(x)
         x = self.pointwise(x)
         return x
-
-
 
 # Multi-Scale Block Module (MultiScaleBlock)
 class MultiScaleBlock(nn.Module):

@@ -25,7 +25,9 @@ class ModelSelectionGUI:
     def setup_options(self):
         self.models = {
             '1': 'CustomModel',
-            '3': 'ResNet50',
+            '2': 'ResNet50',
+            '3': 'EfficientNet_v2',
+            '3': 'Swin-Transformer',
         }
             
         #     '1': 'CustomModel',

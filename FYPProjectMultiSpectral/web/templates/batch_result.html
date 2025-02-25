@@ -1,59 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Batch Prediction Result{% endblock %}
-{% block content %}
-<h1 class="mb-4">Batch Prediction Result</h1>
-<table class="table table-bordered table-striped">
-  <thead>
-    <tr>
-      <th>Filename</th>
-      <th>Predicted Labels</th>
-      <th>Actual Labels</th>
-      <th>RGB Visualization</th>
-      <th>GradCAM</th> 
-    </tr>
-  </thead>
-  <tbody>
-    {% for result in results %}
-    <tr>
-      <td>{{ result.filename }}</td>
-      <td>
-        <ul>
-          {% for pred in result.predictions %}
-            {% if result.actual_labels and pred.label in result.actual_labels %}
-              <li style="color: green;">{{ pred.label }}: {{ pred.probability | round(3) }}</li>
-            {% else %}
-              <li>{{ pred.label }}: {{ pred.probability | round(3) }}</li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-      </td>
-      <td>
-        {% if result.actual_labels and result.actual_labels|length > 0 %}
-          <ul>
-            {% for label in result.actual_labels %}
-              <li>{{ label }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p>No actual labels available.</p>
-        {% endif %}
-      </td>
-      <td>
-        <img src="{{ result.rgb_url }}" alt="RGB Composite" style="width:150px; max-width:150px;">
-      </td>
-      <td>
-        <a href="{{ url_for('batch_gradcam', 
-                            filename=result.filename, 
-                            experiment=selected_experiment) }}" 
-           class="btn btn-info">
-           View GradCAM
-        </a>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
 
-<a href="{{ url_for('predict_page') }}" class="btn btn-secondary">Upload More Images</a>
-<a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
+{% block title %}Batch Prediction Result{% endblock %}
+
+{% block content %}
+  <h1 class="mb-4">Batch Prediction Result</h1>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Filename</th>
+        <th>Predicted Labels</th>
+        <th>Actual Labels</th>
+        <th>RGB Visualization</th>
+        <th>GradCAM</th> 
+      </tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+        <tr>
+          <td>{{ result.filename }}</td>
+          <td>
+            <ul>
+              {% for pred in result.predictions %}
+                {% if result.actual_labels and pred.label in result.actual_labels %}
+                  <li style="color: green;">{{ pred.label }}: {{ pred.probability | round(3) }}</li>
+                {% else %}
+                  <li>{{ pred.label }}: {{ pred.probability | round(3) }}</li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          </td>
+          <td>
+            {% if result.actual_labels and result.actual_labels|length > 0 %}
+              <ul>
+                {% for label in result.actual_labels %}
+                  <li>{{ label }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p>No actual labels available.</p>
+            {% endif %}
+          </td>
+          <td>
+            <img src="{{ result.rgb_url }}" alt="RGB Composite" style="width:150px; max-width:150px;">
+          </td>
+          <td>
+            <a href="{{ url_for('batch_gradcam', filename=result.filename, experiment=selected_experiment) }}" 
+               class="btn btn-info">
+              View GradCAM
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="{{ url_for('predict_page') }}" class="btn btn-secondary">Upload More Images</a>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
 {% endblock %}

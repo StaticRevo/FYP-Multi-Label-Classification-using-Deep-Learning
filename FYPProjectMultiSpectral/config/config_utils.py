@@ -26,7 +26,7 @@ def calculate_class_weights(metadata_csv):
 
     normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights (currently not used)
 
-    return class_weights, class_weights_array
+    return normalized_class_weights
 
 # Calculate the class labels within the metadata
 def calculate_class_labels(metadata_csv):

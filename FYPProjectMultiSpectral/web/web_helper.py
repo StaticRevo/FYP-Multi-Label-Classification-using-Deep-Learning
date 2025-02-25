@@ -29,8 +29,7 @@ from transformations.transforms import TransformsConfig
 EXPERIMENTS_DIR = DatasetConfig.experiment_path
 STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
-class_weights, class_weights_array = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path))
-CLASS_WEIGHTS = class_weights_array
+CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path))
 
 # --- Helper Functions ---
 # Load the model from the experiment folder

@@ -18,22 +18,23 @@ from models.modules import *
 # Custom Model
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
-        dummy_model = nn.Identity()
+        dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
         super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
     
-        # Spectral Mixing & Initial Feature Extraction
+        # Spectral Mixing and Initial Feature Extraction
         self.spectral_mixer = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, bias=False),
-            nn.BatchNorm2d(32),
-            nn.GELU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, padding=1,
+                      dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (in_channels->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+            nn.GELU(), # GELU Activation Function
+            nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer
         )
         # -- Block 1 --
         self.block1 = nn.Sequential(
             DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, 
                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
-            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+            nn.GELU(), # GELU Activation Function
             ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64)  
             SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
             CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)
@@ -78,26 +79,28 @@ class CustomModel(BaseModel):
             nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
             nn.Linear(in_features=512, out_features=num_classes) # Fully Connected Layer
         )
+
     # Override forward function for CustomModel
     def forward(self, x):
-        x = self.spectral_mixer(x)                      # Step 1: Spectral mixing
-        features_low = self.block1(x)                   # Step 2: Extract low-level features.
-        features_mid = self.block2(features_low)         # Step 3: Compute mid-level features.
-        features_deep = self.block3(features_mid)        # Step 4: Compute deep features.
-        features_deep = self.transformer_block(features_deep)  # Apply transformer block for global context
-        adapted_features_low = self.skip_adapter(features_low) # Adjust low-level features
+        x = self.spectral_mixer(x) # Spectral mixing
+        features_low = self.block1(x) # Low-level features
+        features_mid = self.block2(features_low) # Mid-level features.
+        features_deep = self.block3(features_mid) # Deep features.
+        features_deep = self.transformer_block(features_deep)  # Global context
+        adapted_features_low = self.skip_adapter(features_low) 
     
-        # If spatial dimensions differ interpolate adapted_features_low to match features_deep
-        adapted_features_low = torch.nn.functional.interpolate(
-            adapted_features_low,
-            size=(15, 15),  # fixed size based on your network architecture with a 120x120 input
-            mode='bilinear',
+        # Match spatial dimensions
+        if adapted_features_low.shape[2:] != features_deep.shape[2:]:
+            adapted_features_low = F.interpolate(
+            adapted_features_low, 
+            size=features_deep.shape[2:], 
+            mode='bilinear', 
             align_corners=False
         )
     
-        fused_features = features_deep + adapted_features_low  # Step 5: Fuse features.
-        features_high = self.block4(fused_features)      # Step 6: Refine high-level representations.
-        out = self.classifier(features_high)             # Step 7: Final classification.
+        fused_features = features_deep + adapted_features_low  # Fuse low level and deep features
+        features_high = self.block4(fused_features) # Refine high-level representations
+        out = self.classifier(features_high) # Final classification
         return out
 
     # Override optimizer configuration for CustomModel

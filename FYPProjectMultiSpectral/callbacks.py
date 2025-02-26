@@ -21,6 +21,21 @@ class BestMetricsCallback(pl.Callback):
         self.training_time = None
         self.model_size = None
         self.inference_rate = None
+    
+    def save_temp_metrics(self):
+        # Create a temporary file name based on the final save path.
+        temp_save_path = self.save_path.replace('best_metrics.json', 'best_metrics_temp.json')
+        best_metrics_python = {metric: (value.item() if isinstance(value, torch.Tensor) else value)
+                               for metric, value in self.best_metrics.items()}
+        best_epochs_python = {metric: epoch for metric, epoch in self.best_epochs.items()}
+
+        data_to_save = {
+            'best_metrics': best_metrics_python,
+            'best_epochs': best_epochs_python,
+        }
+        os.makedirs(os.path.dirname(temp_save_path), exist_ok=True)
+        with open(temp_save_path, 'w') as f:
+            json.dump(data_to_save, f, indent=4)
 
     def on_fit_start(self, trainer, pl_module):
         self.train_start_time = time.time()
@@ -32,18 +47,17 @@ class BestMetricsCallback(pl.Callback):
 
         for metric in self.metrics_to_track:
             current = logs.get(metric)
-
             if current is None:
                 continue  
-
             if self.best_metrics[metric] is None:
                 self.best_metrics[metric] = current
                 self.best_epochs[metric] = current_epoch
                 continue
-
             if self.is_metric_better(metric, current, self.best_metrics[metric]):
                 self.best_metrics[metric] = current
                 self.best_epochs[metric] = current_epoch
+
+        self.save_temp_metrics()
 
     def on_test_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
@@ -135,11 +149,8 @@ class BestMetricsCallback(pl.Callback):
             'best_epochs': best_epochs_python,
         }
 
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
-
-        # Save to JSON
-        with open(self.save_path, 'w') as f:
+        os.makedirs(os.path.dirname(self.save_path), exist_ok=True) # Ensure the directory exists
+        with open(self.save_path, 'w') as f: # Save to JSON
             json.dump(data_to_save, f, indent=4)
 
         # Print the saved metrics
@@ -150,7 +161,8 @@ class BestMetricsCallback(pl.Callback):
             print(f"  {metric}: {value} (Epoch {epoch})")
         
     def is_metric_better(self, metric, current, best):
-        metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_f2', 'val_avg_precision', 'test_acc', 'test_f1', 'test_precision', 'test_recall', 'test_f2', 'test_avg_precision']
+        metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_f2', 'val_avg_precision', 
+                               'test_acc', 'test_f1', 'test_precision', 'test_recall', 'test_f2', 'test_avg_precision']
         metrics_to_minimize = ['val_loss', 'val_one_error', 'val_hamming_loss', 'test_loss', 'test_one_error', 'test_hamming_loss']
 
         if metric in metrics_to_maximize:
@@ -224,6 +236,7 @@ class LogEpochEndCallback(pl.Callback):
     def on_test_epoch_end(self, trainer, pl_module):
         self.logger.info(f"Test epoch {trainer.current_epoch} finished.")
 
+# Callback to log the gradient norm after each backward pass
 class GradientLoggingCallback(pl.Callback):
     def on_after_backward(self, trainer, pl_module):
         total_norm = 0.0

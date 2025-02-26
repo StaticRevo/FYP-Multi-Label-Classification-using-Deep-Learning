@@ -43,8 +43,16 @@ def main():
     # Initialize the log directories
     log_dir = os.path.join(main_path, 'logs')
     training_log_path = os.path.join(log_dir, 'training_logs')
-    tb_logger = TensorBoardLogger(save_dir=log_dir, name='lightning_logs')
+    tb_logger = TensorBoardLogger(save_dir=log_dir, name='lightning_logs', version='version_0')
     logger = setup_logger(log_dir=training_log_path, file_name='training.log')
+
+    resume_checkpoint = None
+    resumed_epoch = 0
+    if len(sys.argv) > 7 and os.path.exists(sys.argv[7]):
+        resume_checkpoint = sys.argv[7]
+        checkpoint = torch.load(resume_checkpoint, map_location=lambda storage, loc: storage)
+        resumed_epoch = checkpoint.get("epoch", 0)
+        logger.info(f"Resuming training from epoch {resumed_epoch}...")
 
     # Determine the number of input channels based on the selected bands
     bands_mapping = {
@@ -138,9 +146,13 @@ def main():
                     GradientLoggingCallback()
                 ],
     )
+    if resume_checkpoint:
+        logger.info(f"Resuming training from checkpoint: {resume_checkpoint}")
+    else:
+        logger.info("No checkpoint provided, starting training from scratch.")
 
     logger.info("Starting model training...")
-    trainer.fit(model, data_module)
+    trainer.fit(model, data_module, ckpt_path=resume_checkpoint)
     logger.info("Model training completed.")
 
     # Save Tensorboard graphs as images

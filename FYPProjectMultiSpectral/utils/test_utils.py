@@ -84,18 +84,17 @@ def get_target_layer(model, model_name, logger=None):
     elif model_name == 'EfficientNetB0':
         target_layer = model.model.features[8][0]
     elif model_name == 'EfficientNet_v2':
-        target_layer = model.modelfeatures[7][4].block[3]
+       target_layer = model.model.features[7][4].block[3]
     elif model_name == 'Swin-Transformer':
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
     elif model_name == 'CustomModel':
         target_layer = model.block4[0]
-    elif model_name == 'DenstNet121':
+    elif model_name == 'DenseNet121':
         target_layer = model.model.features.norm5
     else:
-        logger.warning(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
-        return
+        print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
 
     return target_layer
 

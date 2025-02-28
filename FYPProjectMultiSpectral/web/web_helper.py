@@ -191,14 +191,14 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
     elif model_name == 'EfficientNetB0':
         target_layer = model.model.features[8][0]
     elif model_name == 'EfficientNet_v2':
-        target_layer = model.modelfeatures[7][4].block[3]
+       target_layer = model.model.features[7][4].block[3]
     elif model_name == 'Swin-Transformer':
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
     elif model_name == 'CustomModel':
         target_layer = model.block4[0]
-    elif model_name == 'DenstNet121':
+    elif model_name == 'DenseNet121':
         target_layer = model.model.features.norm5
     else:
         print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")

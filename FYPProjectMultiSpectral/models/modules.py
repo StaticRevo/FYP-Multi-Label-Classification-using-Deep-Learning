@@ -312,21 +312,26 @@ class LinformerModule(nn.Module):
     
         encoder_layer = TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=batch_first)
         self.transformer_encoder = TransformerEncoder(encoder_layer, num_layers=num_layers)
+
         self.return_mode = return_mode
         self.batch_first = batch_first
+        self.seq_len = seq_len
 
     def forward(self, x):
         b, c, h, w = x.shape
-        tokens = x.flatten(2).transpose(1, 2) # Flatten spatial dimensions -> (B, H*W, C)
-        tokens = tokens.transpose(1, 2)  # Reshape for linear projection -> (B, C, H*W)
+
+        tokens = x.flatten(2)  # Flatten spatial dimensions -> (B, H*W, C)
         tokens = self.proj_k(tokens) # Apply linear projection for keys
-        tokens = tokens.transpose(1, 2)  # Reshape for linear projection -> (B, k, C)
+        tokens = tokens.transpose(1, 2) # Reshape for linear projection -> (B, k, C)
+  
         tokens = self.transformer_encoder(tokens)  # Apply transformer encoder
 
         # Return the tokens in the desired format
         if self.return_mode == "reshape":
-            tokens = tokens.transpose(1, 2).unsqueeze(2).unsqueeze(3)
-            tokens = tokens.expand(b, c, h, w)  
+            tokens = tokens.transpose(1, 2) #  # Bring channels back to dimension 1
+            tokens = tokens.unsqueeze(2) # Add a dummy spatial dimension: now shape (b, c, 1, k)
+            # Upsample to (h, w) via bilinear interpolation.
+            tokens = F.interpolate(tokens, size=(h, w), mode='bilinear', align_corners=False)
         elif self.return_mode == "pool":
             tokens = tokens.mean(dim=1)
 

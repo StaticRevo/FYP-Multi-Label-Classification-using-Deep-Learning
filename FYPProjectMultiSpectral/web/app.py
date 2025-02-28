@@ -16,9 +16,12 @@ from datetime import datetime
 
 # Third-party imports
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash
+from markupsafe import Markup
 from werkzeug.utils import secure_filename
 import torch
 import pandas as pd
+import nbformat
+from nbconvert import HTMLExporter
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
@@ -791,6 +794,23 @@ def architecture_file(architecture, filename):
 @app.route("/visualize_model")
 def visualize_model():
     return render_template("visualize.html")
+
+# -- Data Exploration Page --
+@app.route("/data_exploration")
+def data_exploration():
+    # 'parent_dir' is already defined in app.py as FYPProjectMultiSpectral
+    notebook_path = os.path.join(parent_dir, "notebooks", "data_exploration.ipynb")
+    try:
+        with open(notebook_path) as f:
+            nb = nbformat.read(f, as_version=4)
+    except Exception as e:
+        return f"Error reading notebook: {e}"
+
+    html_exporter = HTMLExporter()
+    (body, _) = html_exporter.from_notebook_node(nb)
+    
+    # Render the notebook content within your base template
+    return render_template("notebook_view.html", notebook_content=Markup(body))
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

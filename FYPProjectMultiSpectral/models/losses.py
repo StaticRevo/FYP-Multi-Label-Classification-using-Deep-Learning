@@ -57,7 +57,7 @@ class SoftF1Loss(nn.Module):
         f1 = 2 * tp / (2 * tp + fn + fp + self.smooth)
         return 1 - f1.mean()
     
-# --Hybrid BCE F1 Loss--
+# --Hybrid BCE F1 Loss--a
 class HybridBCEF1Loss(nn.Module):
     def __init__(self, alpha=0.5):
         super(HybridBCEF1Loss, self).__init__()

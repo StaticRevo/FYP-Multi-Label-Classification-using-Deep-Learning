@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Data Exploration{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h1>Data Exploration</h1>
+  <div class="mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-primary">
+      Return Home
+    </a>
+    <button class="btn btn-secondary" onclick="location.reload();">
+      Refresh Notebook
+    </button>
+  </div>
+  <div>
+    {{ notebook_content|safe }}
+  </div>
+</div>
+{% endblock %}

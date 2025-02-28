@@ -60,7 +60,7 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
             SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
         )
-        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape", batch_first=True)
+        self.transformer_block = SwinTransformerBlock(dim=256, num_heads=8, window_size=7, shift_size=0)
         self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
         # -- Block 4 -- 
@@ -97,6 +97,12 @@ class CustomModel(BaseModel):
             mode='bilinear', 
             align_corners=False
         )
+        # adapted_features_low = torch.nn.functional.interpolate(
+        #     adapted_features_low,
+        #     size=(15, 15),
+        #     mode='bilinear',
+        #     align_corners=False
+        # )
     
         fused_features = features_deep + adapted_features_low  # Fuse low level and deep features
         features_high = self.block4(fused_features) # Refine high-level representations
@@ -175,6 +181,8 @@ class ResNet50(BaseModel):
 # VGG16 Model
 class VGG16(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
         vgg_model = vgg16(weights=model_weights)
 
         if in_channels == 3:
@@ -203,6 +211,8 @@ class VGG16(BaseModel):
 # VGG19 Model
 class VGG19(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
         vgg_model = vgg19(weights=model_weights)
 
         if in_channels == 3:
@@ -233,6 +243,8 @@ class EfficientNetB0(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         if model_weights == 'EfficientNetB0_Weights.DEFAULT':
             model_weights = EfficientNet_B0_Weights.DEFAULT
+        elif model_weights == "None":
+            model_weights = None
         efficientnet_model = efficientnet_b0(weights=model_weights)
 
         if in_channels == 3:
@@ -260,6 +272,8 @@ class EfficientNetB0(BaseModel):
 # EfficientNetV2 Model
 class EfficientNetV2(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
         efficientnet_model = efficientnet_v2_m(weights=model_weights)
 
         if in_channels == 3:
@@ -287,6 +301,8 @@ class EfficientNetV2(BaseModel):
 # DenseNet121 Model
 class DenseNet121(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
         densenet_model = densenet121(weights=model_weights)
 
         if in_channels == 3:

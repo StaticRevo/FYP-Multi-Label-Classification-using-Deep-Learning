@@ -40,16 +40,21 @@
               <tr>
                 <td>{{ metric }}</td>
                 {% for exp in selected_experiments %}
-                  <td>
+                <td>
+                  {% set val = values.get(exp, 'N/A') %}
+                  {% if val != 'N/A' %}
                     {% if exp == best_experiment %}
                       <span class="badge {{ exp_color_map[exp] }} text-break" 
                             style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
-                        {{ values.get(exp, 'N/A') }}
+                        {{ val | float | round(5) }}
                       </span>
                     {% else %}
-                      {{ values.get(exp, 'N/A') }}
+                      {{ val | float | round(5) }}
                     {% endif %}
-                  </td>
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
                 {% endfor %}
               </tr>
             {% endfor %}
@@ -155,16 +160,21 @@
               <tr>
                 <td>{{ metric }}</td>
                 {% for exp in selected_experiments %}
-                  <td>
+                <td>
+                  {% set val = values.get(exp, 'N/A') %}
+                  {% if val != 'N/A' %}
                     {% if exp == ns_test.best_experiment %}
                       <span class="badge {{ exp_color_map[exp] }} text-break" 
                             style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
-                        {{ values.get(exp, 'N/A') }}
+                        {{ val | float | round(5) }}
                       </span>
                     {% else %}
-                      {{ values.get(exp, 'N/A') }}
+                      {{ val | float | round(5) }}
                     {% endif %}
-                  </td>
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
                 {% endfor %}
               </tr>
             {% endfor %}

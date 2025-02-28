@@ -59,7 +59,7 @@
       else return 'gray';
     });
 
-    // Scale bubble sizes 
+    // Scale bubble sizes
     const minSize = 10, maxSize = 60;
     const minVal = Math.min(...sizes);
     const maxVal = Math.max(...sizes);
@@ -83,23 +83,29 @@
       type: 'scatter'
     };
 
-    // Chart Layout
+    // Chart Layout with Zoom & Pan
     const layout = {
       title: 'F2 Score vs. Training Time',
-      xaxis: { title: 'Training Time (minutes)' },
-      yaxis: { title: 'F2 Score', range: [0, 1] },
-      hovermode: 'closest'
-    };
+    xaxis: { title: 'Training Time (minutes)', automargin: true, autorange: true },
+    yaxis: { title: 'F2 Score', range: [0, 1], automargin: true, autorange: true },
+    hovermode: 'closest',
+    dragmode: 'pan', 
+    scrollZoom: true, 
+    responsive: true, 
+    showlegend: false,
+    margin: { l: 50, r: 50, b: 50, t: 50 },
+    grid: { rows: 1, columns: 1 }
+  };
 
-    // Render the Bubble Chart
-    Plotly.newPlot('bubbleChart', [trace], layout);
+  // Render the Bubble Chart
+  Plotly.newPlot('bubbleChart', [trace], layout, {responsive: true});
 
-    // Toggle Select All / Deselect All Models
-    document.getElementById('toggleSelectAll').addEventListener('click', function() {
-      let checkboxes = document.querySelectorAll('.model-checkbox');
-      let allChecked = [...checkboxes].every(cb => cb.checked);
-      checkboxes.forEach(cb => cb.checked = !allChecked);
-    });
+  // Toggle Select All / Deselect All Models
+  document.getElementById('toggleSelectAll').addEventListener('click', function() {
+    let checkboxes = document.querySelectorAll('.model-checkbox');
+    let allChecked = [...checkboxes].every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+  });
+</script>
 
-  </script>
 {% endblock %}

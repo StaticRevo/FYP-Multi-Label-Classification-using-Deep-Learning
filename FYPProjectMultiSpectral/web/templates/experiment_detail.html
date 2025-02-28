@@ -498,4 +498,18 @@
   {% else %}
     <p>No metrics available.</p>
   {% endif %}
+
+  {% if architecture_content %}
+  <div class="mt-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <strong>Model Architecture</strong>
+      </div>
+      <div class="card-body">
+        <pre class="small" style="line-height: 1.2em; white-space: pre-wrap; margin-bottom: 0;">{{ architecture_content }}</pre>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 {% endblock %}

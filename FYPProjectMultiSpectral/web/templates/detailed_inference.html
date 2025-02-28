@@ -60,7 +60,11 @@
             {% endfor %}
             {% set ns = namespace(best_inference=None, best_inference_value=-1) %}
             {% for exp in selected_experiments %}
-              {% set current = experiments_data[exp].best_metrics.inference_rate_images_per_sec | float | default(0.0) %}
+              {% if experiments_data[exp].best_metrics %}
+                {% set current = experiments_data[exp].best_metrics.inference_rate_images_per_sec | default(0.0) | float %}
+              {% else %}
+            {% set current = 0.0 %}
+          {% endif %}
               {% if current > ns.best_inference_value %}
                 {% set ns.best_inference_value = current %}
                 {% set ns.best_inference = exp %}
@@ -69,7 +73,11 @@
             <tr>
               <td>Inference Time</td>
               {% for exp in selected_experiments %}
-                {% set value = experiments_data[exp].best_metrics.inference_rate_images_per_sec | default("N/A") %}
+                {% if experiments_data[exp].best_metrics %}
+                  {% set value = experiments_data[exp].best_metrics.inference_rate_images_per_sec | default("N/A") %}
+                {% else %}
+                  {% set value = "N/A" %}
+                {% endif %}
                 <td>
                   {% if exp == ns.best_inference %}
                     <span class="badge {{ exp_color_map[exp] }} text-break" 
@@ -85,7 +93,11 @@
 
             {% set ns2 = namespace(best_training=None, best_training_value=None) %}
             {% for exp in selected_experiments %}
-              {% set training_val = experiments_data[exp].best_metrics.training_time_formatted | float | default(9999999) %}
+              {% if experiments_data[exp].best_metrics %}
+                {% set training_val = experiments_data[exp].best_metrics.training_time_formatted | default(9999999) | float %}
+              {% else %}
+                {% set training_val = 9999999 %}
+              {% endif %}
               {% if ns2.best_training_value is none or training_val < ns2.best_training_value %}
                 {% set ns2.best_training_value = training_val %}
                 {% set ns2.best_training = exp %}
@@ -94,7 +106,11 @@
             <tr>
               <td>Training Time</td>
               {% for exp in selected_experiments %}
-                {% set value = experiments_data[exp].best_metrics.training_time_formatted | default("N/A") %}
+                {% if experiments_data[exp].best_metrics %}
+                  {% set value = experiments_data[exp].best_metrics.training_time_formatted | default("N/A") %}
+                {% else %}
+                  {% set value = "N/A" %}
+                {% endif %}
                 <td>
                   {% if exp == ns2.best_training %}
                     <span class="badge {{ exp_color_map[exp] }} text-break" 

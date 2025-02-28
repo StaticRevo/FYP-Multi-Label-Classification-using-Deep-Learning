@@ -503,12 +503,25 @@ def experiment_detail(experiment_name):
         except Exception as e:
             hyperparams_content = f"Error reading hyperparameters.txt: {e}"
 
+    # Load architecture file 
+    architecture_content = None
+    parsed = parse_experiment_folder(experiment_name)
+    model_name_from_folder = parsed.get("model")
+    if model_name_from_folder:
+        architecture_file = os.path.join(experiment_path, f"{model_name_from_folder}.txt")
+        if os.path.exists(architecture_file):
+            try:
+                with open(architecture_file, 'r', encoding='utf-8') as f:
+                    architecture_content = f.read()
+            except Exception as e:
+                architecture_content = f"Error reading {model_name_from_folder}.txt: {e}"
+
     return render_template("experiment_detail.html",
                            experiment_name=experiment_name,
                            results=results,
                            metrics=metrics,
-                           hyperparams_content=hyperparams_content 
-                           )
+                           hyperparams_content=hyperparams_content,
+                           architecture_content=architecture_content)
 
 # --- Inference Page --- 
 @app.route('/detailed_inference', methods=['GET', 'POST'])
@@ -798,7 +811,6 @@ def visualize_model():
 # -- Data Exploration Page --
 @app.route("/data_exploration")
 def data_exploration():
-    # 'parent_dir' is already defined in app.py as FYPProjectMultiSpectral
     notebook_path = os.path.join(parent_dir, "notebooks", "data_exploration.ipynb")
     try:
         with open(notebook_path) as f:
@@ -809,7 +821,6 @@ def data_exploration():
     html_exporter = HTMLExporter()
     (body, _) = html_exporter.from_notebook_node(nb)
     
-    # Render the notebook content within your base template
     return render_template("notebook_view.html", notebook_content=Markup(body))
 
 if __name__ == '__main__':

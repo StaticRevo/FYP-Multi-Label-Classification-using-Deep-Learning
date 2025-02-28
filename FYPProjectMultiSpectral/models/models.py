@@ -61,7 +61,7 @@ class CustomModel(BaseModel):
             SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
         )
         self.transformer_block = LinformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape", batch_first=True, seq_len=256, k=64) # Linformer Module
-        # ( If using 50% or more subset switch to Swin Transformer Module)
+        # ( If using 50% or more subset switch to Swin Transformer)
         self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
         # -- Block 4 -- 

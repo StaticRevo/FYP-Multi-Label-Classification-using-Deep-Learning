@@ -179,8 +179,7 @@ class CoordinateAttention(nn.Module):
         self.conv_w = nn.Conv2d(mid_channels, in_channels, kernel_size=1, bias=False)
 
     def forward(self, x):
-        # n, c, h, w = x.size() 
-        h, w = 120, 120 
+        n, c, h, w = x.size() # h, w = 60, 60 
         x_h = F.adaptive_avg_pool2d(x, (h, 1))  # Pool along height
         x_w = F.adaptive_avg_pool2d(x, (1, w))  # Pool along width
         x_w = x_w.permute(0, 1, 3, 2)  # Permute x_w so its spatial dimensions match for concatenation

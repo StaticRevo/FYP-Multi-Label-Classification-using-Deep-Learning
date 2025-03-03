@@ -20,7 +20,7 @@ from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
 from utils.logging_utils import setup_logger
 from models.models import *
-from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback
+from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback, OnChangeLrLoggerCallback
 
 # Training the model
 def main():
@@ -143,7 +143,8 @@ def main():
                     final_checkpoint, 
                     early_stopping,
                     epoch_end_logger_callback,
-                    GradientLoggingCallback()
+                    GradientLoggingCallback(),
+                    OnChangeLrLoggerCallback(logger)
                 ],
     )
     if resume_checkpoint:

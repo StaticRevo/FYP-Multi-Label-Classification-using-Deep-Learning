@@ -41,8 +41,8 @@ class BaseModel(pl.LightningModule):
         self.class_labels = DatasetConfig.class_labels  
         self.metrics_save_dir = metrics_save_dir
 
-        #self.criterion = HybridBCEF1Loss(alpha=0.5)
-        self.criterion = AsymmetricLoss(gamma_neg=4, gamma_pos=1, eps=1e-8)
+        self.criterion = HybridBCEF1Loss(alpha=0.5)
+        #self.criterion = AsymmetricLoss(gamma_neg=4, gamma_pos=1, eps=1e-8)
 
         # Aggregate Metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)

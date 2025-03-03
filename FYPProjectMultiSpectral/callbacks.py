@@ -247,3 +247,20 @@ class GradientLoggingCallback(pl.Callback):
         total_norm = total_norm ** 0.5
         print(f"Gradient Norm before clipping: {total_norm:.4f}")
         return total_norm
+    
+class OnChangeLrLoggerCallback(pl.Callback):
+    def __init__(self, custom_logger):
+        self.custom_logger = custom_logger
+        self.prev_lr = None
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        optimizer = trainer.optimizers[0] 
+        current_lr = optimizer.param_groups[0]['lr']
+
+        # Log for the first epoch or if the learning rate has changed
+        if self.prev_lr is None:
+            self.custom_logger.info(f"Initial Learning Rate: {current_lr}")
+        elif self.prev_lr != current_lr:
+            self.custom_logger.info(f"Epoch {trainer.current_epoch}: Learning Rate changed to: {current_lr}")
+
+        self.prev_lr = current_lr # Update previous learning rate for next epoch comparisons

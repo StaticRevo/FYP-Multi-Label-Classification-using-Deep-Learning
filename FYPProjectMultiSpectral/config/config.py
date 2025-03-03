@@ -89,13 +89,12 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 10
+    num_epochs: int = 5
     batch_size: int = 256
     num_workers: int = 8
     learning_rate: float = 0.001
     lr_factor: float = 0.1
     lr_patience: int = 3
-    lr_step_size: int = 5
     momentum: float = 0.9
     weight_decay: float = 1e-4
     patience: int = 7

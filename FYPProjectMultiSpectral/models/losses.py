@@ -56,6 +56,24 @@ class SoftF1Loss(nn.Module):
 
         f1 = 2 * tp / (2 * tp + fn + fp + self.smooth)
         return 1 - f1.mean()
+
+# --Weighted Soft F1 Loss--
+class WeightedSoftF1Loss(nn.Module):
+    def __init__(self, weights, smooth=1e-7):
+        super(WeightedSoftF1Loss, self).__init__()
+        self.weights = weights  
+        self.smooth = smooth
+
+    def forward(self, inputs, targets):
+        probas = torch.sigmoid(inputs)
+        tp = (probas * targets).sum(dim=0)
+        fp = ((1 - targets) * probas).sum(dim=0)
+        fn = (targets * (1 - probas)).sum(dim=0)
+        
+        f1 = 2 * tp / (2 * tp + fp + fn + self.smooth) # Compute the per-class soft F1 score
+        loss_per_class = (1 - f1) * self.weights   # Compute the loss per class: (1 - F1) scaled by class-specific weights
+
+        return loss_per_class.mean() # Return the average loss across all classes.
     
 # --Hybrid BCE F1 Loss--a
 class HybridBCEF1Loss(nn.Module):
@@ -68,6 +86,16 @@ class HybridBCEF1Loss(nn.Module):
     def forward(self, inputs, targets):
         return self.alpha * self.bce(inputs, targets) + (1 - self.alpha) * self.f1_loss(inputs, targets)
 
+# --Weighted Hybrid BCE F1 Loss--
+class WeightedHybridBCEF1Loss(nn.Module):
+    def __init__(self, alpha=0.5, pos_weight=None, f1_weights=None):
+        super(WeightedHybridBCEF1Loss, self).__init__()
+        self.alpha = alpha
+        self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight) # BCEWithLogitsLoss that scales for the loss of positive samples
+        self.f1_loss = WeightedSoftF1Loss(weights=f1_weights) # Soft F1 loss that scales for the loss of positive samples
+
+    def forward(self, inputs, targets):
+        return self.alpha * self.bce(inputs, targets) + (1 - self.alpha) * self.f1_loss(inputs, targets)
 
 #self.criterion = CombinedFocalLossWithPosWeight(self.class_weights, alpha=ModuleConfig.focal_alpha, gamma=ModuleConfig.focal_gamma, reduction='mean')
 #self.criterion = AsymmetricLoss(gamma_neg=4, gamma_pos=1, eps=1e-8)

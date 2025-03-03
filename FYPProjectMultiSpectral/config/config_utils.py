@@ -24,9 +24,9 @@ def calculate_class_weights(metadata_csv):
     class_weights = {label: total_counts / count for label, count in label_counts.items()}
     class_weights_array = np.array([class_weights[label] for label in class_labels])
 
-    normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights (currently not used)
-
-    return normalized_class_weights
+    #normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights (currently not used)
+    log_weights = np.log1p(class_weights_array)
+    return log_weights
 
 # Calculate the class labels within the metadata
 def calculate_class_labels(metadata_csv):

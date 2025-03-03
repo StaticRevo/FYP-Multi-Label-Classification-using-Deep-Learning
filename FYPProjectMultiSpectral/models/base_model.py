@@ -26,7 +26,7 @@ import numpy as np
 from config.config import ModelConfig, DatasetConfig, ModuleConfig
 from models.modules import *
 from .Metrics.one_error import OneError
-from models.losses import CombinedFocalLossWithPosWeight, AsymmetricLoss, SoftF1Loss, HybridBCEF1Loss
+from models.losses import CombinedFocalLossWithPosWeight, AsymmetricLoss, SoftF1Loss, HybridBCEF1Loss, WeightedHybridBCEF1Loss
 
 # Base model class for all models
 device = ModelConfig.device
@@ -41,9 +41,9 @@ class BaseModel(pl.LightningModule):
         self.class_labels = DatasetConfig.class_labels  
         self.metrics_save_dir = metrics_save_dir
 
-        self.criterion = HybridBCEF1Loss(alpha=0.5)
-        #self.criterion = AsymmetricLoss(gamma_neg=4, gamma_pos=1, eps=1e-8)
-
+        #self.criterion = HybridBCEF1Loss(alpha=0.5)
+        self.criterion = WeightedHybridBCEF1Loss(alpha=0.5, pos_weight=self.class_weights, f1_weights=self.class_weights)
+        
         # Aggregate Metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)
         self.val_acc = MultilabelAccuracy(num_labels=self.num_classes)

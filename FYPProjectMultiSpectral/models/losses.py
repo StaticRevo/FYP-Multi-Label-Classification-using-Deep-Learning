@@ -49,10 +49,10 @@ class SoftF1Loss(nn.Module):
         self.smooth = smooth
 
     def forward(self, inputs, targets):
-        probas = torch.sigmoid(inputs)
-        tp = (probas * targets).sum(dim=0)
-        fp = ((1 - targets) * probas).sum(dim=0)
-        fn = (targets * (1 - probas)).sum(dim=0)
+        probs = torch.sigmoid(inputs)
+        tp = (probs * targets).sum(dim=0)
+        fp = ((1 - targets) * probs).sum(dim=0)
+        fn = (targets * (1 - probs)).sum(dim=0)
 
         f1 = 2 * tp / (2 * tp + fn + fp + self.smooth)
         return 1 - f1.mean()

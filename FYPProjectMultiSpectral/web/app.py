@@ -480,9 +480,9 @@ def experiment_detail(experiment_name):
     metric_files = [
         "best_metrics.json",
         "best_test_metrics.json",
-        "test_per_class_metrics_Sequential.json",
-        "train_per_class_metrics_Sequential.json",
-        "val_per_class_metrics_Sequential.json"
+        "test_per_class_metrics.json",
+        "train_per_class_metrics.json",
+        "val_per_class_metricsl.json"
     ]
     for mf in metric_files:
         mf_path = os.path.join(results_path, mf)

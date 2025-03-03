@@ -125,7 +125,7 @@ class BaseModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.model.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience, cooldown=0)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
@@ -280,7 +280,7 @@ class BaseModel(pl.LightningModule):
             'accuracy': avg_acc.tolist(),
             'class_labels': self.class_labels  
         }
-        save_path = os.path.join(self.metrics_save_dir, 'results', f'{phase}_per_class_metrics_{self.model.__class__.__name__}.json')
+        save_path = os.path.join(self.metrics_save_dir, 'results', f'{phase}_per_class_metrics.json')
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, 'w') as f:
             json.dump(metrics_to_save, f, indent=4)

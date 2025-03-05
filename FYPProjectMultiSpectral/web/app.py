@@ -482,7 +482,7 @@ def experiment_detail(experiment_name):
         "best_test_metrics.json",
         "test_per_class_metrics.json",
         "train_per_class_metrics.json",
-        "val_per_class_metricsl.json"
+        "val_per_class_metrics.json"
     ]
     for mf in metric_files:
         mf_path = os.path.join(results_path, mf)
@@ -709,9 +709,72 @@ def detailed_inference():
             observations=observations
         )
     else:
-        available_experiments = [d for d in os.listdir(EXPERIMENTS_DIR)
-                                 if os.path.isdir(os.path.join(EXPERIMENTS_DIR, d))]
-        return render_template('select_experiments.html', experiments=available_experiments)
+        # Retrieve all experiment folder names
+        available_experiments = []
+        if os.path.exists(EXPERIMENTS_DIR):
+            for d in os.listdir(EXPERIMENTS_DIR):
+                full_path = os.path.join(EXPERIMENTS_DIR, d)
+                if os.path.isdir(full_path):
+                    available_experiments.append(d)
+        
+        # Extract filter parameters from the query string
+        filter_model = request.args.get('model', '').lower()
+        filter_weights = request.args.get('weights', '').lower()
+        filter_bands = request.args.get('bands', '').lower()
+        filter_dataset = request.args.get('dataset', '').lower()
+        filter_epochs = request.args.get('epochs', '').lower()
+        
+        # Function to check if an experiment meets the filter criteria
+        def matches_filter(exp):
+            parsed = parse_experiment_folder(exp)
+            if filter_model and filter_model not in parsed.get('model', '').lower():
+                return False
+            if filter_weights and filter_weights not in parsed.get('weights', '').lower():
+                return False
+            if filter_bands and filter_bands not in parsed.get('bands', '').lower():
+                return False
+            if filter_dataset and filter_dataset not in parsed.get('dataset', '').lower():
+                return False
+            if filter_epochs and filter_epochs not in parsed.get('epochs', '').lower():
+                return False
+            return True
+        
+        # Apply filtering if any filter is set
+        if any([filter_model, filter_weights, filter_bands, filter_dataset, filter_epochs]):
+            available_experiments = [exp for exp in available_experiments if matches_filter(exp)]
+        
+        # Extract sorting parameters
+        sort_by = request.args.get('sort_by', 'date_trained')
+        order = request.args.get('order', 'asc')
+        
+        # Create a list of experiment details (including creation time)
+        experiments_details = []
+        for exp in available_experiments:
+            parsed = parse_experiment_folder(exp)
+            full_path = os.path.join(EXPERIMENTS_DIR, exp)
+            creation_time = os.path.getctime(full_path)
+            parsed['timestamp'] = creation_time
+            parsed['folder_name'] = exp
+            experiments_details.append(parsed)
+        
+        # Apply sorting based on the selected field and order
+        if sort_by == 'date_trained':
+            experiments_details = sorted(
+                experiments_details,
+                key=lambda x: x['timestamp'],
+                reverse=(order == 'desc')
+            )
+        elif sort_by == 'model':
+            experiments_details = sorted(
+                experiments_details,
+                key=lambda x: x.get('model', '').lower(),
+                reverse=(order == 'desc')
+            )
+        
+        # Prepare a sorted list of experiment folder names to pass to the template
+        sorted_experiments = [exp['folder_name'] for exp in experiments_details]
+        
+        return render_template('select_experiments.html', experiments=sorted_experiments)
 
 
 # -- Bubble Chart Page --

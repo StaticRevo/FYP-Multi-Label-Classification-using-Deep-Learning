@@ -89,7 +89,7 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 5
+    num_epochs: int = 10
     batch_size: int = 256
     num_workers: int = 8
     learning_rate: float = 0.001
@@ -99,6 +99,7 @@ class ModelConfig:
     weight_decay: float = 1e-4
     patience: int = 7
     dropout: float = 0.5
+    loss_fn: str = "WeightedHybridBCEF1Loss(alpha=0.5, class_weights, class_weights)"
 
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
        

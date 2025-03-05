@@ -35,8 +35,7 @@ def initialize_paths(model_name, weights, selected_bands, selected_dataset, epoc
 
 # Save the hyperparameters of the model
 def save_hyperparameters(model_config, experiment_main_path):
-    # Ensure the experiment directory exists
-    os.makedirs(experiment_main_path, exist_ok=True)
+    os.makedirs(experiment_main_path, exist_ok=True)  # Ensure the experiment directory exists
     file_path = os.path.join(experiment_main_path, "hyperparameters.txt")
     
     with open(file_path, "w") as f:
@@ -49,7 +48,6 @@ def save_hyperparameters(model_config, experiment_main_path):
         f.write(f"  weight_decay  : {ModelConfig.weight_decay}\n")
         f.write("\n")
         f.write("Learning Rate Scheduler:\n")
-        f.write(f"  lr_step_size  : {ModelConfig.lr_step_size}\n")
         f.write(f"  lr_factor     : {ModelConfig.lr_factor}\n")
         f.write(f"  lr_patience   : {ModelConfig.lr_patience}\n")
         f.write("\n")
@@ -57,7 +55,8 @@ def save_hyperparameters(model_config, experiment_main_path):
         f.write(f"  patience      : {ModelConfig.patience}\n")
         f.write(f"  dropout       : {ModelConfig.dropout}\n")
         f.write(f"  device        : {ModelConfig.device}\n")
-    
+        f.write(f"Loss Function: {model_config.loss_fn}\n")
+        
     return file_path
 
 # Save the Model Architecture to a file

@@ -16,6 +16,8 @@ from pathlib import Path
 from torch.utils.data import WeightedRandomSampler
 from utils.label_utils import encode_label
 from config.config_utils import clean_and_parse_labels
+from sklearn.preprocessing import MultiLabelBinarizer
+from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
 # Download and extract the BigEarthNet dataset
 def downloadAndExtractDataset(dataset_dir):
@@ -98,6 +100,25 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
 
     # Save metadata for the subset
     metadata_subset.to_csv(os.path.join(subset_dir, f'metadata_{percentage}_percent.csv'), index=False)
+
+def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
+    # Ensure labels are parsed (i.e. convert from string to list)
+    metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels)
+    
+    # Convert the list of labels into a binary matrix using MultiLabelBinarizer
+    mlb = MultiLabelBinarizer()
+    Y = mlb.fit_transform(metadata_df['labels'])
+    
+    # Create the stratified split
+    msss = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=subset_percentage, random_state=random_state)
+    for _, test_idx in msss.split(metadata_df, Y):
+        subset_df = metadata_df.iloc[test_idx].copy()
+    
+    # Convert the labels column back to the original string format
+    # e.g. from ['Label1', 'Label2'] to "['Label1' 'Label2']"
+    subset_df['labels'] = subset_df['labels'].apply(lambda x: "[" + " ".join(f"'{label}'" for label in x) + "]")
+    
+    return subset_df
 
 # Copy a subset of images from the original dataset to a new directory
 def copy_subset_images(original_images_dir, original_metadata_path, subset_metadata_path, subset_images_dir):

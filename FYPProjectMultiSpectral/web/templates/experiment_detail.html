@@ -131,10 +131,10 @@
         </tbody>
       </table>
       
-      <!-- New section: Graph for Validation Per Class Metrics -->
+      <!-- New section: Graph for Per Class Metrics -->
       <div class="card mt-4">
         <div class="card-header">
-          <strong>Validation Per Class Metrics Graph</strong>
+          <strong>Per Class Metrics Graph</strong>
         </div>
         <div class="card-body">
           <canvas id="valMetricsChart"></canvas>
@@ -507,9 +507,12 @@
   </div>
   {% endif %}
   
+<!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{# Set the per_class_metrics variable: use test metrics if available, otherwise use validation metrics #}
+{% set per_class_metrics = metrics["test_per_class_metrics.json"] if metrics["test_per_class_metrics.json"] is defined else metrics["val_per_class_metrics.json"] %}
 <script type="application/json" id="valMetricsData">
-  {{ metrics["val_per_class_metrics.json"] | tojson }}
+  {{ per_class_metrics | tojson }}
 </script>
 <script>
   // Parse the JSON data from the script tag

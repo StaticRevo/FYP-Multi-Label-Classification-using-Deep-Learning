@@ -42,7 +42,8 @@ class BaseModel(pl.LightningModule):
         self.metrics_save_dir = metrics_save_dir
 
         #self.criterion = HybridBCEF1Loss(alpha=0.5)
-        self.criterion = WeightedHybridBCEF1Loss(alpha=0.5, pos_weight=self.class_weights, f1_weights=self.class_weights)
+        #self.criterion = WeightedHybridBCEF1Loss(alpha=0.5, pos_weight=self.class_weights, f1_weights=self.class_weights)
+        self.criterion = CombinedFocalLossWithPosWeight(alpha=0.5, gamma=2.0, pos_weight=self.class_weights)
         
         # Aggregate Metrics
         self.train_acc = MultilabelAccuracy(num_labels=self.num_classes)

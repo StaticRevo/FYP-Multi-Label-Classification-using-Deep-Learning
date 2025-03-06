@@ -60,8 +60,7 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
             SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
         )
-        self.transformer_block = LinformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape", batch_first=True, seq_len=256, k=64) # Linformer Module
-        # ( If using 50% or more subset switch to Swin Transformer)
+        self.transformer_block = LinformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape", batch_first=True, seq_len=256, k=64) # Linformer Module ( If using 50% or more subset switch to Swin Transformer)
         self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
         # -- Block 4 -- 
@@ -98,12 +97,6 @@ class CustomModel(BaseModel):
             mode='bilinear', 
             align_corners=False
         )
-        # adapted_features_low = torch.nn.functional.interpolate(
-        #     adapted_features_low,
-        #     size=(15, 15),
-        #     mode='bilinear',
-        #     align_corners=False
-        # )
     
         fused_features = features_deep + adapted_features_low  # Fuse low level and deep features
         features_high = self.block4(fused_features) # Refine high-level representations

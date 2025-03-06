@@ -200,6 +200,44 @@
     </div>
   </div>
 
+  <!-- Per Class Metrics Comparison -->
+{% if experiments_data[selected_experiments[0]].per_class_metrics %}
+<div class="card mb-4">
+  <div class="card-header">
+    <strong>Per Class Metrics Comparison</strong>
+  </div>
+  <div class="card-body">
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>Class</th>
+          {% for exp in selected_experiments %}
+            <th>{{ exp }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in range(experiments_data[selected_experiments[0]].per_class_metrics.class_labels|length) %}
+          <tr>
+            <td>{{ experiments_data[selected_experiments[0]].per_class_metrics.class_labels[i] }}</td>
+            {% for exp in selected_experiments %}
+              {% set per_class = experiments_data[exp].per_class_metrics %}
+              <td>
+                Precision: {{ per_class.precision[i] | float | round(3) }}<br>
+                Recall: {{ per_class.recall[i] | float | round(3) }}<br>
+                F1: {{ per_class.f1[i] | float | round(3) }}<br>
+                F2: {{ per_class.f2[i] | float | round(3) }}<br>
+                Accuracy: {{ per_class.accuracy[i] | float | round(3) }}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
   <!-- Insights & Observations Section -->
   {% if observations and observations|length > 0 %}
   <div class="card mb-4">

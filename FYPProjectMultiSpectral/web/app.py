@@ -128,13 +128,13 @@ def test_page():
         main_experiment_path = os.path.join(EXPERIMENTS_DIR, experiment)
         checkpoint_dir = os.path.join(main_experiment_path, "checkpoints")
         if checkpoint_type == "last":
-            cp_file = "final.ckpt"
+            cp_file = "last.ckpt"
         elif checkpoint_type == "best_acc":
             cp_file = "best_acc.ckpt"
         elif checkpoint_type == "best_loss":
             cp_file = "best_loss.ckpt"
         else:
-            cp_file = "final.ckpt"  # default fallback
+            cp_file = "last.ckpt"  # default fallback
         checkpoint_path = os.path.join(checkpoint_dir, cp_file)
         session['main_path'] = main_experiment_path # Save the experiment path in session 
 
@@ -533,6 +533,7 @@ def detailed_inference():
         experiments_data = {}
         testing_comparison_data = {}
         
+        # Loop through each selected experiment
         for exp in selected_experiments:
             # Load validation metrics from best_metrics.json
             metrics = load_experiment_metrics(exp)
@@ -550,7 +551,6 @@ def detailed_inference():
                         for metric, value in test_metrics['best_metrics'].items():
                             testing_comparison_data.setdefault(metric, {})[exp] = value
                 except Exception as e:
-                    # If there's an error, set a default value or error message
                     for metric in ['test_acc', 'test_loss', 'test_f1', 'test_f2', 
                                    'test_precision', 'test_recall', 'test_one_error', 
                                    'test_hamming_loss', 'test_avg_precision']:
@@ -604,11 +604,22 @@ def detailed_inference():
                 except Exception as e:
                     best_metrics = {"error": str(e)}
             
+            # Load per-class metrics (for each experiment individually)
+            per_class = None
+            for json_file in ["test_per_class_metrics.json", "val_per_class_metrics.json"]:
+                json_path = os.path.join(EXPERIMENTS_DIR, exp, "results", json_file)
+                if os.path.exists(json_path):
+                    with open(json_path, 'r') as f:
+                        per_class = json.load(f)
+                    break  # Use test metrics if available; otherwise fall back to validation
+            
+            # Save all experiment data
             experiments_data[exp] = {
                 "best_metrics": best_metrics,
                 "hyperparams": hyperparams,
                 "visualizations": visualizations,
-                "tensorboard_graphs": tb_graphs
+                "tensorboard_graphs": tb_graphs,
+                "per_class_metrics": per_class
             }
         
         # Optionally, remove any unwanted key from validation metrics
@@ -630,7 +641,7 @@ def detailed_inference():
                 else:
                     best_models[metric] = max(valid_values, key=valid_values.get)
         
-        # Generate natural-language observations (insights) for each validation metric
+        # Generate insights for each validation metric
         observations = []
         for metric_name, best_exp in best_models.items():
             if best_exp == 'N/A':
@@ -706,7 +717,8 @@ def detailed_inference():
             best_models=best_models,
             experiments_data=experiments_data,
             exp_color_map=exp_color_map,
-            observations=observations
+            observations=observations,
+            per_class_metrics=None  # Optional: if you want to pass global per_class_metrics, you can
         )
     else:
         # Retrieve all experiment folder names
@@ -775,6 +787,7 @@ def detailed_inference():
         sorted_experiments = [exp['folder_name'] for exp in experiments_details]
         
         return render_template('select_experiments.html', experiments=sorted_experiments)
+
 
 
 # -- Bubble Chart Page --

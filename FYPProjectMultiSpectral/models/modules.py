@@ -326,7 +326,6 @@ class LinformerModule(nn.Module):
   
         tokens = self.transformer_encoder(tokens)  # Apply transformer encoder
 
-        # Return the tokens in the desired format
         if self.return_mode == "reshape":
             tokens = tokens.transpose(1, 2) #  # Bring channels back to dimension 1
             tokens = tokens.unsqueeze(2) # Add a dummy spatial dimension: now shape (b, c, 1, k)
@@ -336,39 +335,7 @@ class LinformerModule(nn.Module):
             tokens = tokens.mean(dim=1)
 
         return tokens # Return the tokens
-    
-# ASPP Module (ASPP)
-class ASPPModule(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_sizes, strides, dilations, bias, padding_mode):
-        super(ASPPModule, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[0], stride=strides[0],
-                               padding=dilations[0], dilation=dilations[0], groups=1, bias=bias, padding_mode=padding_mode)
-        self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[1], stride=strides[1],
-                               padding=dilations[1], dilation=dilations[1], groups=1, bias=bias, padding_mode=padding_mode)
-        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[2], stride=strides[2],
-                               padding=dilations[2], dilation=dilations[2], groups=1, bias=bias, padding_mode=padding_mode)
-        self.conv4 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_sizes[3], stride=strides[3],
-                               padding=dilations[3], dilation=dilations[3], groups=1, bias=bias, padding_mode=padding_mode)
-        self.conv5 = nn.Conv2d(in_channels=(4 * out_channels), out_channels=out_channels, kernel_size=1, stride=1, padding=0, dilation=1,
-                               groups=1, bias=bias, padding_mode=padding_mode)
-        self.upsample = nn.Upsample(mode="bilinear", align_corners=True)  
-
-    def forward(self, x):
-        x1 = self.conv1(x) # Apply convolutions with different dilation rates
-        x2 = self.conv2(x)
-        x3 = self.conv3(x)
-        x4 = self.conv4(x)
-
-        target_size = x1.shape[2:] # Ensure all feature maps have the same spatial dimensions
-        x2 = F.interpolate(x2, size=target_size, mode="bilinear", align_corners=True)
-        x3 = F.interpolate(x3, size=target_size, mode="bilinear", align_corners=True)
-        x4 = F.interpolate(x4, size=target_size, mode="bilinear", align_corners=True)
-
-        x = torch.cat([x1, x2, x3, x4], dim=1) # Concatenate the feature maps
-        x = self.conv5(x) # Apply 1x1 convolution to fuse the features together
-
-        return x
-    
+        
 # CBAM Module
 class CBAM(nn.Module):
     def __init__(self, in_channels):

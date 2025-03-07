@@ -88,8 +88,15 @@ def main():
     model.visualize_model((in_channels, 120, 120), filename)
 
     logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
-    logger.info(f"Model parameter device: {next(model.parameters()).device}")
     epoch_end_logger_callback = LogEpochEndCallback(logger)
+
+    # Save hyperparameters
+    file_path = save_hyperparameters(ModelConfig, main_path)
+    logger.info(f"Hyperparameters saved to {file_path}")
+
+    # Save model architecture
+    arch_path = save_model_architecture(model, (in_channels, 120, 120), file_path, filename=model_name)
+    logger.info(f"Model architecture saved to {arch_path}")
 
     # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
@@ -125,6 +132,9 @@ def main():
     metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_f2', 'val_precision', 'val_recall','val_one_error', 'val_hamming_loss', 'val_avg_precision']
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info(f"Training on device: {device}")
     
     # Model Training with custom callbacks
     trainer = pl.Trainer(
@@ -187,12 +197,6 @@ def main():
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
     logger.info("Training completed successfully")
 
-    # Save hyperparameters
-    file_path = save_hyperparameters(ModelConfig, main_path)
-    logger.info(f"Hyperparameters saved to {file_path}")
-
-    arch_path = save_model_architecture(model, (in_channels, 120, 120), file_path, filename=model_name)
-    logger.info(f"Model architecture saved to {arch_path}")
 
     if test_variable == 'True':
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])

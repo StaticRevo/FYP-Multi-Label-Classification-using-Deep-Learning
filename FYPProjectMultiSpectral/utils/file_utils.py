@@ -72,3 +72,4 @@ def save_model_architecture(model, input_size, hyperparams_file_path, filename="
         with redirect_stdout(f):
             torchinfo_summary(model, input_size=(1, *input_size))
     return save_path
+

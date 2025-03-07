@@ -116,6 +116,9 @@ class ModuleConfig:
     focal_alpha: float = 0.25
     focal_gamma: float = 2.0
 
+    # Dropout Configuration
+    drop_prob: float = 0.1
+
 
 
 

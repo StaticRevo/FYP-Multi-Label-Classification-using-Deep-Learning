@@ -10,15 +10,15 @@ from config.config import ModuleConfig
 
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
-    def __init__(self, in_channels, kernel_size=1, stride=1, padding=0):
+    def __init__(self, in_channels, kernel_size=1):
         super(SE, self).__init__()
         # Squeeze
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1) 
 
         # Excitation
-        self.fc1 = nn.Conv2d(in_channels=in_channels, out_channels=(in_channels // ModuleConfig.reduction), kernel_size=kernel_size, stride=stride, padding=padding, dilation=1, groups=1, bias=False, padding_mode='zeros')           
+        self.fc1 = nn.Conv2d(in_channels=in_channels, out_channels=(in_channels // ModuleConfig.reduction), kernel_size=kernel_size, stride=1, padding=0, dilation=1, bias=False)           
         self.activation = ModuleConfig.activation(inplace=True) if ModuleConfig.activation.__name__ != "Sigmoid" else ModuleConfig.activation()
-        self.fc2 = nn.Conv2d(in_channels=(in_channels // ModuleConfig.reduction), out_channels=in_channels, kernel_size=kernel_size, stride=stride, padding=padding, dilation=1, groups=1, bias=False, padding_mode='zeros')
+        self.fc2 = nn.Conv2d(in_channels=(in_channels // ModuleConfig.reduction), out_channels=in_channels, kernel_size=kernel_size, stride=1, padding=0, dilation=1, bias=False)
         self.sigmoid = nn.Sigmoid()
 
         # Dropout
@@ -42,8 +42,9 @@ class SE(nn.Module):
 
 # Efficient Channel Attention Module (ECA)
 class ECA(nn.Module):
-    def __init__(self, in_channels, k_size=3):
+    def __init__(self, in_channels):
         super(ECA, self).__init__()
+        k_size = int(math.log2(in_channels)) | 1
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
         self.conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k_size, stride=1, padding=(k_size - 1) // 2, dilation=1, groups=1, bias=False, padding_mode='zeros')
         self.sigmoid = nn.Sigmoid()
@@ -58,7 +59,7 @@ class ECA(nn.Module):
 
 # Drop Path Module (DropPath)
 class DropPath(nn.Module):
-    def __init__(self, drop_prob=ModuleConfig.dropout_rt):
+    def __init__(self, drop_prob=ModuleConfig.drop_prob):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
 
@@ -139,9 +140,8 @@ class SpatialAttention(nn.Module):
         y = torch.cat([avg_out, max_out], dim=1) # Concatate avg_out and max_out
         y = self.conv(y)
         y = self.sigmoid(y)
-        out = x * y  # Multiply the attention map with the original input
 
-        return x + out # Residual Connection
+        return x * y
     
 # Spectral Attention Module (SA)
 class SpectralAttention(nn.Module):
@@ -159,9 +159,8 @@ class SpectralAttention(nn.Module):
         y = self.relu(y)
         y = self.fc2(y)
         y = self.sigmoid(y).view(batch, channels, 1, 1) # Sigmoid activation and Reshape to match input shape
-        out = x * y # Multiply the attention map with the original input
 
-        return x + out  # Residual Connection
+        return x + y
 
 # Dual Attention Module (DA) - Combines Channel Attention and Spatial Attention
 class DualAttention(nn.Module):
@@ -171,10 +170,10 @@ class DualAttention(nn.Module):
         self.spatial_att = SpatialAttention(kernel_size=kernel_size, stride=stride) # Spatial Attention
     
     def forward(self, x):
-        channel_out = self.channel_att(x)
-        out = self.spatial_att(channel_out)
+        out = self.channel_att(x)
+        out = self.spatial_att(out)
 
-        return x + out # Return the attention map -> Residual Connection
+        return out
 
 # Coordinate Attention Module (CA)
 class CoordinateAttention(nn.Module):
@@ -205,9 +204,8 @@ class CoordinateAttention(nn.Module):
         a_h = self.conv_h(x_h).sigmoid()
         a_w = self.conv_w(x_w).sigmoid()
         a_w = a_w.permute(0, 1, 3, 2)
-        out = x * a_h * a_w  # Multiply the attention maps with the original input
 
-        return x + out # Residual Connection
+        return x * a_h * a_w
     
 # Depthwise Separable Convolution Module (DepthwiseSeparableConv)
 class DepthwiseSeparableConv(nn.Module):
@@ -258,24 +256,6 @@ class MultiScaleBlock(nn.Module):
         out = self.relu(self.fuse(out)) # Fuse the features into a unified representation
 
         return x+ out # Return the fused representation -> Residual Connection
-
-# Positional Encoding Module (PositionalEncoding)
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        pe = torch.zeros(max_len, d_model) # Initialize positional encoding matrix
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1) # Generate position indices
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)) # Compute the frequency term for sine and cosine encoding
-
-        # Apply sine to even indices and cosine to odd indices
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-
-        pe = pe.unsqueeze(0)  # Add batch dimension
-        self.register_buffer('pe', pe) # Register buffer
- 
-    def forward(self, x):   
-        return x + self.pe[:, :x.size(1), :] # Add positional encoding to input
 
 # ASPP Module (ASPP)
 class ASPPModule(nn.Module):

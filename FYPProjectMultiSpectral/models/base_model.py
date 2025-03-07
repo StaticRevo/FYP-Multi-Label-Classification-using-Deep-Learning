@@ -324,3 +324,15 @@ class BaseModel(pl.LightningModule):
         # Create the visualization and save it at the specified path
         file_path = os.path.join(save_path, f'{model_name}')
         make_dot(y, params=dict(self.model.named_parameters())).render(file_path)
+
+        # Save as ONNX file
+        file_path_onnx = os.path.join(save_path, f'{model_name}.onnx')
+        torch.onnx.export(
+            self.model,           
+            x,                    
+            file_path_onnx,      
+            verbose=False,        
+            input_names=['input'],
+            output_names=['output']
+        )
+        print(f"ONNX model saved to {file_path_onnx}. Open with Netron for interactive visualization.")

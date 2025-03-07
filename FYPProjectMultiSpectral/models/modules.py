@@ -10,7 +10,7 @@ from config.config import ModuleConfig
 
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
-    def __init__(self, in_channels, kernel_size, stride, padding):
+    def __init__(self, in_channels, kernel_size=1, stride=1, padding=0):
         super(SE, self).__init__()
         # Squeeze
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1) 
@@ -73,47 +73,54 @@ class DropPath(nn.Module):
 
         return x.div(keep_prob) * random_tensor # Scale the input with the binary mask
 
-# Residual Block Module (ResidualBlock)
+# Bottleneck Residual Block 
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride):
+    def __init__(self, in_channels, out_channels, stride=1, expansion=4):
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, 
-                               padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros')
-        self.bn1 = nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout(p=ModuleConfig.dropout_rt)
-        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, 
-                               padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros')
-        self.bn2 = nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        
-        self.downsample = None 
-        if in_channels != out_channels: # Downsample layer if in_channels != out_channels
-            self.downsample = nn.Sequential(
-                nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, 
-                          padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),
-                nn.BatchNorm2d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-            )
-        self.drop_path = DropPath(ModuleConfig.dropout_rt)
-    
-    def forward(self, x):
-        residual = x # Save the input for the skip connection
+        mid_channels = out_channels // expansion  
 
-        # First Block
+        self.conv1 = nn.Conv2d(in_channels, mid_channels, kernel_size=1, stride=1, bias=False) # First 1x1 Convolution 
+        self.bn1 = nn.BatchNorm2d(mid_channels) # Batch Normalization
+
+        self.conv2 = nn.Conv2d(mid_channels, mid_channels, kernel_size=3, stride=stride, padding=1, bias=False) # Second 3x3 Convolution 
+        self.bn2 = nn.BatchNorm2d(mid_channels)
+
+        self.conv3 = nn.Conv2d(mid_channels, out_channels, kernel_size=1, stride=1, bias=False)  # Third 1x1 Convolution 
+        self.bn3 = nn.BatchNorm2d(out_channels)
+
+        self.relu = nn.ReLU(inplace=True)
+
+        # Downsampling Layer (when input and output dimensions do not match)
+        self.downsample = None
+        if in_channels != out_channels or stride != 1:
+            self.downsample = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
+
+    def forward(self, x):
+        identity = x  # Save the input for the residual connection
+
+        # First Layer
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
-        out = self.dropout(out)
 
-        # Second Block
+        # Second Layer
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.drop_path(out)
+        out = self.relu(out)
 
-        if self.downsample: # Apply the downsample layer if it exists
-            residual = self.downsample(x)
+        # Third Layer
+        out = self.conv3(out)
+        out = self.bn3(out)
 
-        out += residual # Add the skip connection
-        out = self.relu(out) # Apply ReLU activation
+        if self.downsample is not None: # Add Residual Connection
+            identity = self.downsample(x)
+
+        out += identity  # Skip Connection
+        out = self.relu(out)
+
         return out
     
 # Spatial Attention Module (SA)
@@ -225,6 +232,7 @@ class MultiScaleBlock(nn.Module):
                                    padding=3, dilation=3, groups=groups, bias=bias, padding_mode=padding_mode)
         self.fuse = nn.Conv2d(in_channels=(out_channels * 3), out_channels=out_channels, kernel_size=1, stride=stride,
                               padding=0, dilation=1, groups=groups, bias=bias, padding_mode=padding_mode)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         dil1 = self.conv_dil1(x) # Apply 1st dilated convolution for local features
@@ -232,7 +240,8 @@ class MultiScaleBlock(nn.Module):
         dil3 = self.conv_dil3(x) # Apply 3rd dilated convolution for global contextual features
 
         out = torch.cat([dil1, dil2, dil3], dim=1) # Concatenate the features
-        out = self.fuse(out) # Fuse the features into a unified representation
+        out = self.relu(self.fuse(out)) # Fuse the features into a unified representation
+        out = out + x
 
         return out # Return the fused representation
 
@@ -401,10 +410,10 @@ class CBAM(nn.Module):
     
 # Mixed Depthwise Convolution Module
 class MixedDepthwiseConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5], stride=1, groups=1):
+    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5], stride=1):
         super(MixedDepthwiseConv, self).__init__()
         self.convs = nn.ModuleList([ # Create multiple depthwise separable convolutions
-            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=k, stride=stride, padding=k//2, groups=groups, bias=False)
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=k, stride=stride, padding=k//2, groups=in_channels, bias=False)
             for k in kernel_sizes
         ])
         self.pointwise = nn.Conv2d(len(kernel_sizes) * out_channels, out_channels, kernel_size=1, bias=False) # Pointwise convolution 

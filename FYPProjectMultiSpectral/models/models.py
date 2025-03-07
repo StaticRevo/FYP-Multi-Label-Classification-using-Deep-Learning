@@ -11,7 +11,7 @@ from torchvision.models import (
 )
 
 # Local application imports
-from config.config import ModelConfig
+from config.config import ModelConfig, ModuleConfig
 from models.base_model import BaseModel
 from models.modules import *
 
@@ -23,11 +23,11 @@ class CustomModel(BaseModel):
     
         # Spectral Mixing and Initial Feature Extraction
         self.spectral_mixer = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, padding=1,
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, stride=1, padding=0,
                       dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (in_channels->32)
             nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
             nn.GELU(), # GELU Activation Function
-            nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer
+            nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer - (120x120 -> 60x60)
         )
         # -- Block 1 --
         self.block1 = nn.Sequential(
@@ -60,8 +60,6 @@ class CustomModel(BaseModel):
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
             SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
         )
-        self.transformer_block = LinformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape", batch_first=True, seq_len=256, k=64) # Linformer Module
-        # ( If using 50% or more subset switch to Swin Transformer)
         self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
         # -- Block 4 -- 
@@ -83,31 +81,24 @@ class CustomModel(BaseModel):
 
     # Override forward function for CustomModel
     def forward(self, x):
-        x = self.spectral_mixer(x) # Spectral mixing
-        features_low = self.block1(x) # Low-level features
-        features_mid = self.block2(features_low) # Mid-level features.
-        features_deep = self.block3(features_mid) # Deep features.
-        features_deep = self.transformer_block(features_deep)  # Global context
-        adapted_features_low = self.skip_adapter(features_low) 
-    
+        x = self.spectral_mixer(x) # Spectral mixing (32, 60, 60)
+        features_low = self.block1(x) # Block 1: Low-level features (64, 60, 60)
+        features_mid = self.block2(features_low) # Block 2: Mid-level features (128, 30, 30)
+        features_deep = self.block3(features_mid) # Block 3: Deep features (256, 15, 15)
+
         # Match spatial dimensions
+        adapted_features_low = self.skip_adapter(features_low) # Adapt low-level features to match deep features (256, 60, 60)
         if adapted_features_low.shape[2:] != features_deep.shape[2:]:
             adapted_features_low = F.interpolate(
             adapted_features_low, 
-            size=features_deep.shape[2:], 
+            size=features_deep.shape[2:], # (256, 15, 15)
             mode='bilinear', 
             align_corners=False
         )
-        # adapted_features_low = torch.nn.functional.interpolate(
-        #     adapted_features_low,
-        #     size=(15, 15),
-        #     mode='bilinear',
-        #     align_corners=False
-        # )
     
-        fused_features = features_deep + adapted_features_low  # Fuse low level and deep features
-        features_high = self.block4(fused_features) # Refine high-level representations
-        out = self.classifier(features_high) # Final classification
+        fused_features = features_deep + adapted_features_low  # Fuse low level and deep features (256, 15, 15)
+        features_high = self.block4(fused_features) # Refine high-level representations (512, 7, 7)
+        out = self.classifier(features_high) # Final classification (19)
         return out
 
     # Override optimizer configuration for CustomModel

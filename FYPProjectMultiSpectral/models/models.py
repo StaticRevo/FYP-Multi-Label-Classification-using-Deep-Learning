@@ -4,6 +4,7 @@ from torchsummary import summary
 import timm
 from torchvision.models import (
     resnet18, ResNet18_Weights, resnet50, ResNet50_Weights, 
+    resnet101, ResNet101_Weights, resnet152, ResNet152_Weights,
     vgg16, VGG16_Weights, vgg19, VGG19_Weights, 
     densenet121, DenseNet121_Weights, 
     efficientnet_b0, EfficientNet_B0_Weights, 
@@ -150,6 +151,58 @@ class ResNet50(BaseModel):
 
         super(ResNet50, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
 
+class ResNet101(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
+        resnet_model = resnet101(weights=model_weights)
+
+        if in_channels == 3:
+            pass
+        else:
+            # Modify first convolution layer to accept multiple channels
+            original_conv1 = resnet_model.conv1
+            resnet_model.conv1 = nn.Conv2d(
+                in_channels=in_channels,  
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=original_conv1.bias,
+            )
+            nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
+
+        # Modify the final fully connected layer
+        resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
+
+        super(ResNet101, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
+
+class ResNet152(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        if model_weights == "None":
+            model_weights = None
+        resnet_model = resnet152(weights=model_weights)
+
+        if in_channels == 3:
+            pass
+        else:
+            # Modify first convolution layer to accept multiple channels
+            original_conv1 = resnet_model.conv1
+            resnet_model.conv1 = nn.Conv2d(
+                in_channels=in_channels,  
+                out_channels=original_conv1.out_channels,
+                kernel_size=original_conv1.kernel_size,
+                stride=original_conv1.stride,
+                padding=original_conv1.padding,
+                bias=original_conv1.bias,
+            )
+            nn.init.kaiming_normal_(resnet_model.conv1.weight, mode='fan_out', nonlinearity='relu')
+
+        # Modify the final fully connected layer
+        resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
+
+        super(ResNet152, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
+        
 # VGG16 Model
 class VGG16(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):

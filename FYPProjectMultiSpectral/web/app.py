@@ -48,7 +48,7 @@ STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static
 if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
 # Model Options
-MODEL_OPTIONS = ["CustomModel", "ResNet18", "ResNet50", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
+MODEL_OPTIONS = ["CustomModel", "ResNet18", "ResNet50", "ResNet101", "ResNet152", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
 CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
 EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
 ARCHITECTURES_DIR = os.path.join(parent_dir, "models", "Architecture")

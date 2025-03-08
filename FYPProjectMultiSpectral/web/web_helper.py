@@ -184,6 +184,10 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         target_layer = model.model.layer3[-1].conv2
     elif model_name == 'ResNet50':
         target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'ResNet101':
+        target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'ResNet152':
+        target_layer = model.model.layer3[-1].conv3
     elif model_name == 'VGG16':
         target_layer = model.model.features[28]
     elif model_name == 'VGG19':

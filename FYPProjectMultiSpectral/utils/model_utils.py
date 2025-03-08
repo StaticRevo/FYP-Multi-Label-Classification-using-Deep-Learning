@@ -6,6 +6,8 @@ def get_model_class(model_name):
         'CustomModel': (CustomModel, 'custom_model'),
         'ResNet18': (ResNet18, 'resnet18'),
         'ResNet50': (ResNet50, 'resnet50'),
+        'ResNet101': (ResNet101, 'resnet101'),
+        'ResNet152': (ResNet152, 'resnet152'),
         'VGG16': (VGG16, 'vgg16'),
         'VGG19': (VGG19, 'vgg19'),
         'DenseNet121': (DenseNet121, 'densenet121'),

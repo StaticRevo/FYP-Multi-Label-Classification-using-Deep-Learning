@@ -8,6 +8,83 @@ import math
 # Local application imports
 from config.config import ModuleConfig
 
+# -- Bottle Neck Blocks --
+# Bottlneck Residual Block (as used in ResNet50 adapted from ResNet)
+class Bottleneck(nn.Module):
+    expansion = ModuleConfig.expansion
+
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None):
+        super(Bottleneck, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+    
+# Wide Bottleneck Residual Block (as used in WRN-50-2 adapted from WideResNet)
+class WideBottleneck(nn.Module):
+    expansion = ModuleConfig.expansion 
+
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None, widen_factor=2):
+        super(WideBottleneck, self).__init__()
+        wide_channels = out_channels * widen_factor  # Double middle channels for WRN-50-2
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, wide_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(wide_channels)
+        self.conv3 = nn.Conv2d(wide_channels, out_channels * self.expansion, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+
+# -- Spectral/Spatial Attention Modules --
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
     def __init__(self, in_channels, kernel_size=1):
@@ -74,58 +151,6 @@ class DropPath(nn.Module):
 
         return x.div(keep_prob) * random_tensor # Scale the input with the binary mask
 
-# Bottleneck Residual Block 
-class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, expansion=4):
-        super(ResidualBlock, self).__init__()
-        mid_channels = out_channels // expansion  
-
-        self.conv1 = nn.Conv2d(in_channels, mid_channels, kernel_size=1, stride=1, bias=False) # First 1x1 Convolution 
-        self.bn1 = nn.BatchNorm2d(mid_channels) # Batch Normalization
-
-        self.conv2 = nn.Conv2d(mid_channels, mid_channels, kernel_size=3, stride=stride, padding=1, bias=False) # Second 3x3 Convolution 
-        self.bn2 = nn.BatchNorm2d(mid_channels)
-
-        self.conv3 = nn.Conv2d(mid_channels, out_channels, kernel_size=1, stride=1, bias=False)  # Third 1x1 Convolution 
-        self.bn3 = nn.BatchNorm2d(out_channels)
-
-        self.relu = nn.ReLU(inplace=True)
-    
-        # Downsampling Layer (when input and output dimensions do not match)
-        self.downsample = None
-        if in_channels != out_channels or stride != 1:
-            self.downsample = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels)
-            )
-        self.drop_path = DropPath() if ModuleConfig.dropout_rt > 0 else nn.Identity() # Drop Path Module
-
-    def forward(self, x):
-        identity = x  # Save the input for the residual connection
-
-        # First Layer
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        # Second Layer
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        # Third Layer
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None: # Add Residual Connection
-            identity = self.downsample(x)
-        
-        out = self.drop_path(out) # Apply Drop Path
-        out += identity  # Skip Connection
-        out = self.relu(out)
-
-        return out
-    
 # Spatial Attention Module (SA)
 class SpatialAttention(nn.Module):
     def __init__(self, kernel_size, stride):
@@ -340,40 +365,4 @@ class MixedDepthwiseConv(nn.Module):
             return x + out
         
         return out
-    
-# Bottlneck Residual Block
-class Bottleneck(nn.Module):
-    expansion = ModuleConfig.expansion
 
-    def __init__(self, in_channels, out_channels, stride=1, downsample=None):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-
-    def forward(self, x):
-        identity = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out += identity
-        out = self.relu(out)
-
-        return out

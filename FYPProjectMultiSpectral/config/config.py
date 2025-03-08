@@ -14,7 +14,7 @@ from .config_utils import *
 # -- Dataset Configuration --
 @dataclass
 class DatasetConfig:
-    metadata_path = r"C:\\Users\\isaac\\Desktop\BigEarthTests\\100%_BigEarthNet\\metadata_100_percent.csv"
+    metadata_path = r"C:\Users\isaac\Desktop\BigEarthTests\100%_BigEarthNet\metadata_100_percent.csv"
     dataset_paths = {
         "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages",
         "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages",
@@ -119,7 +119,7 @@ class ModuleConfig:
     # Dropout Configuration
     drop_prob: float = 0.1
 
-    # Bottle Neck
+    # Bottle Neck Blocks
     expansion: int = 4
 
 

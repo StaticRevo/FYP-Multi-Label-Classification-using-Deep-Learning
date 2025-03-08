@@ -16,11 +16,11 @@ from config.config import ModelConfig, ModuleConfig
 from models.base_model import BaseModel
 from models.modules import *
 
-# Custom Model
-class CustomModel(BaseModel):
+# Custom ResNet50 Model
+class CustomResNet50(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
-        super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        super(CustomResNet50, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
         self.in_channels = 64
 
         self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=7, stride=2, padding=3, bias=False) # Conv Layer (120,120) -> (64,60,60)
@@ -29,10 +29,10 @@ class CustomModel(BaseModel):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # MaxPool Layer (64,60,60) -> (64,30,30)
 
         # Residual Blocks
-        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30)
-        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15)
-        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)    
-        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4)
+        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30)  ## 3=ResNet50,ResNet101,ResNet152
+        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15) ## 4=ResNet50,ResNet101, 8=ResNet152
+        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)  ## 6=ResNet50, 23=ResNet101, 36=ResNet152
+        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4) ## 3=ResNet50,ResNet101,ResNet152
 
         # Classifier
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1)) # AdaptiveAvgPool Layer (2048,4,4) -> (2048,1,1)
@@ -57,10 +57,10 @@ class CustomModel(BaseModel):
                 nn.BatchNorm2d(out_channels * ModuleConfig.expansion),
             )
         layers = []
-        layers.append(Bottleneck(self.in_channels, out_channels, stride, downsample))
+        layers.append(WideBottleneck(self.in_channels, out_channels, stride, downsample))
         self.in_channels = out_channels * ModuleConfig.expansion
         for _ in range(1, blocks):
-            layers.append(Bottleneck(self.in_channels, out_channels))
+            layers.append(WideBottleneck(self.in_channels, out_channels))
         
         return nn.Sequential(*layers)
 
@@ -95,7 +95,71 @@ class CustomModel(BaseModel):
                 'frequency': 1
             }
         }
-        
+
+# Custom WideResNetB0 Model
+class CustomWRNB0(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()
+        super(CustomWRNB0, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        self.in_channels = 16
+        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.layer1 = self._make_layer(16, 1, stride=1)  # (16, 120, 120) -> (64, 120, 120)
+        self.layer2 = self._make_layer(32, 1, stride=2)  # (64, 120, 120) -> (128, 60, 60)
+        self.layer3 = self._make_layer(60, 1, stride=2)  # (128, 60, 60) -> (240, 30, 30)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (240, 30, 30) -> (240, 1, 1)
+        self.fc = nn.Linear(240, num_classes)  # (240) -> (19), match output
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        if model_weights is not None and model_weights != "None":
+            print("Pretrained weights not supported in the custom WideResNetB0 model")
+    
+    def _make_layer(self, out_channels, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.in_channels != out_channels * ModuleConfig.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.in_channels, out_channels * ModuleConfig.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels * ModuleConfig.expansion),
+            )
+        layers = [WideBottleneck(self.in_channels, out_channels, stride, downsample, widen_factor=4)]
+        self.in_channels = out_channels * ModuleConfig.expansion
+        for _ in range(1, blocks):
+            layers.append(WideBottleneck(self.in_channels, out_channels, widen_factor=4))
+        return nn.Sequential(*layers)
+    
+    def forward(self, x):
+        x = self.conv1(x)  # [12, 120, 120] -> [16, 120, 120]
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.layer1(x)  # [16, 120, 120] -> [64, 120, 120]
+        x = self.layer2(x)  # [64, 120, 120] -> [128, 60, 60]
+        x = self.layer3(x)  # [128, 60, 60] -> [240, 30, 30]
+        x = self.avgpool(x)  # [240, 30, 30] -> [240, 1, 1]
+        x = torch.flatten(x, 1)  # [240]
+        x = self.fc(x)  # [240] -> [19]
+        return x
+    
+    # Override optimizer configuration for Custom WRN B0 Model
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+    
+
+# -- State-Of-The-Art Models (adapted from torch) --
 # ResNet18 Model
 class ResNet18(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
@@ -202,7 +266,7 @@ class ResNet152(BaseModel):
         resnet_model.fc = nn.Linear(resnet_model.fc.in_features, num_classes)
 
         super(ResNet152, self).__init__(resnet_model, num_classes, class_weights, in_channels, main_path)
-        
+
 # VGG16 Model
 class VGG16(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):

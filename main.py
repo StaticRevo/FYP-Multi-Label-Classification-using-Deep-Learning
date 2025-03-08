@@ -26,13 +26,14 @@ class ModelSelectionGUI:
         self.models = {
             #'1': 'CustomModel',
             '1': 'ResNet50',
-            '2': 'EfficientNet_v2',
-            '3': 'DenseNet121',
-            '4': 'Swin-Transformer',
-            '5': 'EfficientNetB0',
-            '6': 'Vit-Transformer',
-            '7': 'VGG19',
-            '8': 'CustomModel'
+            '2': 'CustomModel'
+            # '2': 'EfficientNet_v2',
+            # '3': 'DenseNet121',
+            # '4': 'Swin-Transformer',
+            # '5': 'EfficientNetB0',
+            # '6': 'Vit-Transformer',
+            # '7': 'VGG19',
+            
         }
             
         #     '1': 'CustomModel',

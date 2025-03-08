@@ -20,86 +20,68 @@ class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
         super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
-    
-        # Spectral Mixing and Initial Feature Extraction
-        self.spectral_mixer = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
-                      dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (in_channels->32)
-            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
-            nn.GELU(), # GELU Activation Function
-            nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer - (120x120 -> 60x60)
-        )
-        # -- Block 1 --
-        self.block1 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
-            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
-            nn.GELU(), # GELU Activation Function
-            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (64->64)  
-            SpectralAttention(in_channels=128), # SpectralAttention Module (64->64)
-            CoordinateAttention(in_channels=128, reduction=16), # CoordinateAttention Module (64->64)
-        )
-        # -- Block 2 --
-        self.block2 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 
-                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
-            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
-            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, 
-                            bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
-            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (128->128) 
-            ECA(in_channels=256), # ECA Module
-        )
-        # -- BLock 3 --
-        self.block3 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1, 
-                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
-            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
-            MultiScaleBlock(in_channels=512, out_channels=512, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
-            ResidualBlock(in_channels=512, out_channels=512, stride=1), # Residual Block (256->256) 
-            SE(in_channels=512, kernel_size=1), # Squeeze and Excitation Module
-        )
-        self.skip_adapter = nn.Sequential(
-            nn.Conv2d(in_channels=128, out_channels=512, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (64->256)
-            nn.AvgPool2d(kernel_size=4, stride=4) # Average Pooling Layer (60x60 -> 15x15)
-        )
+        self.in_channels = 64
 
-        # -- Block 4 -- 
-        self.block4 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=2, 
-                                   dilation=2, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->512)
-            nn.BatchNorm2d(num_features=1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
-            ResidualBlock(in_channels=1024, out_channels=1024, stride=1), # Residual Block (512->512)
-            DualAttention(in_channels=1024, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
-        )
-        # -- Block 5 -- 
-        self.classifier = nn.Sequential(
-            nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1, padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer
-            nn.GELU(),
-            nn.AdaptiveAvgPool2d(1), # Adaptive Average Pooling Layer
-            nn.Flatten(), # Flatten Layer
-            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
-            nn.Linear(in_features=1024, out_features=num_classes) # Fully Connected Layer
-        )
+        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=7, stride=2, padding=3, bias=False) # Conv Layer (120,120) -> (64,60,60)
+        self.bn1 = nn.BatchNorm2d(self.in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # MaxPool Layer (64,60,60) -> (64,30,30)
 
-    # Override forward function for CustomModel
+        # Residual Blocks
+        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30)
+        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15)
+        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)    
+        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4)
+
+        # Classifier
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1)) # AdaptiveAvgPool Layer (2048,4,4) -> (2048,1,1)
+        self.fc = nn.Linear(512 * ModuleConfig.expansion, num_classes) # Fully Connected Layer (2048,1,1) -> (19)
+
+        # Weight Initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        
+        if model_weights is not None or "None":
+            print("Pretrained weights not supported in the custom ResNet50 model")
+
+    def _make_layer(self, out_channels, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.in_channels != out_channels * ModuleConfig.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.in_channels, out_channels * ModuleConfig.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels * ModuleConfig.expansion),
+            )
+        layers = []
+        layers.append(Bottleneck(self.in_channels, out_channels, stride, downsample))
+        self.in_channels = out_channels * ModuleConfig.expansion
+        for _ in range(1, blocks):
+            layers.append(Bottleneck(self.in_channels, out_channels))
+        
+        return nn.Sequential(*layers)
+
+    # Override forward function for Custom ResNet50 Model
     def forward(self, x):
-        x = self.spectral_mixer(x) # Spectral mixing (64, 60, 60)
-        features_low = self.block1(x) # Block 1: Low-level features (128, 60, 60)
-        features_mid = self.block2(features_low) # Block 2: Mid-level features (256, 30, 30)
-        features_deep = self.block3(features_mid) # Block 3: Deep features (512, 15, 15)
+        x = self.conv1(x) # (19, 120, 120) -> (64, 60, 60)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x) # (64, 60, 60) -> (64, 30, 30)
 
-        # Match spatial dimensions
-        adapted_features_low = self.skip_adapter(features_low) # Adapt low-level features to match deep features (512, 60, 60)
+        x = self.layer1(x) # (64, 30, 30) -> (256, 30, 30)
+        x = self.layer2(x) # (256, 30, 30) -> (512, 15, 15)
+        x = self.layer3(x)  # (512, 15, 15) -> (1024, 8, 8)
+        x = self.layer4(x) # (1024, 8, 8) -> (2048, 4, 4)
 
-        fused_features = features_deep + adapted_features_low  # Fuse low level and deep features (512, 15, 15)
-        features_high = self.block4(fused_features) # Refine high-level representations (1024, 15, 15)
-        out = self.classifier(features_high) # Final classification (19)
-        return out
+        x = self.avgpool(x) # (2048, 4, 4) -> (2048, 1, 1)
+        x = torch.flatten(x, 1) # Flatten (2048, 1, 1) -> (2048)
+        x = self.fc(x) # (2048) -> (19)
 
-    # Override optimizer configuration for CustomModel
+        return x
+
+    # Override optimizer configuration for Custom ResNet50 Model
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  

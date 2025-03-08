@@ -89,7 +89,7 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 20
+    num_epochs: int = 15
     batch_size: int = 256
     num_workers: int = 8
     learning_rate: float = 0.001
@@ -118,6 +118,9 @@ class ModuleConfig:
 
     # Dropout Configuration
     drop_prob: float = 0.1
+
+    # Bottle Neck
+    expansion: int = 4
 
 
 

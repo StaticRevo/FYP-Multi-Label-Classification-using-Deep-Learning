@@ -339,13 +339,16 @@ class CBAM(nn.Module):
         )
 
     def forward(self, x):
-        x = x * self.channel_att(x) # Apply channel attention
-        avg_out = torch.mean(x, dim=1, keepdim=True) # Average Pooling
-        max_out, _ = torch.max(x, dim=1, keepdim=True) # Max Pooling
-        x = torch.cat([avg_out, max_out], dim=1) # Concatenate avg_out and max_out
-        out = x * self.spatial_att(x) # Apply spatial attention
-
-        return x + out # Residual Connection
+        # Channel attention
+        channel_out = x * self.channel_att(x)
+        # Spatial attention
+        avg_out = torch.mean(channel_out, dim=1, keepdim=True) # Average Pooling
+        max_out, _ = torch.max(channel_out, dim=1, keepdim=True) # Max Pooling
+        spatial_in = torch.cat([avg_out, max_out], dim=1) # Concatenate avg_out and max_out
+        spatial_out = self.spatial_att(spatial_in)
+        # Combine
+        out = channel_out * spatial_out
+        return out + x # Residual Connection
     
 # Mixed Depthwise Convolution Module
 class MixedDepthwiseConv(nn.Module):

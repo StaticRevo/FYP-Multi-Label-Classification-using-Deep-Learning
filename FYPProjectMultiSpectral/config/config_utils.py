@@ -26,6 +26,11 @@ def calculate_class_weights(metadata_csv):
 
     #normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights (currently not used)
     log_weights = np.log1p(class_weights_array)
+
+    boost_factor = 3.0
+    log_weights[2] *= boost_factor 
+    log_weights[4] *= boost_factor
+
     return log_weights
 
 # Calculate the class labels within the metadata

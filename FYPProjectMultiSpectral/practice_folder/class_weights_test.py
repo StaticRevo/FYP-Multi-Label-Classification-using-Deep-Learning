@@ -1,4 +1,10 @@
-import inspect
-from torchvision.models import resnet50
+from config.config import *
 
-print(inspect.getsource(resnet50))
+metadata_path = DatasetConfig.metadata_paths["10"]
+metadata = pd.read_csv(metadata_path)
+
+class_weights = calculate_class_weights(metadata)
+print(class_weights)
+
+class_labels = calculate_class_labels(metadata)
+print(class_labels)

@@ -3,7 +3,7 @@ from models.models import *
 # Get the model class
 def get_model_class(model_name):
     model_mapping = {
-        'CustomResNet50': (CustomResNet50, 'custom_model'),
+        'CustomResNet50': (CustomResNet50, 'custom_model_resnet50'),
         'ResNet18': (ResNet18, 'resnet18'),
         'ResNet50': (ResNet50, 'resnet50'),
         'ResNet101': (ResNet101, 'resnet101'),
@@ -16,5 +16,6 @@ def get_model_class(model_name):
         'Vit-Transformer': (VitTransformer, 'vit_transformer'),
         'Swin-Transformer': (SwinTransformer, 'swin_transformer'),
         'CustomWRNB0': (CustomWRNB0, 'custom_wrn_b0'),
+        'CustomModel': (CustomModel, 'custom_model'),
     }
     return model_mapping.get(model_name, (None, None))

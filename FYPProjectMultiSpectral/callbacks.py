@@ -239,14 +239,24 @@ class LogEpochEndCallback(pl.Callback):
 # Callback to log the gradient norm after each backward pass
 class GradientLoggingCallback(pl.Callback):
     def on_after_backward(self, trainer, pl_module):
+        # Log gradient norm BEFORE clipping
         total_norm = 0.0
         for p in pl_module.parameters():
             if p.grad is not None:
-                param_norm = p.grad.data.norm(2)  # Compute L2 norm
+                param_norm = p.grad.data.norm(2)  # L2 norm of each parameter's gradient
                 total_norm += param_norm.item() ** 2
         total_norm = total_norm ** 0.5
         print(f"Gradient Norm before clipping: {total_norm:.4f}")
-        return total_norm
+
+    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
+        # Log gradient norm AFTER clipping
+        total_norm = 0.0
+        for p in pl_module.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)  # L2 norm of each parameter's gradient
+                total_norm += param_norm.item() ** 2
+        total_norm = total_norm ** 0.5
+        print(f"Gradient Norm after clipping: {total_norm:.4f}")
     
 class OnChangeLrLoggerCallback(pl.Callback):
     def __init__(self, custom_logger):

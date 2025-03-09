@@ -4,14 +4,34 @@ import os
 from tkinter import ttk, messagebox, Toplevel
 from threading import Thread  
 
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
 class ModelSelectionGUI:
     # Initialize the GUI
     def __init__(self, master): 
         self.master = master
         self.master.title("Model Selection")
-        self.master.geometry("450x900")
+        self.master.geometry("450x1050")
         self.setup_style()
         self.setup_options()
+        
+        # Create a scrollable frame to hold all the widgets
+        self.scroll_frame = ScrollableFrame(self.master)
+        self.scroll_frame.pack(fill="both", expand=True)
+        
         self.create_widgets()
 
     # Configure common styles for the widgets
@@ -24,30 +44,21 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         self.models = {
-            #'1': 'CustomModel',
-            '1': 'ResNet50',
-            '2': 'CustomResNet50',
-            '3': 'CustomWRNB0'
-            # '2': 'EfficientNet_v2',
-            # '3': 'DenseNet121',
-            # '4': 'Swin-Transformer',
-            # '5': 'EfficientNetB0',
-            # '6': 'Vit-Transformer',
-            # '7': 'VGG19',
-            
+            '1': 'VGG16',            # 2014
+            '2': 'VGG19',            # 2014
+            '3': 'ResNet18',         # 2015
+            '4': 'ResNet50',         # 2015
+            '5': 'ResNet101',        # 2015
+            '6': 'ResNet152',        # 2015
+            '7': 'DenseNet121',      # 2016
+            '8': 'EfficientNetB0',   # 2019
+            '9': 'EfficientNet_v2',  # 2021
+            '10': 'Swin-Transformer',# 2021
+            '11': 'Vit-Transformer', # 2021
+            '12': 'CustomResNet50',  # Custom
+            '13': 'CustomWRNB0',     # Custom
+            '14': 'CustomModel'      # Custom
         }
-            
-        #     '1': 'CustomModel',
-        #     '2': 'ResNet18',
-        #     '3': 'ResNet50',
-        #     '4': 'VGG16',
-        #     '5': 'VGG19',
-        #     '6': 'DenseNet121',
-        #     '7': 'EfficientNetB0',
-        #     '8': 'EfficientNet_v2',
-        #     '9': 'Swin-Transformer',
-        #     '10': 'Vit-Transformer'
-        # }
         self.band_selection = {
             '1': 'all_bands',
             '2': 'all_imp_bands',
@@ -67,17 +78,19 @@ class ModelSelectionGUI:
 
     # Create the widgets for the GUI
     def create_widgets(self):
-        self.create_model_selection_frame()
-        self.create_weights_selection_frame()
-        self.create_band_selection_frame()
-        self.create_dataset_selection_frame()
-        self.create_train_test_frame()
-        self.create_iteration_options_frame()  
-        self.create_action_buttons()
+        # All widgets are added to the scrollable frame instead of self.master
+        container = self.scroll_frame.scrollable_frame
+        self.create_model_selection_frame(container)
+        self.create_weights_selection_frame(container)
+        self.create_band_selection_frame(container)
+        self.create_dataset_selection_frame(container)
+        self.create_train_test_frame(container)
+        self.create_iteration_options_frame(container)  
+        self.create_action_buttons(container)
 
     # Create frame for model selection
-    def create_model_selection_frame(self):
-        self.model_frame = ttk.LabelFrame(self.master, text="Choose a model to run", padding="10")
+    def create_model_selection_frame(self, container):
+        self.model_frame = ttk.LabelFrame(container, text="Choose a model to run", padding="10")
         self.model_frame.grid(row=0, column=0, padx=20, pady=10, sticky='ew')
         self.model_var = tk.StringVar(value='1')
         for idx, (key, model_name) in enumerate(self.models.items(), start=1):
@@ -89,8 +102,8 @@ class ModelSelectionGUI:
             ).grid(row=idx, column=0, sticky='w', padx=10)
 
     # Create frame for weights selection
-    def create_weights_selection_frame(self):
-        self.weights_frame = ttk.LabelFrame(self.master, text="Choose the weights option", padding="10")
+    def create_weights_selection_frame(self, container):
+        self.weights_frame = ttk.LabelFrame(container, text="Choose the weights option", padding="10")
         self.weights_frame.grid(row=1, column=0, padx=20, pady=10, sticky='ew')
         self.weights_var = tk.StringVar(value='1')
         ttk.Radiobutton(
@@ -107,8 +120,8 @@ class ModelSelectionGUI:
         ).grid(row=2, column=0, sticky='w', padx=10)
 
     # Create frame for band selection
-    def create_band_selection_frame(self):
-        self.band_frame = ttk.LabelFrame(self.master, text="Choose the band combination", padding="10")
+    def create_band_selection_frame(self, container):
+        self.band_frame = ttk.LabelFrame(container, text="Choose the band combination", padding="10")
         self.band_frame.grid(row=0, column=1, padx=20, pady=10, sticky='ew')
         self.band_var = tk.StringVar(value='1')
         for idx, (key, bands) in enumerate(self.band_selection.items(), start=1):
@@ -120,8 +133,8 @@ class ModelSelectionGUI:
             ).grid(row=idx, column=0, sticky='w', padx=10)
 
     # Create frame for dataset selection
-    def create_dataset_selection_frame(self):
-        self.dataset_frame = ttk.LabelFrame(self.master, text="Choose the dataset percentage", padding="10")
+    def create_dataset_selection_frame(self, container):
+        self.dataset_frame = ttk.LabelFrame(container, text="Choose the dataset percentage", padding="10")
         self.dataset_frame.grid(row=1, column=1, padx=20, pady=10, sticky='ew')
         self.dataset_var = tk.StringVar(value='1')
         for idx, (key, dataset) in enumerate(self.dataset_selection.items(), start=1):
@@ -133,8 +146,8 @@ class ModelSelectionGUI:
             ).grid(row=idx, column=0, sticky='w', padx=10)
 
     # Create frame for train/test selection
-    def create_train_test_frame(self):
-        self.train_test_frame = ttk.LabelFrame(self.master, text="Choose to Train or Train and Test", padding="10")
+    def create_train_test_frame(self, container):
+        self.train_test_frame = ttk.LabelFrame(container, text="Choose to Train or Train and Test", padding="10")
         self.train_test_frame.grid(row=2, column=0, columnspan=2, padx=20, pady=10, sticky='ew')
         self.train_test_var = tk.StringVar(value='train')
         ttk.Radiobutton(
@@ -157,8 +170,8 @@ class ModelSelectionGUI:
         ).grid(row=3, column=0, sticky='w', padx=10)
 
     # Create iteration options frame for running all models/bands/weights
-    def create_iteration_options_frame(self):
-        self.iteration_frame = ttk.LabelFrame(self.master, text="Iteration Options", padding="10")
+    def create_iteration_options_frame(self, container):
+        self.iteration_frame = ttk.LabelFrame(container, text="Iteration Options", padding="10")
         self.iteration_frame.grid(row=3, column=0, columnspan=2, padx=20, pady=10, sticky='ew')
         
         self.all_models_var = tk.BooleanVar(value=False)
@@ -191,11 +204,11 @@ class ModelSelectionGUI:
         ).grid(row=4, column=0, sticky='w', padx=10)
 
     # Create Run and Reset buttons
-    def create_action_buttons(self):
-        self.run_button = ttk.Button(self.master, text="Run Model", command=self.run_model)
+    def create_action_buttons(self, container):
+        self.run_button = ttk.Button(container, text="Run Model", command=self.run_model)
         self.run_button.grid(row=4, column=0, columnspan=2, pady=20)
         
-        self.reset_button = ttk.Button(self.master, text="Reset", command=self.reset_selections)
+        self.reset_button = ttk.Button(container, text="Reset", command=self.reset_selections)
         self.reset_button.grid(row=5, column=0, columnspan=2, pady=10)
 
      # Gather selections, show a loading dialog and run the model(s) in a separate thread

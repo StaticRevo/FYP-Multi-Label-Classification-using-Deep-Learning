@@ -100,22 +100,6 @@ def main():
 
     # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
-    checkpoint_callback_loss = ModelCheckpoint( # Checkpoint callback for val_loss
-        dirpath=checkpoint_dir,
-        filename='best_loss',
-        save_top_k=1,
-        verbose=False,
-        monitor='val_loss',
-        mode='min'
-    )
-    checkpoint_callback_acc = ModelCheckpoint( # Checkpoint callback for val_acc
-        dirpath=checkpoint_dir,
-        filename='best_acc',
-        save_top_k=1,
-        verbose=False,
-        monitor='val_acc',
-        mode='max'
-    )
     final_checkpoint = ModelCheckpoint( # Checkpoint callback for final model
         dirpath=checkpoint_dir,
         filename='final',
@@ -143,12 +127,11 @@ def main():
         logger=tb_logger,
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
-        precision='32',
+        precision='16-mixed',
+        gradient_clip_val=10.0,
         log_every_n_steps=1,
-        accumulate_grad_batches=2,
+        accumulate_grad_batches=1,
         callbacks=[
-                    checkpoint_callback_loss, 
-                    checkpoint_callback_acc, 
                     best_metrics_callback,
                     final_checkpoint, 
                     early_stopping,

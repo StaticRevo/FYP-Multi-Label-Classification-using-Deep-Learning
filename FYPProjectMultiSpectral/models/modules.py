@@ -8,7 +8,7 @@ import math
 # Local application imports
 from config.config import ModuleConfig
 
-# -- Bottle Neck Blocks --
+# -- Bottle Neck Blocks -- 
 # Bottlneck Residual Block (as used in ResNet50 adapted from ResNet)
 class Bottleneck(nn.Module):
     expansion = ModuleConfig.expansion

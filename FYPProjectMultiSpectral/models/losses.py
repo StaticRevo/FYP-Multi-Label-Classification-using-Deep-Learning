@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from config.config import ModuleConfig
+import numpy as np
 
 # --Combined Focal Loss with Pos Weight--
 class CombinedFocalLossWithPosWeight(nn.Module):
@@ -26,7 +27,7 @@ class CombinedFocalLossWithPosWeight(nn.Module):
             return loss.sum()
         else:
             return loss
-
+        
 # --Asymmetric Loss--
 class AsymmetricLoss(nn.Module):
     def __init__(self, gamma_neg=4, gamma_pos=1, eps=1e-8):

@@ -113,8 +113,8 @@ class ModuleConfig:
     activation: type = nn.ReLU
 
     # Loss Function Configuration
-    focal_alpha: float = 0.25
-    focal_gamma: float = 2.0
+    focal_alpha: float = 0.5
+    focal_gamma: float = 3.0
 
     # Dropout Configuration
     drop_prob: float = 0.1

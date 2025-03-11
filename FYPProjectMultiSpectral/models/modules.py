@@ -260,27 +260,22 @@ class DepthwiseSeparableConv(nn.Module):
 
 # Multi-Scale Block Module (MultiScaleBlock)
 class MultiScaleBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, groups, bias, padding_mode):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, groups=1, bias=False, padding_mode='zeros'):
         super(MultiScaleBlock, self).__init__()
-        self.conv_dil1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride,
-                                   padding=1, dilation=1, groups=groups, bias=bias, padding_mode=padding_mode)
-        self.conv_dil2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride,
-                                   padding=2, dilation=2, groups=groups, bias=bias, padding_mode=padding_mode)
-        self.conv_dil3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride,
-                                   padding=3, dilation=3, groups=groups, bias=bias, padding_mode=padding_mode)
-        self.fuse = nn.Conv2d(in_channels=(out_channels * 3), out_channels=out_channels, kernel_size=1, stride=stride,
-                              padding=0, dilation=1, groups=groups, bias=bias, padding_mode=padding_mode)
+        self.conv_dil1 = DepthwiseSeparableConv(in_channels, out_channels, kernel_size, stride, padding=1, dilation=1, bias=bias, padding_mode=padding_mode)
+        self.conv_dil2 = DepthwiseSeparableConv(in_channels, out_channels, kernel_size, stride, padding=2, dilation=2, bias=bias, padding_mode=padding_mode)
+        self.conv_dil3 = DepthwiseSeparableConv(in_channels, out_channels, kernel_size, stride, padding=3, dilation=3, bias=bias, padding_mode=padding_mode)
+        self.fuse = nn.Conv2d(in_channels=out_channels * 3, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, dilation=1, groups=groups, bias=bias, padding_mode=padding_mode)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        dil1 = self.conv_dil1(x) # Apply 1st dilated convolution for local features
-        dil2 = self.conv_dil2(x) # Apply 2nd dilated convolution for mid-range contextual features
-        dil3 = self.conv_dil3(x) # Apply 3rd dilated convolution for global contextual features
-
-        out = torch.cat([dil1, dil2, dil3], dim=1) # Concatenate the features
-        out = self.relu(self.fuse(out)) # Fuse the features into a unified representation
-
-        return x+ out # Return the fused representation -> Residual Connection
+        dil1 = self.conv_dil1(x)  # Local features (3x3 receptive field)
+        dil2 = self.conv_dil2(x)  # Mid-range features (5x5 receptive field)
+        dil3 = self.conv_dil3(x)  # Global features (7x7 receptive field)
+        out = torch.cat([dil1, dil2, dil3], dim=1)  # Concatenate along channels
+        out = self.relu(self.fuse(out))  # Fuse to out_channels
+        
+        return x + out  # Residual connection
 
 # ASPP Module (ASPP)
 class ASPPModule(nn.Module):

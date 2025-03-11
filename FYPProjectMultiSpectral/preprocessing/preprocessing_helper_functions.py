@@ -115,7 +115,6 @@ def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
         subset_df = metadata_df.iloc[test_idx].copy()
     
     # Convert the labels column back to the original string format
-    # e.g. from ['Label1', 'Label2'] to "['Label1' 'Label2']"
     subset_df['labels'] = subset_df['labels'].apply(lambda x: "[" + " ".join(f"'{label}'" for label in x) + "]")
     
     return subset_df

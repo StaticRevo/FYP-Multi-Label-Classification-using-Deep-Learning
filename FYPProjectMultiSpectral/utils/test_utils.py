@@ -63,6 +63,13 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     )
     scores = compute_aggregated_metrics(true_labels, predictions, logger) # Compute and print aggregated metrics
     print(f"Aggregated Metrics:\n{scores}")
+    # Save the aggregated metrics to a text file within save_dir
+    aggregated_metrics_path = os.path.join(result_path, "aggregated_metrics.txt")
+    with open(aggregated_metrics_path, "w") as f:
+        f.write("Aggregated Metrics:\n")
+        for metric, value in scores.items():
+             f.write(f"{metric}: {value}\n")
+    print(f"Aggregated metrics saved to {aggregated_metrics_path}")
 
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) # Plot co-occurrence matrix
 

@@ -86,10 +86,8 @@ class CustomModel(BaseModel):
             nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
         )
         self.block4 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=2, 
-                                   dilation=2, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->256)
+            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=False, padding_mode='zeros'),
             nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.GELU(),
             WideBottleneck(in_channels=256, out_channels=128, stride=1, downsample=block4_downsample, widen_factor=4), # WideBottleneck Block (256->512 (128*4))
             CBAM(in_channels=512), # CBAM Module (Channel+Spatial Attention)
             nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer

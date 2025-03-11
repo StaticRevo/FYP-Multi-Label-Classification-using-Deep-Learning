@@ -74,8 +74,7 @@ def main():
     metadata_path = DatasetConfig.metadata_paths[num]
     metadata_csv = pd.read_csv(metadata_path)
 
-    class_weights, class_weights_array = calculate_class_weights(metadata_csv)
-    class_weights = class_weights_array
+    class_weights = calculate_class_weights(metadata_csv)
 
     # Determine the number of channels and the bands based on the selected_bands option
     if selected_bands == 'all_bands':

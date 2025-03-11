@@ -662,6 +662,12 @@ def detailed_inference():
                 "aggregated_metrics": aggregated_metrics
             }
         
+        agg_keys = set()
+        for exp_data in experiments_data.values():
+            if exp_data.get("aggregated_metrics"):
+                agg_keys.update(exp_data["aggregated_metrics"].keys())
+        agg_keys = sorted(agg_keys)
+
         # Optionally, remove any unwanted key from validation metrics
         if "val_subset_accuracy" in comparison_data:
             comparison_data.pop("val_subset_accuracy")
@@ -753,12 +759,13 @@ def detailed_inference():
             'detailed_inference.html',
             selected_experiments=selected_experiments,
             comparison_data=comparison_data,
-            testing_comparison_data=testing_comparison_data,  # Pass testing metrics
+            testing_comparison_data=testing_comparison_data,  
             best_models=best_models,
             experiments_data=experiments_data,
             exp_color_map=exp_color_map,
             observations=observations,
-            per_class_metrics=None  # Optional: if you want to pass global per_class_metrics, you can
+            per_class_metrics=None,
+            agg_keys=agg_keys
         )
     else:
         # Retrieve all experiment folder names

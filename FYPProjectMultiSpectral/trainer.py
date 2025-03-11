@@ -128,7 +128,8 @@ def main():
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
         precision='16-mixed',
-        gradient_clip_val=10.0,
+        gradient_clip_val=100.0,
+        gradient_clip_algorithm="norm",
         log_every_n_steps=1,
         accumulate_grad_batches=1,
         callbacks=[
@@ -140,6 +141,7 @@ def main():
                     OnChangeLrLoggerCallback(logger)
                 ],
     )
+
     if resume_checkpoint:
         logger.info(f"Resuming training from checkpoint: {resume_checkpoint}")
     else:

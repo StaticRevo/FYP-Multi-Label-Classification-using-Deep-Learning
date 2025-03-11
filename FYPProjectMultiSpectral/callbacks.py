@@ -243,20 +243,28 @@ class GradientLoggingCallback(pl.Callback):
         total_norm = 0.0
         for p in pl_module.parameters():
             if p.grad is not None:
-                param_norm = p.grad.data.norm(2)  # L2 norm of each parameter's gradient
+                param_norm = p.grad.data.norm(2)
                 total_norm += param_norm.item() ** 2
         total_norm = total_norm ** 0.5
+        pl_module.log("gradient_norm_before_clipping", total_norm, on_step=True, on_epoch=False)
         print(f"Gradient Norm before clipping: {total_norm:.4f}")
 
     def on_before_optimizer_step(self, trainer, pl_module, optimizer):
-        # Log gradient norm AFTER clipping
+        # Log gradient norm AFTER clipping but BEFORE optimizer scaling
         total_norm = 0.0
         for p in pl_module.parameters():
             if p.grad is not None:
-                param_norm = p.grad.data.norm(2)  # L2 norm of each parameter's gradient
+                param_norm = p.grad.data.norm(2)
                 total_norm += param_norm.item() ** 2
         total_norm = total_norm ** 0.5
-        print(f"Gradient Norm after clipping: {total_norm:.4f}")
+        pl_module.log("gradient_norm_after_clipping_raw", total_norm, on_step=True, on_epoch=False)
+        print(f"Gradient Norm after clipping (raw): {total_norm:.4f}")
+
+        # Log effective norm after learning rate scaling
+        lr = optimizer.param_groups[0]['lr']  # Get current learning rate
+        effective_norm = total_norm * lr
+        pl_module.log("gradient_norm_effective", effective_norm, on_step=True, on_epoch=False)
+        print(f"Gradient Norm after clipping (effective, LR={lr}): {effective_norm:.4f}")
     
 class OnChangeLrLoggerCallback(pl.Callback):
     def __init__(self, custom_logger):

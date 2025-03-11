@@ -211,7 +211,7 @@ class ModelSelectionGUI:
         self.reset_button = ttk.Button(container, text="Reset", command=self.reset_selections)
         self.reset_button.grid(row=5, column=0, columnspan=2, pady=10)
 
-     # Gather selections, show a loading dialog and run the model(s) in a separate thread
+    # Gather selections, show a loading dialog and run the model(s) in a separate thread
     def run_model(self):
         # Determine which models to run
         if self.all_models_var.get():

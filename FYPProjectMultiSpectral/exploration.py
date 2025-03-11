@@ -1,33 +1,92 @@
-import ast
 import pandas as pd
+from pathlib import Path
 
+def compare_patch_ids(csv_file1_path, csv_file2_path, column_name='patch_id'):
+    """
+    Compare patch_id values between two CSV files and report matches and differences.
+    
+    Parameters:
+    - csv_file1_path (str or Path): Path to the first CSV file.
+    - csv_file2_path (str or Path): Path to the second CSV file.
+    - column_name (str): Name of the column containing patch IDs (default: 'patch_id').
+    """
+    # Convert paths to Path objects
+    csv_file1_path = Path(csv_file1_path)
+    csv_file2_path = Path(csv_file2_path)
 
-# Function to clean and parse labels
-def clean_and_parse_labels(label_input):
-    if isinstance(label_input, list):  # If input is already a list, return it as-is
-        return label_input
-    elif isinstance(label_input, str): # If input is a string, clean and parse it
-        cleaned_labels = label_input.replace(" '", ", '").replace("[", "[").replace("]", "]")
-        return ast.literal_eval(cleaned_labels)
+    # Check if files exist
+    if not csv_file1_path.exists():
+        print(f"Error: {csv_file1_path} does not exist.")
+        return
+    if not csv_file2_path.exists():
+        print(f"Error: {csv_file2_path} does not exist.")
+        return
+
+    # Load the CSV files
+    try:
+        df1 = pd.read_csv(csv_file1_path)
+        df2 = pd.read_csv(csv_file2_path)
+    except Exception as e:
+        print(f"Error reading CSV files: {e}")
+        return
+
+    # Check if the column exists in both files
+    if column_name not in df1.columns:
+        print(f"Error: Column '{column_name}' not found in {csv_file1_path}.")
+        return
+    if column_name not in df2.columns:
+        print(f"Error: Column '{column_name}' not found in {csv_file2_path}.")
+        return
+
+    # Extract patch_ids as sets for efficient comparison
+    patch_ids1 = set(df1[column_name].dropna().unique())
+    patch_ids2 = set(df2[column_name].dropna().unique())
+
+    # Find matches and differences
+    common_ids = patch_ids1.intersection(patch_ids2)  # IDs present in both
+    only_in_file1 = patch_ids1 - patch_ids2  # IDs only in file 1
+    only_in_file2 = patch_ids2 - patch_ids1  # IDs only in file 2
+
+    # Report results
+    print("\nComparison Results:")
+    print(f"Total unique patch_ids in {csv_file1_path.name}: {len(patch_ids1)}")
+    print(f"Total unique patch_ids in {csv_file2_path.name}: {len(patch_ids2)}")
+    print(f"Number of matching patch_ids: {len(common_ids)}")
+
+    if common_ids:
+        print("\nSample of matching patch_ids (up to 5):")
+        for pid in list(common_ids)[:5]:
+            print(f"  {pid}")
     else:
-        raise TypeError(f"Expected label_input to be a string or list, got {type(label_input)}")
+        print("\nNo matching patch_ids found.")
 
-# Function to process metadata and get per-label counts per split
-def get_label_counts_per_split(metadata_df, split_column='split'):
-    metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels)
-    label_counts = metadata_df.explode('labels')
-    
-    split_label_counts = label_counts.groupby([split_column, 'labels']).size().reset_index(name='Number of Images')
-    pivot_counts = split_label_counts.pivot(index=split_column, columns='labels', values='Number of Images').fillna(0)
-    
-    # Add total images per split
-    pivot_counts['Total Images'] = pivot_counts.sum(axis=1)
-    
-    return pivot_counts
+    if only_in_file1:
+        print(f"\nPatch_ids only in {csv_file1_path.name} ({len(only_in_file1)}):")
+        for pid in list(only_in_file1)[:5]:
+            print(f"  {pid}")
+        if len(only_in_file1) > 5:
+            print(f"  ... ({len(only_in_file1) - 5} more)")
+    else:
+        print(f"\nNo patch_ids unique to {csv_file1_path.name}.")
 
-metadata_df_10percent = pd.read_csv(r"C:\Users\isaac\Desktop\metadata_10_percent.csv")
+    if only_in_file2:
+        print(f"\nPatch_ids only in {csv_file2_path.name} ({len(only_in_file2)}):")
+        for pid in list(only_in_file2)[:5]:
+            print(f"  {pid}")
+        if len(only_in_file2) > 5:
+            print(f"  ... ({len(only_in_file2) - 5} more)")
+    else:
+        print(f"\nNo patch_ids unique to {csv_file2_path.name}.")
 
-# Process the 10% subset
-print("Subset: 10%")
-subset_10percent_counts = get_label_counts_per_split(metadata_df_10percent)
-print(subset_10percent_counts)
+    # Summary
+    if len(common_ids) == len(patch_ids1) == len(patch_ids2):
+        print("\nAll patch_ids match perfectly between the two files!")
+    else:
+        print("\nMismatch detected. Check the unique patch_ids listed above.")
+
+# Example usage
+if __name__ == "__main__":
+    csv_file1_path = r"C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\metadata_10_percent_old.csv"
+    csv_file2_path = r"C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\metadata_10_percent.csv"
+
+    compare_patch_ids(csv_file1_path, csv_file2_path, column_name='patch_id')

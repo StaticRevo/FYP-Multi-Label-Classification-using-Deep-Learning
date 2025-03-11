@@ -128,7 +128,66 @@
       </div>
     </div>
   </div>
-
+  {# Loop through each aggregated metric key #}
+  {% for metric in agg_keys %}
+    {# Use a namespace to track the best experiment for this aggregated metric #}
+    {% set ns_agg = namespace(best_experiment=None, best_value=None) %}
+    <tr>
+      <td>{{ metric }}</td>
+      {% for exp in selected_experiments %}
+        {% set agg = experiments_data[exp].aggregated_metrics %}
+        {# If there's no aggregated_metrics for this experiment, use "nan" #}
+        {% set value = (agg is not none and agg.get(metric)) or "nan" %}
+        {# Convert value to float if possible for comparison #}
+        {% if value != "nan" and value != "" and value|replace('.','',1)|digit %}
+          {% set current = value | float %}
+        {% else %}
+          {% set current = None %}
+        {% endif %}
+  
+        {# Determine best value (if available) #}
+        {% if current is not none %}
+          {% if ns_agg.best_value is none %}
+            {% set ns_agg.best_value = current %}
+            {% set ns_agg.best_experiment = exp %}
+          {% else %}
+            {% if metric == 'hamming_loss' %}
+              {% if current < ns_agg.best_value %}
+                {% set ns_agg.best_value = current %}
+                {% set ns_agg.best_experiment = exp %}
+              {% endif %}
+            {% else %}
+              {% if current > ns_agg.best_value %}
+                {% set ns_agg.best_value = current %}
+                {% set ns_agg.best_experiment = exp %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+  
+      {# Now print the row values and highlight the best #}
+      {% for exp in selected_experiments %}
+        {% set agg = experiments_data[exp].aggregated_metrics %}
+        {% set value = (agg is not none and agg.get(metric)) or "nan" %}
+        <td>
+          {% if value != "nan" and value != "" and value|replace('.','',1)|digit %}
+            {% if exp == ns_agg.best_experiment %}
+              <span class="badge {{ exp_color_map[exp] }} text-break" 
+                    style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                {{ value | float | round(5) }}
+              </span>
+            {% else %}
+              {{ value | float | round(5) }}
+            {% endif %}
+          {% else %}
+            {{ value }}
+          {% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  
   <!-- Summary Table for Testing Metrics -->
   <div class="card mb-4">
     <div class="card-header">
@@ -200,7 +259,7 @@
     </div>
   </div>
 
-  <!-- Per Class Metrics Comparison -->
+<!-- Per Class Metrics Comparison -->
 {% if experiments_data[selected_experiments[0]].per_class_metrics %}
 <div class="card mb-4">
   <div class="card-header">

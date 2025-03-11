@@ -60,6 +60,33 @@
     <p>No performance summary available.</p>
   {% endif %}
 
+  <!-- Aggregated Metrics Section -->
+  {% if aggregated_metrics %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <strong>Aggregated Metrics</strong>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered table-sm">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, val in aggregated_metrics.items() %}
+              <tr>
+                <td>{{ key }}</td>
+                <td>{{ val }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Test Performance Summary -->
   {% if metrics["best_test_metrics.json"] is defined %}
   <div class="card mb-4">
@@ -507,7 +534,6 @@
   </div>
   {% endif %}
   
-<!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {# Set the per_class_metrics variable: use test metrics if available, otherwise use validation metrics #}
 {% set per_class_metrics = metrics["test_per_class_metrics.json"] if metrics["test_per_class_metrics.json"] is defined else metrics["val_per_class_metrics.json"] %}

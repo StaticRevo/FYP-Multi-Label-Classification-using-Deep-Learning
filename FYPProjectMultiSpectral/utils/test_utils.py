@@ -13,7 +13,8 @@ from PIL import Image
 import torch.nn.functional as F
 from sklearn.metrics import (
     roc_curve, auc, precision_score, recall_score, f1_score, 
-    hamming_loss, accuracy_score, multilabel_confusion_matrix
+    hamming_loss, accuracy_score, multilabel_confusion_matrix,
+    fbeta_score, average_precision_score
 )
 import rasterio
 from flask import url_for
@@ -61,7 +62,7 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     plot_per_label_confusion_matrices_grid( # Plot per-label confusion matrices
         true_labels, predictions, class_names=class_labels, cols=4, save_dir=save_dir, logger=logger
     )
-    scores = compute_aggregated_metrics(true_labels, predictions, logger) # Compute and print aggregated metrics
+    scores = compute_aggregated_metrics(true_labels, predictions, probs, logger) # Compute and print aggregated metrics
     print(f"Aggregated Metrics:\n{scores}")
     # Save the aggregated metrics to a text file within save_dir
     aggregated_metrics_path = os.path.join(result_path, "aggregated_metrics.txt")
@@ -464,7 +465,7 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
     logger.info(f"Per-label confusion matrices saved to {save_dir}")
 
 # Compute aggregated metrics
-def compute_aggregated_metrics(all_labels, all_preds, logger=None):
+def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=None):
     logger.info("Computing aggregated metrics...")
     metrics_dict = {}
     
@@ -472,17 +473,34 @@ def compute_aggregated_metrics(all_labels, all_preds, logger=None):
     metrics_dict['precision_micro'] = precision_score(all_labels, all_preds, average='micro', zero_division=0)
     metrics_dict['recall_micro'] = recall_score(all_labels, all_preds, average='micro', zero_division=0)
     metrics_dict['f1_micro'] = f1_score(all_labels, all_preds, average='micro', zero_division=0)
+    metrics_dict['f2_micro'] = fbeta_score(all_labels, all_preds, beta=2, average='micro', zero_division=0)
 
     # Macro-average: computes metric independently for each class and then takes the average
     metrics_dict['precision_macro'] = precision_score(all_labels, all_preds, average='macro', zero_division=0)
     metrics_dict['recall_macro'] = recall_score(all_labels, all_preds, average='macro', zero_division=0)
     metrics_dict['f1_macro'] = f1_score(all_labels, all_preds, average='macro', zero_division=0)
+    metrics_dict['f2_macro'] = fbeta_score(all_labels, all_preds, beta=2, average='macro', zero_division=0)
 
     # Hamming loss: fraction of labels incorrectly predicted
     metrics_dict['hamming_loss'] = hamming_loss(all_labels, all_preds)
-
-    # Subset accuracy: only 1 if *all* labels match exactly
+    # Subset accuracy: only 1 if all labels match exactly
     metrics_dict['subset_accuracy'] = accuracy_score(all_labels, all_preds)
+
+    if all_probs is not None:
+        # Average Precision (macro-averaged by default in sklearn)
+        metrics_dict['avg_precision'] = average_precision_score(all_labels, all_probs, average='macro', pos_label=1)
+        
+        # One Error: fraction of samples where the top-ranked label is not in the true set
+        top_pred_labels = np.argmax(all_probs, axis=1)  # Index of highest probability per sample
+        true_positives = np.any(all_labels > 0, axis=1)  # Samples with at least one true positive label
+        top_correct = np.array([all_labels[i, top_pred_labels[i]] for i in range(len(top_pred_labels))])
+        if true_positives.sum() > 0:  # Avoid division by zero
+            metrics_dict['one_error'] = 1 - (top_correct.sum() / true_positives.sum())
+        else:
+            metrics_dict['one_error'] = 0.0
+            logger.warning("No positive labels in the dataset; one_error set to 0.")
+    else:
+        logger.warning("Probability outputs (all_probs) not provided. Skipping avg_precision and one_error.")
 
     return metrics_dict
 

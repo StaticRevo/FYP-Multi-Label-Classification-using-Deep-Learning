@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import ast
+import csv
 
 # Third-party imports
 import requests
@@ -118,6 +119,187 @@ def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
     subset_df['labels'] = subset_df['labels'].apply(lambda x: "[" + " ".join(f"'{label}'" for label in x) + "]")
     
     return subset_df
+
+
+# Function to extract labels from the original string format for processing
+def extract_labels(label_input):
+    if isinstance(label_input, str):
+        if label_input.startswith('[') and label_input.endswith(']'):
+            cleaned_labels = label_input.replace(" '", ", '").replace("[", "[").replace("]", "]")
+            return ast.literal_eval(cleaned_labels)
+        else:
+            return []
+    elif isinstance(label_input, list):
+        return label_input
+    else:
+        raise TypeError(f"Expected label_input to be a string or list, got {type(label_input)}")
+
+def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_path=None):
+    metadata = metadata.copy()
+    
+    # Calculate how many samples we need to move
+    total_samples = len(metadata)
+    target_train = int(total_samples * target_split[0])
+    target_val = int(total_samples * target_split[1])
+    target_test = total_samples - target_train - target_val
+    
+    current_train = len(metadata[metadata['split'] == 'train'])
+    current_val = len(metadata[metadata['split'] == 'validation'])
+    current_test = len(metadata[metadata['split'] == 'test'])
+    
+    print(f"Current split:")
+    print(f"Train: {current_train/total_samples:.2%} ({current_train} images)")
+    print(f"Validation: {current_val/total_samples:.2%} ({current_val} images)")
+    print(f"Test: {current_test/total_samples:.2%} ({current_test} images)")
+    
+    # Calculate how many to move
+    move_from_val_to_train = min(current_val - target_val, target_train - current_train)
+    move_from_test_to_train = target_train - current_train - move_from_val_to_train
+    
+    print(f"\nNeed to move {move_from_val_to_train} from validation to train")
+    print(f"Need to move {move_from_test_to_train} from test to train")
+    
+    # Create copies to avoid modifying views
+    val_df = metadata[metadata['split'] == 'validation'].copy()
+    test_df = metadata[metadata['split'] == 'test'].copy()
+    
+    # Get all unique labels across the dataset without modifying the column
+    all_labels = set()
+    for labels_str in metadata['labels']:  
+        labels = extract_labels(labels_str)
+        all_labels.update(labels)
+    
+    all_labels = list(all_labels)
+    print(f"\nFound {len(all_labels)} unique labels in the dataset")
+    
+    # Create dictionaries to keep track of images per label
+    val_images_by_label = {label: [] for label in all_labels}
+    test_images_by_label = {label: [] for label in all_labels}
+    
+    # Populate the dictionaries
+    for idx, row in val_df.iterrows():
+        labels = extract_labels(row['labels'])
+        for label in labels:
+            val_images_by_label[label].append(idx)
+            
+    for idx, row in test_df.iterrows():
+        labels = extract_labels(row['labels'])
+        for label in labels:
+            test_images_by_label[label].append(idx)
+    
+    # Select images to move ensuring representation of each label
+    val_to_train_indices = set()
+    remaining_to_move = move_from_val_to_train
+    
+    # First, ensure each label has some representation
+    for label in all_labels:
+        if remaining_to_move <= 0:
+            break
+            
+        images = val_images_by_label[label]
+        if images:
+            move_index = random.choice(images) # Move just one image per label 
+            val_to_train_indices.add(move_index)
+            remaining_to_move -= 1
+    
+    # Then fill in the rest randomly
+    all_val_indices = val_df.index.tolist()
+    random.shuffle(all_val_indices)
+    
+    for idx in all_val_indices:
+        if remaining_to_move <= 0:
+            break
+            
+        if idx not in val_to_train_indices:
+            val_to_train_indices.add(idx)
+            remaining_to_move -= 1
+    
+    # Move from test set
+    test_to_train_indices = set()
+    remaining_to_move = move_from_test_to_train
+    
+    # First, ensure each label has some representation
+    for label in all_labels:
+        if remaining_to_move <= 0:
+            break
+            
+        images = test_images_by_label[label]
+        if images:
+            # Move just one image per label initially
+            move_index = random.choice(images)
+            test_to_train_indices.add(move_index)
+            remaining_to_move -= 1
+    
+    # Then fill in the rest randomly
+    all_test_indices = test_df.index.tolist()
+    random.shuffle(all_test_indices)
+    
+    for idx in all_test_indices:
+        if remaining_to_move <= 0:
+            break
+            
+        if idx not in test_to_train_indices:
+            test_to_train_indices.add(idx)
+            remaining_to_move -= 1
+    
+    # Update split assignments
+    metadata.loc[list(val_to_train_indices), 'split'] = 'train'
+    metadata.loc[list(test_to_train_indices), 'split'] = 'train'
+    
+    # Verify the new split
+    new_train = len(metadata[metadata['split'] == 'train'])
+    new_val = len(metadata[metadata['split'] == 'validation'])
+    new_test = len(metadata[metadata['split'] == 'test'])
+    
+    print(f"\nNew split percentages:")
+    print(f"Train: {new_train/total_samples:.2%} ({new_train} images)")
+    print(f"Validation: {new_val/total_samples:.2%} ({new_val} images)")
+    print(f"Test: {new_test/total_samples:.2%} ({new_test} images)")
+    
+    # Check label representation in each split
+    print("\nLabel representation in each split:")
+    for label in all_labels:
+        train_count = sum(1 for idx, row in metadata.iterrows() 
+                         if row['split'] == 'train' and label in extract_labels(row['labels']))
+        val_count = sum(1 for idx, row in metadata.iterrows() 
+                       if row['split'] == 'validation' and label in extract_labels(row['labels']))
+        test_count = sum(1 for idx, row in metadata.iterrows() 
+                        if row['split'] == 'test' and label in extract_labels(row['labels']))
+        total_count = train_count + val_count + test_count
+        
+        print(f"\nLabel: {label}")
+        print(f"  Train: {train_count/total_count:.2%} ({train_count} images)")
+        print(f"  Validation: {val_count/total_count:.2%} ({val_count} images)")
+        print(f"  Test: {test_count/total_count:.2%} ({test_count} images)")
+    
+    # Debugging: Check the final state of the labels column
+    print("\nFinal labels column (first 5 rows) before saving:")
+    print(metadata['labels'].head().to_list())
+    print("Final type of labels column entries:")
+    print(metadata['labels'].apply(type).head().to_list())
+
+    # Save the rebalanced metadata directly to the output path
+    if output_path:
+        with open(output_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            # Write header
+            writer.writerow(metadata.columns)
+            # Write rows, formatting the labels column appropriately
+            for _, row in metadata.iterrows():
+                if isinstance(row['labels'], list):
+                    # Convert the list to the desired string format
+                    formatted_labels = "[" + " ".join(f"'{label}'" for label in row['labels']) + "]"
+                else:
+                    formatted_labels = row['labels']
+                # Create row values, replacing the labels with the formatted string
+                row_values = [formatted_labels if col == 'labels' else row[col] for col in metadata.columns]
+                writer.writerow(row_values)
+        print(f"\nUpdated metadata saved to {output_path}")
+    else:
+        print("No output path provided. Metadata not saved.")
+        
+    
+    return metadata
 
 # Copy a subset of images from the original dataset to a new directory
 def copy_subset_images(original_images_dir, original_metadata_path, subset_metadata_path, subset_images_dir):

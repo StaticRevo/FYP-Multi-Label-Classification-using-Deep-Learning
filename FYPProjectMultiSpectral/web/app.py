@@ -164,7 +164,7 @@ def test_page():
             selected_dataset, 
             checkpoint_path, 
             str(in_channels),
-            json.dumps(class_weights),
+            json.dumps(class_weights.tolist()),
             metadata_path, 
             dataset_dir, 
             json.dumps(bands)
@@ -516,12 +516,33 @@ def experiment_detail(experiment_name):
             except Exception as e:
                 architecture_content = f"Error reading {model_name_from_folder}.txt: {e}"
 
+    # Aggregated Metrics
+    aggregated_metrics = None
+    aggregated_path = os.path.join(experiment_path, "results", "aggregated_metrics.txt")
+    if os.path.exists(aggregated_path):
+        try:
+            aggregated_data = {}
+            with open(aggregated_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    # Skip empty lines or header lines (if any)
+                    if line and not line.lower().startswith("aggregated metrics"):
+                        # Expecting lines like: "precision_micro: 0.653570221237276"
+                        if ":" in line:
+                            key, value = line.split(":", 1)
+                            aggregated_data[key.strip()] = value.strip()
+            aggregated_metrics = aggregated_data
+        except Exception as e:
+            aggregated_metrics = {"error": str(e)}
+    
+
     return render_template("experiment_detail.html",
                            experiment_name=experiment_name,
                            results=results,
                            metrics=metrics,
                            hyperparams_content=hyperparams_content,
-                           architecture_content=architecture_content)
+                           architecture_content=architecture_content,
+                           aggregated_metrics=aggregated_metrics)
 
 # --- Inference Page --- 
 @app.route('/detailed_inference', methods=['GET', 'POST'])
@@ -613,13 +634,32 @@ def detailed_inference():
                         per_class = json.load(f)
                     break  # Use test metrics if available; otherwise fall back to validation
             
+            # Load aggregated metrics
+            aggregated_metrics = None
+            agg_path = os.path.join(results_path, "aggregated_metrics.txt")
+            if os.path.exists(agg_path):
+                try:
+                    aggregated_data = {}
+                    with open(agg_path, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            # Skip empty lines or header lines
+                            if line and not line.lower().startswith("aggregated metrics"):
+                                if ":" in line:
+                                    key, value = line.split(":", 1)
+                                    aggregated_data[key.strip()] = value.strip()
+                    aggregated_metrics = aggregated_data
+                except Exception as e:
+                    aggregated_metrics = {"error": str(e)}
+
             # Save all experiment data
             experiments_data[exp] = {
                 "best_metrics": best_metrics,
                 "hyperparams": hyperparams,
                 "visualizations": visualizations,
                 "tensorboard_graphs": tb_graphs,
-                "per_class_metrics": per_class
+                "per_class_metrics": per_class,
+                "aggregated_metrics": aggregated_metrics
             }
         
         # Optionally, remove any unwanted key from validation metrics
@@ -787,8 +827,6 @@ def detailed_inference():
         sorted_experiments = [exp['folder_name'] for exp in experiments_details]
         
         return render_template('select_experiments.html', experiments=sorted_experiments)
-
-
 
 # -- Bubble Chart Page --
 @app.route("/bubble_chart")

@@ -20,7 +20,7 @@ from utils.model_utils import get_model_class
 from utils.visualisation_utils import save_tensorboard_graphs
 from utils.logging_utils import setup_logger
 from models.models import *
-from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback, OnChangeLrLoggerCallback
+from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback, OnChangeLrLoggerCallback, EarlyStoppingLoggerCallback
 
 # Training the model
 def main():
@@ -127,9 +127,8 @@ def main():
         logger=tb_logger,
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
-        precision='16-mixed',
+        precision='32',
         gradient_clip_val=100.0,
-        gradient_clip_algorithm="norm",
         log_every_n_steps=1,
         accumulate_grad_batches=1,
         callbacks=[
@@ -137,8 +136,9 @@ def main():
                     final_checkpoint, 
                     early_stopping,
                     epoch_end_logger_callback,
-                    GradientLoggingCallback(),
-                    OnChangeLrLoggerCallback(logger)
+                    #GradientLoggingCallback(),
+                    OnChangeLrLoggerCallback(logger),
+                    EarlyStoppingLoggerCallback(logger)
                 ],
     )
 
@@ -182,7 +182,12 @@ def main():
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
     logger.info("Training completed successfully")
 
+    # logger.info("Shutting down the computer in 10 seconds")
+    # import time
+    # time.sleep(10)
 
+    # os.system("shutdown /s /t 0")
+    
     if test_variable == 'True':
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])
 

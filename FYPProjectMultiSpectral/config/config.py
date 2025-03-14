@@ -89,17 +89,17 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 10
-    batch_size: int = 128
-    num_workers: int = 8
+    num_epochs: int = 50
+    batch_size: int = 256
+    num_workers: int = 8 # (you can increase this if you have more cores)
     learning_rate: float = 0.001
-    lr_factor: float = 0.1
-    lr_patience: int = 3
+    lr_factor: float = 0.5
+    lr_patience: int = 4 # ReduceLROnPlateau Patience
+    patience: int = 10 # Early Stopping Patience
     momentum: float = 0.9
-    weight_decay: float = 1e-4
-    patience: int = 7
+    weight_decay: float = 1e-3
     dropout: float = 0.5
-    loss_fn: str = "WeightedHybridBCEF1Loss(alpha=0.5, class_weights, class_weights)"
+    loss_fn: str = "CombinedFocalLossWithPosWeight"
 
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
        

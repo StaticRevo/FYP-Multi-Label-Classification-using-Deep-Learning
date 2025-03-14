@@ -37,7 +37,7 @@ def calculate_class_weights(metadata_csv):
 def calculate_class_labels(metadata_csv):
     metadata_csv['labels'] = metadata_csv['labels'].apply(clean_and_parse_labels) # Apply the cleaning and parsing function to the 'labels' column
 
-    class_labels = set() # Initialize an empty set to collect unique class labels
+    class_labels = set() 
     for labels in metadata_csv['labels']:
         class_labels.update(labels)
 

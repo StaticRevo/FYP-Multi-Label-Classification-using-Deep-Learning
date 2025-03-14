@@ -265,7 +265,8 @@ class GradientLoggingCallback(pl.Callback):
         effective_norm = total_norm * lr
         pl_module.log("gradient_norm_effective", effective_norm, on_step=True, on_epoch=False)
         print(f"Gradient Norm after clipping (effective, LR={lr}): {effective_norm:.4f}")
-    
+
+# Callback to log the learning rate when it changes
 class OnChangeLrLoggerCallback(pl.Callback):
     def __init__(self, custom_logger):
         self.custom_logger = custom_logger
@@ -282,3 +283,19 @@ class OnChangeLrLoggerCallback(pl.Callback):
             self.custom_logger.info(f"Epoch {trainer.current_epoch}: Learning Rate changed to: {current_lr}")
 
         self.prev_lr = current_lr # Update previous learning rate for next epoch comparisons
+        
+# Callback to log when early stopping occurs
+class EarlyStoppingLoggerCallback(pl.Callback):
+    def __init__(self, logger):
+        super().__init__()
+        self.logger = logger
+        self.stopped_epoch = 0
+
+    def on_validation_end(self, trainer, pl_module):
+        # Access the EarlyStopping callback from the trainer
+        for callback in trainer.callbacks:
+            if isinstance(callback, pl.callbacks.EarlyStopping) and callback.stopped_epoch > 0:
+                if self.stopped_epoch == 0:  # Log only once
+                    self.stopped_epoch = callback.stopped_epoch
+                    val_loss = trainer.callback_metrics.get('val_loss', 'N/A')
+                    self.logger.info(f"Early stopping triggered at epoch {self.stopped_epoch} with val_loss: {val_loss:.4f}")

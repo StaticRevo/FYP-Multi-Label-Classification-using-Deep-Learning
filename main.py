@@ -49,16 +49,29 @@ class ModelSelectionGUI:
             '3': 'ResNet18',         # 2015
             '4': 'ResNet50',         # 2015
             '5': 'ResNet101',        # 2015
-            '6': 'ResNet152',        # 2015
-            '7': 'DenseNet121',      # 2016
-            '8': 'EfficientNetB0',   # 2019
-            '9': 'EfficientNet_v2',  # 2021
-            '10': 'Swin-Transformer',# 2021
-            '11': 'Vit-Transformer', # 2021
-            '12': 'CustomResNet50',  # Custom
-            '13': 'CustomWRNB0',     # Custom
-            '14': 'CustomModel'      # Custom
+            '6': 'DenseNet121',      # 2016
+            '7': 'EfficientNetB0',   # 2019
+            '8': 'EfficientNet_v2',  # 2021
+            '9': 'Swin-Transformer',# 2021
+            '10': 'Vit-Transformer', # 2021
+            '11': 'CustomWRNB0',     # Custom (WideResNetB0) - Papoutsis et al.
+            '12': 'CustomModel'      # Custom
         }
+        
+        #     '1': 'VGG16',            # 2014
+        #     '2': 'VGG19',            # 2014
+        #     '3': 'ResNet18',         # 2015
+        #     '4': 'ResNet50',         # 2015
+        #     '5': 'ResNet101',        # 2015
+        #     '6': 'ResNet152',        # 2015
+        #     '7': 'DenseNet121',      # 2016
+        #     '8': 'EfficientNetB0',   # 2019
+        #     '9': 'EfficientNet_v2',  # 2021
+        #     '10': 'Swin-Transformer',# 2021
+        #     '11': 'Vit-Transformer', # 2021
+        #     '12': 'CustomWRNB0',     # Custom (WideResNetB0) - Papoutsis et al.
+        #     '13': 'CustomModel'      # Custom
+        # }
         self.band_selection = {
             '1': 'all_bands',
             '2': 'all_imp_bands',

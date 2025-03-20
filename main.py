@@ -52,10 +52,10 @@ class ModelSelectionGUI:
             '6': 'DenseNet121',      # 2016
             '7': 'EfficientNetB0',   # 2019
             '8': 'EfficientNet_v2',  # 2021
-            '9': 'Swin-Transformer',# 2021
-            '10': 'Vit-Transformer', # 2021
-            '11': 'CustomWRNB0',     # Custom (WideResNetB0) - Papoutsis et al.
-            '12': 'CustomModel'      # Custom
+            '9': 'CustomWRNB0',     # Custom (WideResNetB0) - Papoutsis et al.
+            '10': 'CustomModel',      # Custom
+            '11': 'Swin-Transformer',# 2021
+            '12': 'Vit-Transformer', # 2021
         }
         
         #     '1': 'VGG16',            # 2014

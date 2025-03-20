@@ -296,7 +296,8 @@ def predict_page():
                         "filename": filename,
                         "predictions": predictions,
                         "rgb_url": rgb_url,
-                        "actual_labels": actual_labels
+                        "actual_labels": actual_labels,
+                        
                     })
             if not results_list:
                 flash("No valid files were uploaded with the required channel count.", "error")

@@ -17,6 +17,8 @@ import torch
 import numpy as np
 from PIL import Image
 import pandas as pd
+import matplotlib.cm as cm
+from scipy.ndimage import zoom, gaussian_filter
 
 # Local application imports
 from utils.model_utils import get_model_class
@@ -175,10 +177,9 @@ def predict_image_for_model(model, image_tensor):
             predictions.append({"label": label, "probability": prob})
     return predictions
 
-# Generate a Grad-CAM visualization for a single image
-def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
-    gradcam_results = {}
-
+def get_target_layer(model, model_name):
+    target_layer = None
+    
     # Determine target layer based on model_name
     if model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
@@ -206,8 +207,17 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         target_layer = model.model.features.norm5
     else:
         print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
-        return gradcam_results
+    
+    return target_layer
 
+# Generate a Grad-CAM visualization for a single image
+def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
+    gradcam_results = {}
+
+    target_layer = get_target_layer(model, model_name)
+    if target_layer is None:
+        return gradcam_results
+    
     # Ensure img_tensor is batched
     if img_tensor.dim() == 3:
         input_tensor = img_tensor.unsqueeze(0).to(model.device)  
@@ -222,7 +232,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         threshold = 0.5
         predicted_indices = torch.where(output[0] > threshold)[0].tolist()
 
-    # For each predicted class, compute a GradCAM heatmap.
+    # For each predicted class compute a GradCAM heatmap
     heatmaps = {}
     for idx in predicted_indices:
         grad_cam = GradCAM(model, target_layer)
@@ -233,12 +243,12 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         heatmap_norm = np.linalg.norm(cam)
         heatmaps[class_labels[idx]] = cam
 
-    # Convert input tensor to a PIL image for visualization.
+    # Convert input tensor to a PIL image for visualization
     img = input_tensor.squeeze()  # Remove batch dimension
     rgb_channels = [3, 2, 1] if in_channels == 12 else [2, 1, 0]
     img = img[rgb_channels, :, :]
 
-    # Normalize each channel.
+    # Normalize each channel
     img_cpu = img.detach().cpu().numpy()
     red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
     green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
@@ -246,7 +256,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
     rgb_image = np.stack([red, green, blue], axis=-1)
     base_img = Image.fromarray((rgb_image * 255).astype(np.uint8))
 
-    # Save each overlay to disk and record its URL.
+    # Save each overlay to disk and record its URL
     for class_name, heatmap in heatmaps.items():
         overlay = overlay_heatmap(base_img, heatmap, alpha=0.5)
         unique_hash = uuid.uuid4().hex  # generate a unique hash code
@@ -254,6 +264,161 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
         out_path = os.path.join(STATIC_FOLDER, filename)
         overlay.save(out_path)
         gradcam_results[class_name] = url_for('static', filename=filename)
+
+    return gradcam_results
+
+CATEGORY_GROUPS = {
+    "Urban & Industrial": {
+        "classes": [7, 18],
+        "color": (255, 0, 0)  # red
+    },
+    "Agricultural & Managed Lands": {
+        "classes": [0, 1, 5, 10, 15, 16],
+        "color": (255, 165, 0)  # orange
+    },
+    "Forest & Woodland": {
+        "classes": [3, 6, 12, 17],
+        "color": (34, 139, 34)  # forest green
+    },
+    "Natural Vegetation (Non-Forest)": {
+        "classes": [13, 14],
+        "color": (128, 128, 0)  # olive
+    },
+    "Water Bodies": {
+        "classes": [8, 11],
+        "color": (0, 0, 255)  # blue
+    },
+    "Wetlands": {
+        "classes": [4, 9],
+        "color": (255, 0, 255)  # magenta
+    },
+    "Coastal & Transitional": {
+        "classes": [2],
+        "color": (255, 255, 0)  # yellow
+    }
+}
+
+# Generate a color-coded Grad-CAM visualization
+def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
+    gradcam_results = {}
+    
+    target_layer = get_target_layer(model, model_name)
+    if target_layer is None:
+        return gradcam_results
+
+    if img_tensor.dim() == 3: # Ensure batched
+        input_tensor = img_tensor.unsqueeze(0).to(model.device)
+    elif img_tensor.dim() == 4:
+        input_tensor = img_tensor.to(model.device)
+    else:
+        raise ValueError(f"img_tensor must be 3D or 4D, got {img_tensor.dim()}D.")
+
+    # Compute predicted indices if none provided
+    if predicted_indices is None:
+        with torch.no_grad():
+            output = model(input_tensor)
+        threshold = 0.5
+        predicted_indices = torch.where(output[0] > threshold)[0].tolist()
+
+    # Convert input tensor to base RGB
+    img = input_tensor.squeeze()
+    rgb_channels = [3, 2, 1] if in_channels == 12 else [2, 1, 0]
+    img = img[rgb_channels, :, :]
+    img_cpu = img.detach().cpu().numpy()
+
+    # Normalize each channel to [0..1]
+    red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+    green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
+    blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
+    rgb_image = np.stack([red, green, blue], axis=-1)
+
+    # Brighten the RGB image slightly with gamma correction
+    rgb_image = np.power(rgb_image, 0.8)
+    rgb_image = np.clip(rgb_image, 0, 1)
+
+    # Prepare blank overlay
+    overlay_array = np.zeros_like(rgb_image)
+    target_height, target_width = overlay_array.shape[:2]
+
+    grad_cam = GradCAM(model, target_layer)
+
+    category_cam_map = {cat_name: np.zeros((target_height, target_width), dtype=np.float32)
+                        for cat_name in CATEGORY_GROUPS}
+
+    # Generate Grad-CAM for every predicted class 
+    for idx in predicted_indices:
+        class_name = class_labels[idx]
+
+        # Figure out which category this class belongs to 
+        cat_for_class = None
+        for cat_name, cat_info in CATEGORY_GROUPS.items():
+            if idx in cat_info["classes"]:
+                cat_for_class = cat_name
+                break
+        if cat_for_class is None:
+            continue
+
+        # Generate the Grad-CAM
+        cam, _ = grad_cam.generate_heatmap(input_tensor.clone(), target_class=idx)
+        cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+
+        # Resize to overlay size
+        cam_resized = zoom(cam, (target_height / cam.shape[0], target_width / cam.shape[1]), order=3)
+
+        # Smooth 
+        cam_resized = gaussian_filter(cam_resized, sigma=2)
+        cam_resized = (cam_resized - cam_resized.min()) / (cam_resized.max() - cam_resized.min() + 1e-8)
+
+        category_cam_map[cat_for_class] += cam_resized
+
+    # Normalize each category’s aggregated CAM then apply color
+    for cat_name, cat_info in CATEGORY_GROUPS.items():
+        cat_cam = category_cam_map[cat_name]
+        max_val = cat_cam.max()
+        if max_val > 0:
+            cat_cam = cat_cam / max_val  # scale to [0..1]
+
+        # Apply threshold 
+        threshold_ratio = 0.5
+        thr_val = np.quantile(cat_cam, threshold_ratio)
+        cat_cam[cat_cam < thr_val] *= 0.3  # dampen weaker areas
+
+        # Get the category color
+        (r, g, b) = cat_info["color"]
+
+        # Blend into overlay_array
+        overlay_array[:, :, 0] += cat_cam * (r / 255.0)
+        overlay_array[:, :, 1] += cat_cam * (g / 255.0)
+        overlay_array[:, :, 2] += cat_cam * (b / 255.0)
+
+    # Normalize the combined overlay
+    overlay_max = overlay_array.max()
+    if overlay_max > 0:
+        overlay_array = overlay_array / overlay_max
+    overlay_array = np.clip(overlay_array, 0, 1)
+
+    # Blend with base image
+    overlay_alpha = 0.6
+    final_image = rgb_image * (1 - overlay_alpha) + overlay_array * overlay_alpha
+    final_image = np.clip(final_image, 0, 1)
+
+    final_img = Image.fromarray((final_image * 255).astype(np.uint8))
+
+    # Save
+    unique_hash = uuid.uuid4().hex
+    filename = f"gradcam_colorcoded_{model.__class__.__name__}_{unique_hash}.png"
+    out_path = os.path.join(STATIC_FOLDER, filename)
+    final_img.save(out_path)
+
+    category_legend = {}
+    for cat_name, cat_info in CATEGORY_GROUPS.items():
+        r, g, b = cat_info["color"]
+        category_legend[cat_name] = f"rgb({r},{g},{b})"
+
+    gradcam_results["combined"] = {
+        "url": url_for('static', filename=filename),
+        "legend": category_legend
+    }
 
     return gradcam_results
 
@@ -406,6 +571,8 @@ def process_prediction(file_path, filename, bands, selected_experiment):
 
     experiment_details = parse_experiment_folder(selected_experiment)
     model_name = experiment_details["model"]
+    
+    # Generate Grad-CAM visualization (one per label)
     gradcam = generate_gradcam_for_single_image(
         model_instance, input_tensor,
         class_labels=DatasetConfig.class_labels,
@@ -413,6 +580,15 @@ def process_prediction(file_path, filename, bands, selected_experiment):
         in_channels=len(bands),
         predicted_indices=predicted_indices
     )
+    # Generate color-coded Grad-CAM visualization
+    gradcam_colorcoded = generate_colorcoded_gradcam(
+        model_instance, input_tensor,
+        class_labels=DatasetConfig.class_labels,
+        model_name=model_name,
+        in_channels=len(bands),
+        predicted_indices=predicted_indices
+    )
+
     patch_id = os.path.splitext(filename)[0]  # Fetch actual labels from metadata 
     actual_labels = fetch_actual_labels(patch_id)
     
@@ -424,6 +600,7 @@ def process_prediction(file_path, filename, bands, selected_experiment):
                            actual_labels=actual_labels,
                            rgb_url=rgb_url,
                            gradcam=gradcam,
+                           gradcam_colorcoded=gradcam_colorcoded,
                            multiple_models=False,
                            experiment_details=experiment_details)
 

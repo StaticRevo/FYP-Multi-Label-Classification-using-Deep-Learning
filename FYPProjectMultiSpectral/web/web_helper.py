@@ -19,6 +19,7 @@ from PIL import Image
 import pandas as pd
 import matplotlib.cm as cm
 from scipy.ndimage import zoom, gaussian_filter
+from PIL import ImageEnhance
 
 # Local application imports
 from utils.model_utils import get_model_class
@@ -202,7 +203,7 @@ def get_target_layer(model, model_name):
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
     elif model_name == 'CustomModel':
-        target_layer = model.block4[0]
+        target_layer = model.block4[2].conv2
     elif model_name == 'DenseNet121':
         target_layer = model.model.features.norm5
     else:
@@ -301,12 +302,13 @@ CATEGORY_GROUPS = {
 # Generate a color-coded Grad-CAM visualization
 def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
     gradcam_results = {}
-    
+
     target_layer = get_target_layer(model, model_name)
     if target_layer is None:
         return gradcam_results
 
-    if img_tensor.dim() == 3: # Ensure batched
+    # Ensure input tensor is 4D
+    if img_tensor.dim() == 3:
         input_tensor = img_tensor.unsqueeze(0).to(model.device)
     elif img_tensor.dim() == 4:
         input_tensor = img_tensor.to(model.device)
@@ -327,29 +329,29 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
     img_cpu = img.detach().cpu().numpy()
 
     # Normalize each channel to [0..1]
-    red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
+    red   = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
     green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
-    blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
+    blue  = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
     rgb_image = np.stack([red, green, blue], axis=-1)
 
-    # Brighten the RGB image slightly with gamma correction
+    # Slight gamma correction to brighten the RGB image
     rgb_image = np.power(rgb_image, 0.8)
     rgb_image = np.clip(rgb_image, 0, 1)
 
-    # Prepare blank overlay
-    overlay_array = np.zeros_like(rgb_image)
-    target_height, target_width = overlay_array.shape[:2]
-
+    target_height, target_width = rgb_image.shape[:2]
     grad_cam = GradCAM(model, target_layer)
 
-    category_cam_map = {cat_name: np.zeros((target_height, target_width), dtype=np.float32)
-                        for cat_name in CATEGORY_GROUPS}
+    # Prepare a map for each high-level category
+    category_cam_map = {
+        cat_name: np.zeros((target_height, target_width), dtype=np.float32)
+        for cat_name in CATEGORY_GROUPS
+    }
 
-    # Generate Grad-CAM for every predicted class 
+    # Generate and accumulate Grad-CAM for every predicted class 
     for idx in predicted_indices:
         class_name = class_labels[idx]
 
-        # Figure out which category this class belongs to 
+        # Identify which high-level category this class belongs to
         cat_for_class = None
         for cat_name, cat_info in CATEGORY_GROUPS.items():
             if idx in cat_info["classes"]:
@@ -362,47 +364,55 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
         cam, _ = grad_cam.generate_heatmap(input_tensor.clone(), target_class=idx)
         cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
 
-        # Resize to overlay size
+        # Resize to match the overlay size
         cam_resized = zoom(cam, (target_height / cam.shape[0], target_width / cam.shape[1]), order=3)
 
-        # Smooth 
-        cam_resized = gaussian_filter(cam_resized, sigma=2)
+        # Use lower sigma for crisper boundaries
+        cam_resized = gaussian_filter(cam_resized, sigma=1)
         cam_resized = (cam_resized - cam_resized.min()) / (cam_resized.max() - cam_resized.min() + 1e-8)
 
+        # Accumulate into that category’s map
         category_cam_map[cat_for_class] += cam_resized
 
-    # Normalize each category’s aggregated CAM then apply color
-    for cat_name, cat_info in CATEGORY_GROUPS.items():
-        cat_cam = category_cam_map[cat_name]
-        max_val = cat_cam.max()
-        if max_val > 0:
-            cat_cam = cat_cam / max_val  # scale to [0..1]
+    cat_names = list(CATEGORY_GROUPS.keys())
+    stacked_maps = []
+    cat_colors = []
 
-        # Apply threshold 
-        threshold_ratio = 0.5
-        thr_val = np.quantile(cat_cam, threshold_ratio)
-        cat_cam[cat_cam < thr_val] *= 0.3  # dampen weaker areas
+    for cat_name in cat_names:
+        stacked_maps.append(category_cam_map[cat_name])
+        (r, g, b) = CATEGORY_GROUPS[cat_name]["color"]
+        cat_colors.append((r / 255.0, g / 255.0, b / 255.0))
 
-        # Get the category color
-        (r, g, b) = cat_info["color"]
+    stacked_maps = np.stack(stacked_maps, axis=-1)  # shape: (H, W, #categories)
+    cat_colors = np.array(cat_colors)              # shape: (#categories, 3)
 
-        # Blend into overlay_array
-        overlay_array[:, :, 0] += cat_cam * (r / 255.0)
-        overlay_array[:, :, 1] += cat_cam * (g / 255.0)
-        overlay_array[:, :, 2] += cat_cam * (b / 255.0)
+    # Hard max across categories per pixel
+    argmax_map = np.argmax(stacked_maps, axis=-1)  # shape: (H, W)
+    max_vals = np.max(stacked_maps, axis=-1)       # shape: (H, W)
 
-    # Normalize the combined overlay
-    overlay_max = overlay_array.max()
-    if overlay_max > 0:
-        overlay_array = overlay_array / overlay_max
-    overlay_array = np.clip(overlay_array, 0, 1)
+    # Create overlay array
+    overlay_array = np.zeros((target_height, target_width, 3), dtype=np.float32)
 
-    # Blend with base image
-    overlay_alpha = 0.6
+    # Threshold for ignoring low-activation pixels
+    activation_threshold = 0.2
+
+    for i in range(target_height):
+        for j in range(target_width):
+            best_cat_idx = argmax_map[i, j]
+            activation = max_vals[i, j]
+            if activation >= activation_threshold:
+                # color scaled by activation (comment out "* activation" for solid color)
+                overlay_array[i, j] = cat_colors[best_cat_idx] * activation
+
+    # Alpha-blend with the base image
+    overlay_alpha = 0.6  
     final_image = rgb_image * (1 - overlay_alpha) + overlay_array * overlay_alpha
     final_image = np.clip(final_image, 0, 1)
 
+    # Optional: boost saturation to avoid a washed-out look
     final_img = Image.fromarray((final_image * 255).astype(np.uint8))
+    enhancer = ImageEnhance.Color(final_img)
+    final_img = enhancer.enhance(1.2)  
 
     # Save
     unique_hash = uuid.uuid4().hex
@@ -410,6 +420,7 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
     out_path = os.path.join(STATIC_FOLDER, filename)
     final_img.save(out_path)
 
+    # Build category legend
     category_legend = {}
     for cat_name, cat_info in CATEGORY_GROUPS.items():
         r, g, b = cat_info["color"]

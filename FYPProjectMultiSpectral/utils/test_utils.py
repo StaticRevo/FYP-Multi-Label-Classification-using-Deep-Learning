@@ -98,7 +98,7 @@ def get_target_layer(model, model_name, logger=None):
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
     elif model_name == 'CustomModel':
-        target_layer = model.block4[0]
+        target_layer = model.block4[2]
     elif model_name == 'DenseNet121':
         target_layer = model.model.features.norm5
     else:
@@ -120,7 +120,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
 
     test_dataset = data_module.test_dataloader().dataset
     num_images = len(test_dataset)
-    target_indices = [random.randint(0, num_images - 1) for _ in range(5)]  # Select 5 random images
+    target_indices = [random.randint(0, num_images - 1) for _ in range(100)]  # Select 5 random images
 
     for idx in target_indices:
         try:
@@ -186,7 +186,6 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         plt.imshow(img)
         plt.axis('off')
         plt.title(f'Image Index: {idx}', fontsize=14)
-        # Add text annotations for actual and predicted labels.
         plt.figtext(0.5, 0.01, f'Actual: {actual_labels} | Predicted: {predicted_labels}', wrap=True, horizontalalignment='center', fontsize=12)
         rgb_save_path = os.path.join(gradcam_save_dir, f'gradcam_rgb_{idx}.png')
         plt.savefig(rgb_save_path, bbox_inches='tight')

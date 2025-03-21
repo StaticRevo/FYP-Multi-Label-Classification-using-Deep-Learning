@@ -69,65 +69,65 @@ def main():
     best_test_metrics_path = os.path.join(main_path, 'results', 'best_test_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_test_metrics_path)
     
-    # # Set up Trainer for testing
-    # trainer = pl.Trainer(
-    #     accelerator='gpu' if torch.cuda.is_available() else 'cpu',
-    #     devices=1 if torch.cuda.is_available() else None,
-    #     precision='32',
-    #     deterministic=True,
-    #     callbacks=[best_metrics_callback],
-    #     logger = False
-    # )
+    # Set up Trainer for testing
+    trainer = pl.Trainer(
+        accelerator='gpu' if torch.cuda.is_available() else 'cpu',
+        devices=1 if torch.cuda.is_available() else None,
+        precision='32',
+        deterministic=True,
+        callbacks=[best_metrics_callback],
+        logger = False
+    )
 
-    # # Run the testing phase
-    # logger.info("Testing the model...")
-    # trainer.test(model, datamodule=data_module)
-    # logger.info("Testing complete.")
+    # Run the testing phase
+    logger.info("Testing the model...")
+    trainer.test(model, datamodule=data_module)
+    logger.info("Testing complete.")
     
-    # # Calculate metrics and save results
-    # logger.info("Calculating metrics and saving results...")
-    # all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
-    #     model=model,
-    #     data_module=data_module,
-    #     model_name=model_name,
-    #     dataset_name=selected_dataset,
-    #     class_labels=class_labels,
-    #     result_path=result_path,
-    #     logger = logger
-    # )
-    # logger.info("Metrics and results saved.")
+    # Calculate metrics and save results
+    logger.info("Calculating metrics and saving results...")
+    all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
+        model=model,
+        data_module=data_module,
+        model_name=model_name,
+        dataset_name=selected_dataset,
+        class_labels=class_labels,
+        result_path=result_path,
+        logger = logger
+    )
+    logger.info("Metrics and results saved.")
 
-    # print("Computing continuous probability outputs for ROC AUC...")
-    # all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands)
+    print("Computing continuous probability outputs for ROC AUC...")
+    all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands)
 
-    # # Visualize predictions and results
-    # logger.info("Visualizing predictions and heatmaps...")
-    # visualize_predictions_and_heatmaps(
-    #     model=model,
-    #     data_module=data_module,
-    #     in_channels=in_channels,
-    #     predictions=all_preds,
-    #     true_labels=all_labels,
-    #     class_labels=class_labels,
-    #     model_name=model_name,
-    #     result_path=result_path,
-    #     probs=all_probs,
-    #     logger = logger
-    # )
-    # logger.info("Predictions and heatmaps saved.")
+    # Visualize predictions and results
+    logger.info("Visualizing predictions and heatmaps...")
+    visualize_predictions_and_heatmaps(
+        model=model,
+        data_module=data_module,
+        in_channels=in_channels,
+        predictions=all_preds,
+        true_labels=all_labels,
+        class_labels=class_labels,
+        model_name=model_name,
+        result_path=result_path,
+        probs=all_probs,
+        logger = logger
+    )
+    logger.info("Predictions and heatmaps saved.")
 
-    # # Visualize activations
-    # logger.info("Visualizing activations...")
-    # test_loader = data_module.test_dataloader()
-    # example_batch = next(iter(test_loader))
-    # example_imgs, example_lbls = example_batch
-    # show_rgb_from_batch(example_imgs[0], in_channels)
-    # example_imgs = example_imgs.to(model.device)
-    # clear_activations()
-    # with torch.no_grad():
-    #     _ = model(example_imgs[0].unsqueeze(0))
-    # visualize_activations(result_path=result_path, num_filters=16)  
-    # logger.info("Activations saved")
+    # Visualize activations
+    logger.info("Visualizing activations...")
+    test_loader = data_module.test_dataloader()
+    example_batch = next(iter(test_loader))
+    example_imgs, example_lbls = example_batch
+    show_rgb_from_batch(example_imgs[0], in_channels)
+    example_imgs = example_imgs.to(model.device)
+    clear_activations()
+    with torch.no_grad():
+        _ = model(example_imgs[0].unsqueeze(0))
+    visualize_activations(result_path=result_path, num_filters=16)  
+    logger.info("Activations saved")
     
     # Generate Grad-CAM visualizations
     logger.info("Generating Grad-CAM visualizations...")

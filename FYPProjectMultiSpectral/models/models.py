@@ -209,6 +209,73 @@ class CustomResNet50(BaseModel):
             }
         }
 
+# Custom WideResNetB4-ECA Model
+class CustomWRNB4ECA(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()
+        super(CustomWRNB4ECA, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        # Apply width scaling factor w = 1.2^4 = 2.0736
+        self.in_channels = int(4 * 2.0736)  # Scaled from WRN-B0: 4 -> 8
+        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        
+        # Define layers with WideBottleneckECA blocks
+        self.layer1 = self._make_layer(int(4 * 2.0736), 2, stride=1)  # (8, 176, 176) -> (32, 176, 176)
+        self.layer2 = self._make_layer(int(8 * 2.0736), 2, stride=2)  # (32, 176, 176) -> (68, 88, 88)
+        self.layer3 = self._make_layer(124, 2, stride=2)  # (68, 88, 88) -> (496, 44, 44)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (496, 44, 44) -> (496, 1, 1)
+        self.fc = nn.Linear(496, num_classes)  # (496) -> (19)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        if model_weights is not None and model_weights != "None":
+            print("Pretrained weights not supported in the custom WideResNetB4-ECA model")
+
+    def _make_layer(self, out_channels, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.in_channels != out_channels * WideBottleneckECA.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.in_channels, out_channels * WideBottleneckECA.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels * WideBottleneckECA.expansion),
+            )
+
+        layers = [WideBottleneckECA(self.in_channels, out_channels, stride, downsample)]
+        self.in_channels = out_channels * WideBottleneckECA.expansion
+        for _ in range(1, blocks):
+            layers.append(WideBottleneckECA(self.in_channels, out_channels))
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.conv1(x)  # [12, 176, 176] -> [8, 176, 176]
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.layer1(x)  # [8, 176, 176] -> [32, 176, 176]
+        x = self.layer2(x)  # [32, 176, 176] -> [68, 88, 88]
+        x = self.layer3(x)  # [68, 88, 88] -> [496, 44, 44]
+        x = self.avgpool(x)  # [496, 44, 44] -> [496, 1, 1]
+        x = torch.flatten(x, 1)  # [496]
+        x = self.fc(x)  # [496] -> [19]
+        return x
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+    
 # Custom WideResNetB0 Model
 class CustomWRNB0(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):

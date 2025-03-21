@@ -84,6 +84,50 @@ class WideBottleneck(nn.Module):
 
         return out
 
+# Wide Bottleneck Residual Block with ECA
+class WideBottleneckECA(nn.Module):
+    expansion = 4  # WideResNet uses a widen factor of 4
+
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None):
+        super(WideBottleneckECA, self).__init__()
+        final_channels = out_channels * self.expansion
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+        self.conv2 = nn.Conv2d(out_channels, final_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(final_channels)
+
+        self.eca = ECA(final_channels)
+
+        self.downsample = downsample
+
+    def forward(self, x):
+        identity = x
+
+        # First Conv2D
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        # Second Conv2D
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        # Apply ECA
+        out = self.eca(out)
+
+        # Downsample
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        # Skip connection
+        out += identity
+        out = self.relu(out)
+
+        return out
+    
 # -- Spectral/Spatial Attention Modules --
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
@@ -133,6 +177,7 @@ class ECA(nn.Module):
         y = self.sigmoid(y).unsqueeze(-1).unsqueeze(-1)  # Sigmoid activation to generate attention weights
 
         return x * y # Scale the input with attention weights
+
 
 # Drop Path Module (DropPath)
 class DropPath(nn.Module):

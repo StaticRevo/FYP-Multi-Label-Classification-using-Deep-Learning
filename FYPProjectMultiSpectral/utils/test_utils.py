@@ -120,7 +120,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
 
     test_dataset = data_module.test_dataloader().dataset
     num_images = len(test_dataset)
-    target_indices = [random.randint(0, num_images - 1) for _ in range(100)]  # Select 5 random images
+    target_indices = [random.randint(0, num_images - 1) for _ in range(5)]  # Select 5 random images
 
     for idx in target_indices:
         try:

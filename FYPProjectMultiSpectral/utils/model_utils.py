@@ -17,5 +17,6 @@ def get_model_class(model_name):
         'Swin-Transformer': (SwinTransformer, 'swin_transformer'),
         'CustomWRNB0': (CustomWRNB0, 'custom_wrn_b0'),
         'CustomModel': (CustomModel, 'custom_model'),
+        'CustomWRNB4ECA': (CustomWRNB4ECA, 'custom_wrn_b4_eca'),
     }
     return model_mapping.get(model_name, (None, None))

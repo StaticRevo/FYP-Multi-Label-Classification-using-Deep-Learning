@@ -214,19 +214,23 @@ class CustomWRNB4ECA(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity()
         super(CustomWRNB4ECA, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
-        # Apply width scaling factor w = 1.2^4 = 2.0736
-        self.in_channels = int(4 * 2.0736)  # Scaled from WRN-B0: 4 -> 8
+
+        self.w = 2.0736 # Width scaling factor
+        self.K = 1.15 # Widening factor adjustement 
+
+        # Apply width scaling factor and adjustement
+        self.in_channels = int(16 * self.K * self.w)  # 16 * 2.0736  * 1.15 = 38
         self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.in_channels)
         self.relu = nn.ReLU(inplace=True)
         
         # Define layers with WideBottleneckECA blocks
-        self.layer1 = self._make_layer(int(4 * 2.0736), 2, stride=1)  # (8, 176, 176) -> (32, 176, 176)
-        self.layer2 = self._make_layer(int(8 * 2.0736), 2, stride=2)  # (32, 176, 176) -> (68, 88, 88)
-        self.layer3 = self._make_layer(124, 2, stride=2)  # (68, 88, 88) -> (496, 44, 44)
+        self.layer1 = self._make_layer(int(16 * self.K * self.w), 2, stride=1)  # (38, 176, 176) -> (38, 176, 176)
+        self.layer2 = self._make_layer(int(32 * self.K * self.w), 2, stride=2)  # (38, 176, 176) -> (76, 88, 88)
+        self.layer3 = self._make_layer(int(64 * self.K * self.w), 2, stride=2)  # (76, 88, 88) -> (153, 44, 44)
 
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (496, 44, 44) -> (496, 1, 1)
-        self.fc = nn.Linear(496, num_classes)  # (496) -> (19)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (153, 44, 44) -> (153, 1, 1)
+        self.fc = nn.Linear(int(64 * self.K * self.w), num_classes)  # (153) -> (19)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -239,28 +243,28 @@ class CustomWRNB4ECA(BaseModel):
 
     def _make_layer(self, out_channels, blocks, stride=1):
         downsample = None
-        if stride != 1 or self.in_channels != out_channels * WideBottleneckECA.expansion:
+        if stride != 1 or self.in_channels != out_channels:
             downsample = nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels * WideBottleneckECA.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels * WideBottleneckECA.expansion),
+                nn.Conv2d(self.in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels),
             )
 
-        layers = [WideBottleneckECA(self.in_channels, out_channels, stride, downsample)]
-        self.in_channels = out_channels * WideBottleneckECA.expansion
+        layers = [WideBasicBlockECA(self.in_channels, out_channels, stride, downsample)]
+        self.in_channels = out_channels
         for _ in range(1, blocks):
-            layers.append(WideBottleneckECA(self.in_channels, out_channels))
+            layers.append(WideBasicBlockECA(self.in_channels, out_channels))
         return nn.Sequential(*layers)
-
+    
     def forward(self, x):
-        x = self.conv1(x)  # [12, 176, 176] -> [8, 176, 176]
+        x = self.conv1(x)  # [12, 176, 176] -> [38, 176, 176]
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.layer1(x)  # [8, 176, 176] -> [32, 176, 176]
-        x = self.layer2(x)  # [32, 176, 176] -> [68, 88, 88]
-        x = self.layer3(x)  # [68, 88, 88] -> [496, 44, 44]
-        x = self.avgpool(x)  # [496, 44, 44] -> [496, 1, 1]
-        x = torch.flatten(x, 1)  # [496]
-        x = self.fc(x)  # [496] -> [19]
+        x = self.layer1(x)  # [38, 176, 176] -> [38, 176, 176]
+        x = self.layer2(x)  # [38, 176, 176] -> [76, 88, 88]
+        x = self.layer3(x)  # [76, 88, 88] -> [153, 44, 44]
+        x = self.avgpool(x)  # [153, 44, 44] -> [153, 1, 1]
+        x = torch.flatten(x, 1)  # [153]
+        x = self.fc(x)  # [153] -> [19]
         return x
 
     def configure_optimizers(self):
@@ -281,17 +285,23 @@ class CustomWRNB0(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity()
         super(CustomWRNB0, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
-        self.in_channels = 16
+
+        self.w = 1.0  # Width scaling factor for B0 (beta^phi = 1.2^0)
+        self.K = 1.97  # Widening factor to match parameters from report
+
+        # Apply width scaling factor and adjustment
+        self.in_channels = int(16 * self.K * self.w)  # 16 * 1.97 * 1.0 ≈ 32
         self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.in_channels)
         self.relu = nn.ReLU(inplace=True)
+        
+        # Define layers with WideBasicBlockECA blocks
+        self.layer1 = self._make_layer(int(16 * self.K * self.w), 1, stride=1)  # (32, 120, 120) -> (32, 120, 120)
+        self.layer2 = self._make_layer(int(32 * self.K * self.w), 1, stride=2)  # (32, 120, 120) -> (63, 60, 60)
+        self.layer3 = self._make_layer(int(64 * self.K * self.w), 1, stride=2)  # (63, 60, 60) -> (126, 30, 30)
 
-        self.layer1 = self._make_layer(16, 1, stride=1)  # (16, 120, 120) -> (64, 120, 120)
-        self.layer2 = self._make_layer(32, 1, stride=2)  # (64, 120, 120) -> (128, 60, 60)
-        self.layer3 = self._make_layer(60, 1, stride=2)  # (128, 60, 60) -> (240, 30, 30)
-
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (240, 30, 30) -> (240, 1, 1)
-        self.fc = nn.Linear(240, num_classes)  # (240) -> (19), match output
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (126, 30, 30) -> (126, 1, 1)
+        self.fc = nn.Linear(int(64 * self.K * self.w), num_classes)  # (126) -> (19)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -300,31 +310,32 @@ class CustomWRNB0(BaseModel):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
         if model_weights is not None and model_weights != "None":
-            print("Pretrained weights not supported in the custom WideResNetB0 model")
-    
+            print("Pretrained weights not supported in the custom WideResNetB0-ECA model")
+
     def _make_layer(self, out_channels, blocks, stride=1):
         downsample = None
-        if stride != 1 or self.in_channels != out_channels * ModuleConfig.expansion:
+        if stride != 1 or self.in_channels != out_channels:
             downsample = nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels * ModuleConfig.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels * ModuleConfig.expansion),
+                nn.Conv2d(self.in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels),
             )
-        layers = [WideBottleneck(self.in_channels, out_channels, stride, downsample, widen_factor=4)]
-        self.in_channels = out_channels * ModuleConfig.expansion
+
+        layers = [WideBasicBlockECA(self.in_channels, out_channels, stride, downsample)]
+        self.in_channels = out_channels
         for _ in range(1, blocks):
-            layers.append(WideBottleneck(self.in_channels, out_channels, widen_factor=4))
+            layers.append(WideBasicBlockECA(self.in_channels, out_channels))
         return nn.Sequential(*layers)
     
     def forward(self, x):
-        x = self.conv1(x)  # [12, 120, 120] -> [16, 120, 120]
+        x = self.conv1(x)  # [12, 120, 120] -> [32, 120, 120]
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.layer1(x)  # [16, 120, 120] -> [64, 120, 120]
-        x = self.layer2(x)  # [64, 120, 120] -> [128, 60, 60]
-        x = self.layer3(x)  # [128, 60, 60] -> [240, 30, 30]
-        x = self.avgpool(x)  # [240, 30, 30] -> [240, 1, 1]
-        x = torch.flatten(x, 1)  # [240]
-        x = self.fc(x)  # [240] -> [19]
+        x = self.layer1(x)  # [32, 120, 120] -> [32, 120, 120]
+        x = self.layer2(x)  # [32, 120, 120] -> [63, 60, 60]
+        x = self.layer3(x)  # [63, 60, 60] -> [126, 30, 30]
+        x = self.avgpool(x)  # [126, 30, 30] -> [126, 1, 1]
+        x = torch.flatten(x, 1)  # [126]
+        x = self.fc(x)  # [126] -> [19]
         return x
     
     # Override optimizer configuration for Custom WRN B0 Model

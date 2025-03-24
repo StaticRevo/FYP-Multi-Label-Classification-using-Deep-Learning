@@ -9,7 +9,7 @@ save_dir = r"C:\Users\isaac\Desktop\Experiment Folders"
 os.makedirs(save_dir, exist_ok=True) # Create the directory if it does not exist
 
 # Load checkpoint
-checkpoint_path = r"C:\Users\isaac\Desktop\experiments\CustomWRNB0_None_all_bands_1%_BigEarthNet_15epochs_2\checkpoints\last.ckpt"
+checkpoint_path = r"C:\Users\isaac\Desktop\experiments\CustomWRNB0_None_all_bands_0.5%_BigEarthNet_100epochs\checkpoints\last.ckpt"
 checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
 # Check available keys in the checkpoint
@@ -23,9 +23,9 @@ class_weights = calculate_class_weights(metadata_csv)
 model = CustomWRNB0(
     class_weights=class_weights,  
     num_classes=DatasetConfig.num_classes, 
-    in_channels=12,  # Ensure this matches your dataset
+    in_channels=12, 
     model_weights=None, 
-    main_path=r'C:\Users\isaac\Desktop\experiments\CustomWRNB0_None_all_bands_1%_BigEarthNet_15epochs_2'
+    main_path=r'C:\Users\isaac\Desktop\experiments\CustomWRNB0_None_all_bands_0.5%_BigEarthNet_100epochs'
 )
 
 # Load model weights, ignoring extra keys
@@ -35,12 +35,12 @@ model.load_state_dict(checkpoint["state_dict"], strict=False)
 model.eval()
 
 # Save a cleaned `.pth` model in the specified directory
-pth_path = os.path.join(save_dir, "WRNB0.pth")
+pth_path = os.path.join(save_dir, "B0.pth")
 torch.save(model.state_dict(), pth_path)
 print(f"Cleaned model weights saved at: {pth_path}")
 
 # Define ONNX file path in the specified directory
-onnx_path = os.path.join(save_dir, "converted_model_WRNB0.onnx")
+onnx_path = os.path.join(save_dir, "B0_onnx.onnx")
 
 # Define a dummy input for the model (ensure correct input channels)
 dummy_input = torch.randn(1, 12, 120, 120)  # Updated to match in_channels=12

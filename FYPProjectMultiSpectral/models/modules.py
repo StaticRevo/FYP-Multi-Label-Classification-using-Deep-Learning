@@ -12,7 +12,6 @@ from config.config import ModuleConfig
 # Bottlneck Residual Block (as used in ResNet50 adapted from ResNet)
 class Bottleneck(nn.Module):
     expansion = ModuleConfig.expansion
-
     def __init__(self, in_channels, out_channels, stride=1, downsample=None):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
@@ -27,14 +26,17 @@ class Bottleneck(nn.Module):
     def forward(self, x):
         identity = x
 
+        # First Conv2D
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
 
+        # Second Conv2D
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
 
+        # Third Conv2D
         out = self.conv3(out)
         out = self.bn3(out)
 
@@ -46,20 +48,22 @@ class Bottleneck(nn.Module):
 
         return out
     
-# Wide Bottleneck Residual Block (as used in WRN-50-2 adapted from WideResNet)
+# Wide Bottleneck Residual Block (as used in WRN-50-2 adapted from WideResNet) - 3 Convolutional Layers (1x1, 3x3, 1x1)
 class WideBottleneck(nn.Module):
     expansion = ModuleConfig.expansion 
-
     def __init__(self, in_channels, out_channels, stride=1, downsample=None, widen_factor=2):
         super(WideBottleneck, self).__init__()
         wide_channels = out_channels * widen_factor  # Double middle channels for WRN-50-2
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_channels)
+
         self.conv2 = nn.Conv2d(out_channels, wide_channels, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(wide_channels)
+
         self.conv3 = nn.Conv2d(wide_channels, out_channels * self.expansion, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
         self.relu = nn.ReLU(inplace=True)
+
         self.downsample = downsample
 
     def forward(self, x):
@@ -84,15 +88,14 @@ class WideBottleneck(nn.Module):
 
         return out
 
-# Wide Bottleneck Residual Block with ECA
+# Wide Bottleneck Residual Block with ECA as used in WRN-B4-ECA - 2 Convolutional Layers (1x1, 3x3) with ECA
 class WideBottleneckECA(nn.Module):
     expansion = 4  # WideResNet uses a widen factor of 4
-
     def __init__(self, in_channels, out_channels, stride=1, downsample=None):
         super(WideBottleneckECA, self).__init__()
         final_channels = out_channels * self.expansion
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False) 
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
@@ -127,7 +130,52 @@ class WideBottleneckECA(nn.Module):
         out = self.relu(out)
 
         return out
+
+class WideBasicBlockECA(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1, downsample=None, dropout_rate=0.3):
+        super(WideBasicBlockECA, self).__init__()
+        # First 3x3 convolution
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+      
+        # Second 3x3 convolution
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+        # ECA Module
+        self.eca = ECA(out_channels)
+
+        # Downsample
+        self.downsample = downsample
     
+    def forward(self, x):
+        identity = x
+
+        # First Conv2D
+        out = self.conv1(x)
+        out = self.dropout(out)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        # Second Conv2D
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        # Apply ECA
+        out = self.eca(out)
+
+        # Downsample
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        # Skip connection
+        out += identity
+        out = self.relu(out)
+
+        return out
+
 # -- Spectral/Spatial Attention Modules --
 # Squeeze and Excitation Module (SE)
 class SE(nn.Module):
@@ -163,21 +211,24 @@ class SE(nn.Module):
 
 # Efficient Channel Attention Module (ECA)
 class ECA(nn.Module):
-    def __init__(self, in_channels):
-        super(ECA, self).__init__()
-        k_size = int(math.log2(in_channels)) | 1
+    def __init__(self, in_channels, gamma=2, b=1):
+        t = int(abs((math.log2(in_channels) / gamma) + b / gamma))
+        k_size = t if t % 2 else t + 1  # Ensure k_size is odd
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
-        self.conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k_size, stride=1, padding=(k_size - 1) // 2, dilation=1, groups=1, bias=False, padding_mode='zeros')
+        self.conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k_size, stride=1,
+                              padding=(k_size - 1) // 2, bias=False)
         self.sigmoid = nn.Sigmoid()
+        
+        # Initialize weights
+        nn.init.kaiming_normal_(self.conv.weight, mode='fan_out', nonlinearity='sigmoid')
 
     def forward(self, x):
-        y = self.avg_pool(x) # Global Average Pooling
-        y = y.squeeze(-1).squeeze(-1)  # Squeeze the spatial dimensions
-        y = self.conv(y.unsqueeze(1)).squeeze(1) # Prepare for 1D convolution
-        y = self.sigmoid(y).unsqueeze(-1).unsqueeze(-1)  # Sigmoid activation to generate attention weights
-
+        y = self.avg_pool(x) # Global Average Pooling: [B, C, H, W] -> [B, C, 1, 1]
+        y = y.view(y.size(0), y.size(1)).unsqueeze(1) # Reshape for 1D convolution: [B, C, 1, 1] -> [B, 1, C]
+        y = self.conv(y) # 1D Convolution: [B, 1, C] -> [B, 1, C]
+        y = y.squeeze(1).unsqueeze(-1).unsqueeze(-1)  # Reshape back: [B, 1, C] -> [B, C, 1, 1]
+        y = self.sigmoid(y) # Sigmoid activation to generate attention weights
         return x * y # Scale the input with attention weights
-
 
 # Drop Path Module (DropPath)
 class DropPath(nn.Module):

@@ -839,7 +839,7 @@ def detailed_inference():
 # -- Bubble Chart Page --
 @app.route("/bubble_chart")
 def bubble_chart():
-    include_models = request.args.getlist("models") # Get the selected models from query parameters as a list (if any)
+    include_models = request.args.getlist("models")  # Get the selected models from query parameters as a list (if any)
     if include_models:
         include_models = [m.strip().lower() for m in include_models]
     else:
@@ -850,8 +850,15 @@ def bubble_chart():
         for d in os.listdir(EXPERIMENTS_DIR):
             exp_path = os.path.join(EXPERIMENTS_DIR, d)
             if os.path.isdir(exp_path):
-                # Look for the best_metrics.json file in the results folder
-                metrics_path = os.path.join(exp_path, "results", "best_metrics.json")
+                # Define paths for both files in the results folder
+                results_dir = os.path.join(exp_path, "results")
+                metrics_path = os.path.join(results_dir, "best_metrics.json")
+                aggregated_metrics_path = os.path.join(results_dir, "aggregated_metrics.txt")
+
+                # Initialize F2 score
+                f2_score = None
+
+                # Check for best_metrics.json first (since we need it for other metrics)
                 if os.path.exists(metrics_path):
                     try:
                         with open(metrics_path, "r") as f:
@@ -860,29 +867,49 @@ def bubble_chart():
                         print(f"Error loading metrics for {d}: {e}")
                         continue
 
-                    # Check if required keys exist
+                    # Check if required keys exist in best_metrics.json
                     if ("best_metrics" in metrics and 
                         "val_f2" in metrics["best_metrics"] and 
                         "training_time_sec" in metrics and 
                         "model_size_MB" in metrics):
-                        
-                        training_time_min = metrics["training_time_sec"] / 60.0
-                        exp_details = parse_experiment_folder(d)
-                        
-                        # Filter based on selected models if provided
-                        if include_models and exp_details.get("model", "").lower() not in include_models:
-                            continue
-                        
-                        experiments_data.append({
-                            "experiment": d,
-                            "model": exp_details.get("model", "N/A"),
-                            "training_time_sec": metrics["training_time_sec"],
-                            "training_time_min": training_time_min,
-                            "val_f2": metrics["best_metrics"]["val_f2"],
-                            "model_size_MB": metrics["model_size_MB"],
-                            "arch_type": exp_details.get("model", "N/A")
-                        })
-    # Pass both the experiments data and the available model options to the template.
+                        # Default to val_f2 from best_metrics.json
+                        f2_score = metrics["best_metrics"]["val_f2"]
+                    else:
+                        continue  # Skip if required keys are missing
+
+                    # Now override f2_score with f2_micro if aggregated_metrics.txt exists
+                    if os.path.exists(aggregated_metrics_path):
+                        try:
+                            with open(aggregated_metrics_path, "r") as f:
+                                lines = f.readlines()
+                            # Parse the file for f2_micro
+                            for line in lines:
+                                if "f2_micro" in line:
+                                    f2_score = float(line.split(":")[1].strip())
+                                    break
+                        except Exception as e:
+                            print(f"Error loading aggregated metrics for {d}: {e}")
+                            # If parsing fails, stick with val_f2 from best_metrics.json
+
+                    # Process the experiment with the determined f2_score
+                    training_time_min = metrics["training_time_sec"] / 60.0
+                    exp_details = parse_experiment_folder(d)
+                    
+                    # Filter based on selected models if provided
+                    if include_models and exp_details.get("model", "").lower() not in include_models:
+                        continue
+                    
+                    experiments_data.append({
+                        "experiment": d,
+                        "model": exp_details.get("model", "N/A"),
+                        "training_time_sec": metrics["training_time_sec"],
+                        "training_time_min": training_time_min,
+                        "val_f2": f2_score,  # Use f2_micro if available, otherwise val_f2
+                        "model_size_MB": metrics["model_size_MB"],
+                        "arch_type": exp_details.get("model", "N/A")
+                    })
+
+    # Pass both the experiments data and the available model options to the template
     return render_template("bubble_chart.html", data=experiments_data, model_options=MODEL_OPTIONS)
 
 # -- Architecture Page --

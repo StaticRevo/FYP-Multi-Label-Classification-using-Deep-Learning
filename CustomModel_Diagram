@@ -17,57 +17,79 @@ MaxPool2d(2x2)
 DepthwiseSeparableConv(32->32)
 BatchNorm2d
 GELU
-WideBottleneck(32->48)
+WideBottleneck(32->64)
 SpectralAttention
 Dropout
 CoordinateAttention
 Dropout
-[B, 48, 60, 60]" fillcolor="#b3d9ff"]
+[B, 64, 60, 60]" fillcolor="#b3d9ff"]
 	Block2 [label="Block 2
-DepthwiseSeparableConv(48->48, stride=2)
+DepthwiseSeparableConv(64->64, stride=2)
 BatchNorm2d
 GELU
-WideBottleneck(48->96)
+WideBottleneck(64->128)
 ECA
 Dropout
-[B, 96, 30, 30]" fillcolor="#b3d9ff"]
+[B, 128, 30, 30]" fillcolor="#b3d9ff"]
 	Block3 [label="Block 3
-DepthwiseSeparableConv(96->96, stride=2)
+DepthwiseSeparableConv(128->128, stride=2)
 BatchNorm2d
 GELU
-WideBottleneck(96->176)
+WideBottleneck(128->256)
 SE
 Dropout
-[B, 176, 15, 15]" fillcolor="#b3d9ff"]
+[B, 256, 15, 15]" fillcolor="#b3d9ff"]
 	SkipAdapter [label="Skip Adapter
-Conv2d(48->176, 1x1)
+Conv2d(64->256, 1x1)
 AvgPool2d(4x4)
-[B, 176, 15, 15]" fillcolor="#b3d9ff"]
+[B, 256, 15, 15]" fillcolor="#b3d9ff"]
 	Fusion [label="+" fillcolor="#ffcccc" shape=circle width=0.7]
 	Block4 [label="Block 4
-MultiScaleBlock(176->176)
+MultiScaleBlock(256->256)
 BatchNorm2d
-WideBottleneck(176->240)
+WideBottleneck(256->512)
 CBAM
 Dropout
-[B, 240, 15, 15]" fillcolor="#b3d9ff"]
+[B, 512, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapterMid [label="Skip Adapter Mid
+Conv2d(128->512, 1x1)
+AvgPool2d(2x2)
+[B, 512, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapterDeep [label="Skip Adapter Deep
+Conv2d(256->512, 1x1)
+[B, 512, 15, 15]" fillcolor="#b3d9ff"]
+	Fusion2 [label="Parameter-Free Fusion
+Sigmoid Masks
+Weighted Sum
+[B, 512, 15, 15]" fillcolor="#ffcccc" shape=box]
 	Classifier [label="Classifier
-Conv2d(240->120, 1x1)
+Conv2d(512->256, 1x1)
 GELU
 AdaptiveAvgPool2d(1)
 Flatten
 Dropout
-Linear(120->19)
+Linear(256->19)
 [B, 19]" fillcolor="#cce5ff"]
+	Dummy1 [label="" shape=point style=invisible width=0.01]
+	Dummy2 [label="" shape=point style=invisible width=0.01]
+	Dummy3 [label="" shape=point style=invisible width=0.01]
 	Input -> SpectralMixer
 	SpectralMixer -> Block1
 	Block1 -> Block2
 	Block2 -> Block3
 	Block3 -> Fusion
-	Block1 -> SkipAdapter
-	SkipAdapter -> Fusion
 	Fusion -> Block4
-	Block4 -> Classifier
+	Block4 -> Fusion2
+	Fusion2 -> Classifier
+	Block1 -> Dummy1 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy1 -> SkipAdapter [label="Skip Connection (Block 1 to Fusion)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapter -> Fusion [color="#ff3333" penwidth=2 style=dashed]
+	Block2 -> Dummy2 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy2 -> SkipAdapterMid [label="Skip Connection (Block 2 to Fusion2)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapterMid -> Fusion2 [color="#ff3333" penwidth=2 style=dashed]
+	Block3 -> Dummy3 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy3 -> SkipAdapterDeep [label="Skip Connection (Block 3 to Fusion2)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapterDeep -> Fusion2 [color="#ff3333" penwidth=2 style=dashed]
 	subgraph cluster_WideBottleneck {
 		fillcolor="#e6ffe6" fontcolor="#006600" fontname=Arial fontsize=14 label=WideBottleneck style=filled
 		WB_Input [label="Input
@@ -179,19 +201,19 @@ Sigmoid" fillcolor="#cce6ff"]
 		CA_Input -> CA_Mul
 	}
 	subgraph cluster_SE {
-		fillcolor="#ffe6f0" fontcolor="#cc0066" fontname=Arial fontsize=14 label="SE Module" style=filled
+		fillcolor="#ffe6f0" fontcolor="#cc0066" fontname=Arial fontsize=14 label="SE Module (in_channels=256)" style=filled
 		SE_Input [label="Input
-[B, C, H, W]" fillcolor="#ffccdd"]
+[B, 256, H, W]" fillcolor="#ffccdd"]
 		SE_Pool [label="AdaptiveAvgPool2d
-[B, C, 1, 1]" fillcolor="#ffccdd"]
+[B, 256, 1, 1]" fillcolor="#ffccdd"]
 		SE_FC1 [label="Conv2d
-C -> C//r" fillcolor="#ffccdd"]
+256 -> 256//r" fillcolor="#ffccdd"]
 		SE_ReLU [label=ReLU fillcolor="#ffccdd"]
 		SE_FC2 [label="Conv2d
-C//r -> C" fillcolor="#ffccdd"]
+256//r -> 256" fillcolor="#ffccdd"]
 		SE_Sigmoid [label=Sigmoid fillcolor="#ffccdd"]
 		SE_Mul [label="×
-[B, C, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
+[B, 256, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
 		SE_Input -> SE_Pool
 		SE_Pool -> SE_FC1
 		SE_FC1 -> SE_ReLU
@@ -201,16 +223,16 @@ C//r -> C" fillcolor="#ffccdd"]
 		SE_Input -> SE_Mul
 	}
 	subgraph cluster_CBAM {
-		fillcolor="#f0ffe6" fontcolor="#006633" fontname=Arial fontsize=14 label="CBAM Module" style=filled
+		fillcolor="#f0ffe6" fontcolor="#006633" fontname=Arial fontsize=14 label="CBAM Module (in_channels=512)" style=filled
 		CBAM_Input [label="Input
-[B, C, H, W]" fillcolor="#ccffdd"]
+[B, 512, H, W]" fillcolor="#ccffdd"]
 		CBAM_CA_Pool [label="AdaptiveAvgPool2d
-[B, C, 1, 1]" fillcolor="#ccffdd"]
+[B, 512, 1, 1]" fillcolor="#ccffdd"]
 		CBAM_CA_Conv1 [label="Conv2d
-C -> C//r" fillcolor="#ccffdd"]
+512 -> 512//r" fillcolor="#ccffdd"]
 		CBAM_CA_ReLU [label=ReLU fillcolor="#ccffdd"]
 		CBAM_CA_Conv2 [label="Conv2d
-C//r -> C" fillcolor="#ccffdd"]
+512//r -> 512" fillcolor="#ccffdd"]
 		CBAM_CA_Sigmoid [label=Sigmoid fillcolor="#ccffdd"]
 		CBAM_CA_Mul [label="×" fillcolor="#ffffff" shape=circle width=0.5]
 		CBAM_SA_Avg [label=AvgPool fillcolor="#ccffdd"]

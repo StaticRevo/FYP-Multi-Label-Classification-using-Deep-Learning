@@ -65,6 +65,15 @@ class WideBottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
         self.downsample = downsample
+        self.dropout_rt = ModuleConfig.dropout_rt
+    
+    def drop_path(self, x, drop_prob):
+        if drop_prob > 0. and self.training:
+            keep_prob = 1 - drop_prob
+            mask = torch.bernoulli(torch.ones(x.size(0), 1, 1, 1, device=x.device) * keep_prob)
+            x.div_(keep_prob)
+            x.mul_(mask)
+        return x
 
     def forward(self, x):
         identity = x
@@ -82,6 +91,7 @@ class WideBottleneck(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
+        out = self.drop_path(out, self.drop_path_rate)
 
         out += identity
         out = self.relu(out)

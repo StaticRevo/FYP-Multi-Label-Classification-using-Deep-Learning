@@ -89,7 +89,7 @@ class DatasetConfig:
 # -- Model Configuration --
 @dataclass
 class ModelConfig:
-    num_epochs: int = 100
+    num_epochs: int = 10
     batch_size: int = 256
     num_workers: int = 8 
     learning_rate: float = 0.001
@@ -109,7 +109,7 @@ class ModuleConfig:
     reduction: int = 16
     ratio: int = 8
     kernel_size: int = 3
-    dropout_rt: float = 0.2
+    dropout_rt: float = 0.1
     activation: type = nn.ReLU
 
     # Loss Function Configuration

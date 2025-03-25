@@ -1,0 +1,86 @@
+// Custom WideResNetB4-ECA Model
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="Custom WideResNetB4-ECA Architecture" labelloc=t pad=0.5 rankdir=TB splines=false]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555"]
+	Input [label="Input
+[B, 12, 120, 120]" fillcolor="#cce5ff"]
+	Conv1 [label="Conv1 (3x3, 38 filters)
+BatchNorm2d
+ReLU
+[B, 38, 120, 120]" fillcolor="#cce5ff"]
+	Layer1 [label="Layer1
+2 WideBasicBlockECA
+38 filters, stride=1
+[B, 38, 120, 120]" fillcolor="#b3d9ff"]
+	Layer2 [label="Layer2
+2 WideBasicBlockECA
+76 filters, stride=2
+[B, 76, 60, 60]" fillcolor="#b3d9ff"]
+	Layer3 [label="Layer3
+2 WideBasicBlockECA
+152 filters, stride=2
+[B, 152, 30, 30]" fillcolor="#b3d9ff"]
+	Pool [label="AdaptiveAvgPool2d
+[B, 152, 1, 1]" fillcolor="#cce5ff"]
+	Flatten [label="Flatten
+[B, 152]" fillcolor="#cce5ff"]
+	FC [label="Fully Connected
+152 -> 19
+[B, 19]" fillcolor="#cce5ff"]
+	Input -> Conv1
+	Conv1 -> Layer1
+	Layer1 -> Layer2
+	Layer2 -> Layer3
+	Layer3 -> Pool
+	Pool -> Flatten
+	Flatten -> FC
+	subgraph cluster_WideBlock {
+		fillcolor="#e6ffe6" fontcolor="#006600" fontname=Arial fontsize=14 label=WideBasicBlockECA style=filled
+		WB_Input [label="Input
+[B, in_channels, H, W]" fillcolor="#ccffcc"]
+		WB_Conv1 [label="Conv1 (3x3)
+Dropout
+BatchNorm2d
+ReLU" fillcolor="#ccffcc"]
+		WB_Conv2 [label="Conv2 (3x3)
+BatchNorm2d" fillcolor="#ccffcc"]
+		WB_ECA [label=ECA fillcolor="#b3ffb3"]
+		WB_Skip [label="Downsample (if needed)
+Conv2d (1x1)
+BatchNorm2d" fillcolor="#ccffcc" style=filled]
+		WB_Add [label="+" fillcolor="#ffcccc" shape=circle width=0.7]
+		WB_ReLU [label="ReLU
+[B, out_channels, H', W']" fillcolor="#ccffcc"]
+		WB_Input -> WB_Conv1
+		WB_Conv1 -> WB_Conv2
+		WB_Conv2 -> WB_ECA
+		WB_ECA -> WB_Add
+		WB_Skip -> WB_Add
+		WB_Add -> WB_ReLU
+		WB_Input -> WB_Skip [label="Skip Connection" color="#ff3333" penwidth=2 splines=curved style=dashed]
+	}
+	subgraph cluster_ECA {
+		fillcolor="#fff0e6" fontcolor="#cc3300" fontname=Arial fontsize=14 label="ECA Module" style=filled
+		ECA_Input [label="Input
+[B, C, H, W]" fillcolor="#ffe6cc"]
+		ECA_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+		ECA_Reshape1 [label="Reshape
+[B, 1, C]" fillcolor="#ffe6cc"]
+		ECA_Conv [label="Conv1d (k_size)
+[B, 1, C]" fillcolor="#ffe6cc"]
+		ECA_Reshape2 [label="Reshape
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+		ECA_Sigmoid [label=Sigmoid fillcolor="#ffccb3"]
+		ECA_Mul [label="×
+[B, C, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
+		ECA_Input -> ECA_Pool
+		ECA_Pool -> ECA_Reshape1
+		ECA_Reshape1 -> ECA_Conv
+		ECA_Conv -> ECA_Reshape2
+		ECA_Reshape2 -> ECA_Sigmoid
+		ECA_Sigmoid -> ECA_Mul
+		ECA_Input -> ECA_Mul [color="#cc3300" penwidth=2 splines=curved style=dashed]
+	}
+}

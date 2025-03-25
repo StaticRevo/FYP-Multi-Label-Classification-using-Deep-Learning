@@ -1,0 +1,251 @@
+// CustomModel Architecture
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="CustomModel Architecture" labelloc=t nodesep=0.5 pad=0.5 rankdir=TB ranksep=1.0 splines=false]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555" minlen=2]
+	Input [label="Input
+[B, 12, 120, 120]" fillcolor="#cce5ff"]
+	SpectralMixer [label="Spectral Mixer
+Conv2d(12->64, 1x1)
+BatchNorm2d
+GELU
+Conv2d(64->32, 3x3)
+BatchNorm2d
+MaxPool2d(2x2)
+[B, 32, 60, 60]" fillcolor="#cce5ff"]
+	Block1 [label="Block 1
+DepthwiseSeparableConv(32->32)
+BatchNorm2d
+GELU
+WideBottleneck(32->64)
+SpectralAttention
+Dropout
+CoordinateAttention
+Dropout
+[B, 64, 60, 60]" fillcolor="#b3d9ff"]
+	Block2 [label="Block 2
+DepthwiseSeparableConv(64->64, stride=2)
+BatchNorm2d
+GELU
+WideBottleneck(64->128)
+ECA
+Dropout
+[B, 128, 30, 30]" fillcolor="#b3d9ff"]
+	Block3 [label="Block 3
+DepthwiseSeparableConv(128->128, stride=2)
+BatchNorm2d
+GELU
+WideBottleneck(128->256)
+SE
+Dropout
+[B, 256, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapter [label="Skip Adapter
+Conv2d(64->256, 1x1)
+AvgPool2d(4x4)
+[B, 256, 15, 15]" fillcolor="#b3d9ff"]
+	Fusion [label="+" fillcolor="#ffcccc" shape=circle width=0.7]
+	Block4 [label="Block 4
+MultiScaleBlock(256->256)
+BatchNorm2d
+WideBottleneck(256->512)
+CBAM
+Dropout
+[B, 512, 15, 15]" fillcolor="#b3d9ff"]
+	Classifier [label="Classifier
+Conv2d(512->256, 1x1)
+GELU
+AdaptiveAvgPool2d(1)
+Flatten
+Dropout
+Linear(256->19)
+[B, 19]" fillcolor="#cce5ff"]
+	Input -> SpectralMixer
+	SpectralMixer -> Block1
+	Block1 -> Block2
+	Block2 -> Block3
+	Block3 -> Fusion
+	Fusion -> Block4
+	Block4 -> Classifier
+	Block1 -> SkipAdapter [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	SkipAdapter -> Fusion [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	subgraph cluster_WideBottleneck {
+		fillcolor="#e6ffe6" fontcolor="#006600" fontname=Arial fontsize=14 label=WideBottleneck nodesep=0.4 ranksep=0.6 splines=true style=filled
+		WB_Input [label="Input
+[B, in_channels, H, W]" fillcolor="#ccffcc"]
+		WB_Conv1 [label="Conv1 (1x1)
+BatchNorm2d
+ReLU" fillcolor="#ccffcc"]
+		WB_Conv2 [label="Conv2 (3x3)
+BatchNorm2d
+ReLU" fillcolor="#ccffcc"]
+		WB_Conv3 [label="Conv3 (1x1)
+BatchNorm2d" fillcolor="#ccffcc"]
+		WB_Skip [label="Downsample (if needed)
+Conv2d (1x1)
+BatchNorm2d" fillcolor="#ccffcc" style=filled]
+		WB_Skip_Dummy [label="" shape=point style=invis width=0.01]
+		WB_Add [label="+" fillcolor="#ffcccc" shape=circle width=0.7]
+		WB_ReLU [label="ReLU
+[B, out_channels, H, W]" fillcolor="#ccffcc"]
+		WB_Input -> WB_Conv1
+		WB_Conv1 -> WB_Conv2
+		WB_Conv2 -> WB_Conv3
+		WB_Conv3 -> WB_Add
+		WB_Skip -> WB_Add
+		WB_Add -> WB_ReLU
+		WB_Input -> WB_Skip_Dummy [color="#ff3333" penwidth=2 style=dashed]
+		WB_Skip_Dummy -> WB_Skip [label="Skip Connection" color="#ff3333" penwidth=2 style=dashed]
+	}
+	subgraph cluster_ECA {
+		fillcolor="#fff0e6" fontcolor="#cc3300" fontname=Arial fontsize=14 label="ECA Module" nodesep=0.4 ranksep=0.6 splines=true style=filled
+		ECA_Input [label="Input
+[B, C, H, W]" fillcolor="#ffe6cc"]
+		ECA_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+		ECA_Reshape1 [label="Reshape
+[B, 1, C]" fillcolor="#ffe6cc"]
+		ECA_Conv [label="Conv1d (k_size)
+[B, 1, C]" fillcolor="#ffe6cc"]
+		ECA_Reshape2 [label="Reshape
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+		ECA_Sigmoid [label=Sigmoid fillcolor="#ffccb3"]
+		ECA_Skip_Dummy [label="" shape=point style=invis width=0.01]
+		ECA_Skip [label="Input Reuse" fillcolor="#ffcccc" style=filled]
+		ECA_Mul [label="×
+[B, C, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
+		ECA_Input -> ECA_Pool
+		ECA_Pool -> ECA_Reshape1
+		ECA_Reshape1 -> ECA_Conv
+		ECA_Conv -> ECA_Reshape2
+		ECA_Reshape2 -> ECA_Sigmoid
+		ECA_Sigmoid -> ECA_Mul
+		ECA_Skip -> ECA_Mul
+		ECA_Input -> ECA_Skip_Dummy [color="#ff3333" penwidth=2 style=dashed]
+		ECA_Skip_Dummy -> ECA_Skip [color="#ff3333" penwidth=2 style=dashed]
+	}
+	subgraph cluster_SpectralAttention {
+		fillcolor="#f0e6ff" fontcolor="#6600cc" fontname=Arial fontsize=14 label=SpectralAttention nodesep=0.4 ranksep=0.6 splines=true style=filled
+		SA_Input [label="Input
+[B, C, H, W]" fillcolor="#e6ccff"]
+		SA_Pool [label="GlobalAvgPool
+[B, C]" fillcolor="#e6ccff"]
+		SA_FC1 [label="Linear
+C -> C//r" fillcolor="#e6ccff"]
+		SA_ReLU [label=ReLU fillcolor="#e6ccff"]
+		SA_FC2 [label="Linear
+C//r -> C" fillcolor="#e6ccff"]
+		SA_Sigmoid [label="Sigmoid
+[B, C, 1, 1]" fillcolor="#e6ccff"]
+		SA_Add [label="+" fillcolor="#ffcccc" shape=circle width=0.7]
+		SA_Input -> SA_Pool
+		SA_Pool -> SA_FC1
+		SA_FC1 -> SA_ReLU
+		SA_ReLU -> SA_FC2
+		SA_FC2 -> SA_Sigmoid
+		SA_Sigmoid -> SA_Add
+		SA_Input -> SA_Add
+	}
+	subgraph cluster_CoordinateAttention {
+		fillcolor="#e6f0ff" fontcolor="#0033cc" fontname=Arial fontsize=14 label=CoordinateAttention nodesep=0.6 ranksep=0.8 splines=true style=filled
+		CA_Input [label="Input
+[B, C, H, W]" fillcolor="#cce6ff"]
+		CA_Dummy1 [label="" shape=point style=invis width=0.01]
+		CA_PoolH [label="Pool Height
+[B, C, H, 1]" fillcolor="#cce6ff"]
+		CA_PoolW [label="Pool Width
+[B, C, 1, W]" fillcolor="#cce6ff"]
+		CA_Dummy2 [label="" shape=point style=invis width=0.01]
+		CA_Concat [label="Concat
+[B, C, H+W, 1]" fillcolor="#cce6ff"]
+		CA_Conv1 [label="Conv2d
+BatchNorm2d
+ReLU" fillcolor="#cce6ff"]
+		CA_Split [label="Split
+H and W" fillcolor="#cce6ff"]
+		CA_Dummy3 [label="" shape=point style=invis width=0.01]
+		CA_ConvH [label="Conv2d (H)
+Sigmoid" fillcolor="#cce6ff"]
+		CA_ConvW [label="Conv2d (W)
+Sigmoid" fillcolor="#cce6ff"]
+		CA_Mul [label="×
+[B, C, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
+		CA_Dummy1 -> CA_PoolH
+		CA_Dummy1 -> CA_PoolW
+		CA_PoolH -> CA_Dummy2
+		CA_PoolW -> CA_Dummy2
+		CA_Dummy2 -> CA_Concat
+		CA_Concat -> CA_Conv1
+		CA_Conv1 -> CA_Split
+		CA_Split -> CA_Dummy3
+		CA_Dummy3 -> CA_ConvH
+		CA_Dummy3 -> CA_ConvW
+		CA_ConvH -> CA_Mul
+		CA_ConvW -> CA_Mul
+		CA_Input -> CA_Dummy1 [weight=2]
+		CA_Input -> CA_Mul [constraint=false]
+	}
+	subgraph cluster_SE {
+		fillcolor="#ffe6f0" fontcolor="#cc0066" fontname=Arial fontsize=14 label="SE Module" nodesep=0.4 ranksep=0.6 splines=true style=filled
+		SE_Input [label="Input
+[B, C, H, W]" fillcolor="#ffccdd"]
+		SE_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ffccdd"]
+		SE_FC1 [label="Conv2d
+C -> C//r" fillcolor="#ffccdd"]
+		SE_ReLU [label=ReLU fillcolor="#ffccdd"]
+		SE_FC2 [label="Conv2d
+C//r -> C" fillcolor="#ffccdd"]
+		SE_Sigmoid [label=Sigmoid fillcolor="#ffccdd"]
+		SE_Mul [label="×
+[B, C, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
+		SE_Input -> SE_Pool
+		SE_Pool -> SE_FC1
+		SE_FC1 -> SE_ReLU
+		SE_ReLU -> SE_FC2
+		SE_FC2 -> SE_Sigmoid
+		SE_Sigmoid -> SE_Mul
+		SE_Input -> SE_Mul [constraint=false]
+	}
+	subgraph cluster_CBAM {
+		fillcolor="#f0ffe6" fontcolor="#006633" fontname=Arial fontsize=14 label="CBAM Module" nodesep=0.6 ranksep=0.8 splines=true style=filled
+		CBAM_Input [label="Input
+[B, C, H, W]" fillcolor="#ccffdd"]
+		CBAM_CA_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ccffdd"]
+		CBAM_CA_Conv1 [label="Conv2d
+C -> C//r" fillcolor="#ccffdd"]
+		CBAM_CA_ReLU [label=ReLU fillcolor="#ccffdd"]
+		CBAM_CA_Conv2 [label="Conv2d
+C//r -> C" fillcolor="#ccffdd"]
+		CBAM_CA_Sigmoid [label=Sigmoid fillcolor="#ccffdd"]
+		CBAM_CA_Mul [label="×" fillcolor="#ffffff" shape=circle width=0.5]
+		CBAM_Dummy1 [label="" shape=point style=invis width=0.01]
+		CBAM_SA_Avg [label=AvgPool fillcolor="#ccffdd"]
+		CBAM_SA_Max [label=MaxPool fillcolor="#ccffdd"]
+		CBAM_Dummy2 [label="" shape=point style=invis width=0.01]
+		CBAM_SA_Concat [label=Concat fillcolor="#ccffdd"]
+		CBAM_SA_Conv [label="Conv2d
+BatchNorm2d
+Sigmoid" fillcolor="#ccffdd"]
+		CBAM_SA_Mul [label="×" fillcolor="#ffffff" shape=circle width=0.5]
+		CBAM_Add [label="+" fillcolor="#ffcccc" shape=circle width=0.7]
+		CBAM_Input -> CBAM_CA_Pool
+		CBAM_CA_Pool -> CBAM_CA_Conv1
+		CBAM_CA_Conv1 -> CBAM_CA_ReLU
+		CBAM_CA_ReLU -> CBAM_CA_Conv2
+		CBAM_CA_Conv2 -> CBAM_CA_Sigmoid
+		CBAM_CA_Sigmoid -> CBAM_CA_Mul
+		CBAM_Dummy1 -> CBAM_SA_Avg
+		CBAM_Dummy1 -> CBAM_SA_Max
+		CBAM_SA_Avg -> CBAM_Dummy2
+		CBAM_SA_Max -> CBAM_Dummy2
+		CBAM_Dummy2 -> CBAM_SA_Concat
+		CBAM_SA_Concat -> CBAM_SA_Conv
+		CBAM_SA_Conv -> CBAM_SA_Mul
+		CBAM_CA_Mul -> CBAM_SA_Mul
+		CBAM_SA_Mul -> CBAM_Add
+		CBAM_Input -> CBAM_CA_Mul [constraint=false]
+		CBAM_CA_Mul -> CBAM_Dummy1 [weight=2]
+		CBAM_Input -> CBAM_Add [constraint=false]
+	}
+}

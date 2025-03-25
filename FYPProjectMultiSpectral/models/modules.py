@@ -131,9 +131,11 @@ class WideBottleneckECA(nn.Module):
 
         return out
 
+# Wide Bottleneck Residual Block with ECA as used in WRN-B4-CBAM - 2 Convolutional Layers (3x3, 3x3)
 class WideBasicBlockECA(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, downsample=None, dropout_rate=0.3):
         super(WideBasicBlockECA, self).__init__()
+
         # First 3x3 convolution
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
         self.dropout = nn.Dropout(dropout_rate)
@@ -212,8 +214,11 @@ class SE(nn.Module):
 # Efficient Channel Attention Module (ECA)
 class ECA(nn.Module):
     def __init__(self, in_channels, gamma=2, b=1):
+        super(ECA, self).__init__()  
+        
         t = int(abs((math.log2(in_channels) / gamma) + b / gamma))
         k_size = t if t % 2 else t + 1  # Ensure k_size is odd
+        
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=1)
         self.conv = nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k_size, stride=1,
                               padding=(k_size - 1) // 2, bias=False)
@@ -228,8 +233,9 @@ class ECA(nn.Module):
         y = self.conv(y) # 1D Convolution: [B, 1, C] -> [B, 1, C]
         y = y.squeeze(1).unsqueeze(-1).unsqueeze(-1)  # Reshape back: [B, 1, C] -> [B, C, 1, 1]
         y = self.sigmoid(y) # Sigmoid activation to generate attention weights
+        
         return x * y # Scale the input with attention weights
-
+    
 # Drop Path Module (DropPath)
 class DropPath(nn.Module):
     def __init__(self, drop_prob=ModuleConfig.drop_prob):

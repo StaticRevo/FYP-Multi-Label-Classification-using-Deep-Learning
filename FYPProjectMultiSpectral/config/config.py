@@ -120,7 +120,7 @@ class ModuleConfig:
     drop_prob: float = 0.1
 
     # Bottle Neck Blocks
-    expansion: int = 4
+    expansion: int = 2
 
 
 

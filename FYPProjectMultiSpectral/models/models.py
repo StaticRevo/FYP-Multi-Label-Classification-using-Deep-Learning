@@ -76,9 +76,22 @@ class CustomModel(BaseModel):
             SE(in_channels=176, kernel_size=1),  # Squeeze and Excitation Module
             nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
         )
-        self.skip_adapter = nn.Sequential(
+        # -- Skip Connection Adapters --
+        self.skip_adapter = nn.Sequential( # Skip Connection from Block 1 to Block 3
             nn.Conv2d(in_channels=48, out_channels=176, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (48->176)
             nn.AvgPool2d(kernel_size=4, stride=4)  # Average Pooling Layer (60x60 -> 15x15)
+        )
+        self.skip_adapter_mid = nn.Sequential( # Skip Connection from Block 2 to Block 4
+            nn.Conv2d(in_channels=96, out_channels=240, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros'),  # (96->240)
+            nn.AvgPool2d(kernel_size=2, stride=2)  # (30x30 -> 15x15)
+        )
+        self.skip_adapter_deep = nn.Sequential( # Skip Connection from Block 3 to Block 4
+            nn.Conv2d(in_channels=176, out_channels=240, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros')  # (176->240)
+        )
+        self.fusion_conv = nn.Sequential(
+            nn.Conv2d(352, 2, kernel_size=1, bias=False),  # (352 -> 2)
+            nn.BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.Sigmoid()
         )
         # -- Block 4 -- 
         block4_downsample = nn.Sequential(
@@ -108,11 +121,27 @@ class CustomModel(BaseModel):
         features_low = self.block1(x)  # Block 1: Low-level features (48, 60, 60)
         features_mid = self.block2(features_low)  # Block 2: Mid-level features (96, 30, 30)
         features_deep = self.block3(features_mid)  # Block 3: Deep features (176, 15, 15)
-        adapted_features_low = self.skip_adapter(features_low)  # Adapt low-level features to match deep features (176, 15, 15)
-        fused_features = features_deep + adapted_features_low  # Fuse low-level and deep features (176, 15, 15)
-        features_high = self.block4(fused_features)  # Refine high-level representations (240, 15, 15)
-        out = self.classifier(features_high)  # Final classification (19)
-        
+
+        # Skip Connection Adapters
+        adapted_features_low = self.skip_adapter(features_low)  
+        adapted_features_mid = self.skip_adapter_mid(features_mid)  
+        adapted_features_deep = self.skip_adapter_deep(features_deep)  
+
+        # Lightweight attention-guided fusion for features_deep and adapted_features_low
+        fused_input = torch.cat([features_deep, adapted_features_low], dim=1)  # (352, 15, 15)
+        weights = self.fusion_conv(fused_input)  # (2, 15, 15)
+        w_deep, w_low = weights[:, 0:1, :, :], weights[:, 1:2, :, :]  # Split into two masks
+        fused_features = (w_deep * features_deep) + (w_low * adapted_features_low)  # (176, 15, 15)
+
+        features_high = self.block4(fused_features)  # Block 4: High-level features (240, 15, 15)
+
+        # Parameter-free attention-guided fusion for features_high, adapted_features_mid, and adapted_features_deep
+        mask_high = torch.sigmoid(  torch.mean(features_high, dim=1, keepdim=True) + torch.max(features_high, dim=1, keepdim=True)[0])  # (B, 1, 15, 15)
+        mask_mid = torch.sigmoid(torch.mean(adapted_features_mid, dim=1, keepdim=True) + torch.max(adapted_features_mid, dim=1, keepdim=True)[0])  # (B, 1, 15, 15)
+        mask_deep = torch.sigmoid(torch.mean(adapted_features_deep, dim=1, keepdim=True) + torch.max(adapted_features_deep, dim=1, keepdim=True)[0])  # (B, 1, 15, 15)
+        fused_features_high = (mask_high * features_high) + (mask_mid * adapted_features_mid) + (mask_deep * adapted_features_deep)  # (240, 15, 15)
+
+        out = self.classifier(fused_features_high)  # Classifier (19)
         return out
     
     # Override optimizer configuration for CustomModel

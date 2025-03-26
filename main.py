@@ -45,8 +45,7 @@ class ModelSelectionGUI:
     def setup_options(self):
         self.models = {
             '1': 'CustomModel',      # Custom
-            '2': 'CustomWRNB0', 
-            '3': 'CustomWRNB4ECA'
+            '2': 'CustomWRNB4ECA'
         }
         # self.models = {
         #     '1': 'VGG16',            # 2014

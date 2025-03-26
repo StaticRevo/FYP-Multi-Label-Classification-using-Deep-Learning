@@ -91,7 +91,7 @@ class WideBottleneck(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
-        out = self.drop_path(out, self.drop_path_rate)
+        out = self.drop_path(out, self.dropout_rt)
 
         out += identity
         out = self.relu(out)

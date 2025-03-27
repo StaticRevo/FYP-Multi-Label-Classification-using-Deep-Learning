@@ -11,7 +11,7 @@ from config.config import ModuleConfig
 # -- Bottle Neck Blocks -- 
 # Bottlneck Residual Block (as used in ResNet50 adapted from ResNet)
 class Bottleneck(nn.Module):
-    expansion = ModuleConfig.expansion
+    expansion = ModuleConfig.expansion * 2
     def __init__(self, in_channels, out_channels, stride=1, downsample=None):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
@@ -50,9 +50,9 @@ class Bottleneck(nn.Module):
     
 # Wide Bottleneck Residual Block (as used in WRN-50-2 adapted from WideResNet) - 3 Convolutional Layers (1x1, 3x3, 1x1)
 class WideBottleneck(nn.Module):
-    expansion = ModuleConfig.expansion 
     def __init__(self, in_channels, out_channels, stride=1, downsample=None, widen_factor=2):
         super(WideBottleneck, self).__init__()
+        self.expansion = widen_factor
         wide_channels = out_channels * widen_factor  # Double middle channels for WRN-50-2
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_channels)
@@ -173,7 +173,6 @@ class WideBasicBlockECA(nn.Module):
 
         # Second Conv2D
         out = self.conv2(out)
-        out = self.bn2(out)
 
         # Apply ECA
         out = self.eca(out)
@@ -489,7 +488,7 @@ class ResidualBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_channels)
         
         self.downsample = None
-        if in_channels != out_channels:
+        if in_channels != out_channels or stride != 1:       # Trigger downsample if channels or spatial dims change (stride > 1)
             self.downsample = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(out_channels)
@@ -502,8 +501,10 @@ class ResidualBlock(nn.Module):
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        if self.downsample:
+        if self.downsample is not None:
             residual = self.downsample(x)
+        if out.shape != residual.shape:  # Ensure shapes match before addition
+            raise RuntimeError(f"Shape mismatch: out {out.shape} vs residual {residual.shape}")
         out += residual
         out = self.relu(out)
         return out

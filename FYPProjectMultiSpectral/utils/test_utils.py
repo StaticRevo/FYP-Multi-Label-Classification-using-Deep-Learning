@@ -486,8 +486,8 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
     metrics_dict['subset_accuracy'] = accuracy_score(all_labels, all_preds)
 
     if all_probs is not None:
-        # Average Precision (macro-averaged by default in sklearn)
-        metrics_dict['avg_precision'] = average_precision_score(all_labels, all_probs, average='macro', pos_label=1)
+        # Average Precision (micro-averaged to match test_avg_precision)
+        metrics_dict['avg_precision'] = average_precision_score(all_labels, all_probs, average='micro', pos_label=1)
         
         # One Error: fraction of samples where the top-ranked label is not in the true set
         top_pred_labels = np.argmax(all_probs, axis=1)  # Index of highest probability per sample

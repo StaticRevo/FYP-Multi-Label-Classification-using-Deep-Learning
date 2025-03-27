@@ -44,7 +44,7 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         # self.models = {
-        #     '1': 'CustomModel',      # Custom
+        #     '1': 'CustomModel',    
         #     '2': 'CustomWRNB4ECA'
         # }
         # self.models = {
@@ -56,24 +56,43 @@ class ModelSelectionGUI:
         #     '6': 'DenseNet121',      # 2016
         #     '7': 'EfficientNetB0',   # 2019
         #     '8': 'EfficientNet_v2',  # 2021
-        #     '9': 'CustomWRNB0',     # Custom (WideResNetB0) - Papoutsis et al.
-        #     '10': 'CustomWRNB4ECA', # Custom (WideResNetB4ECA) - Papoutsis et al.
-        #     '11': 'CustomModel',      # Custom
-        #     '12': 'Swin-Transformer',# 2021
-        #     '13': 'Vit-Transformer', # 2021
+        #     '9': 'Swin-Transformer', # 2021
+        #     '10': 'Vit-Transformer', # 2021
+        # }
+
+        # self.models = {
+        #     '1': 'CustomModelV1',
+        #     '2': 'CustomModelV2',
+        #     '3': 'CustomModelV3',
+        #     '4': 'CustomModelV4',
+        #     '5': 'CustomModelV5',
+        #     '6': 'CustomModelV6',
+        #     '7': 'CustomModelV7',
+        #     '8': 'CustomModelV8'
         # }
 
         self.models = {
-            '1': 'CustomModelV1',
-            '2': 'CustomModelV2',
-            '3': 'CustomModelV3',
-            '4': 'CustomModelV4',
-            '5': 'CustomModelV5',
-            '6': 'CustomModelV6',
-            '7': 'CustomModelV7',
-            '8': 'CustomModelV8'
+            '1': 'VGG16',            # 2014
+            '2': 'VGG19',            # 2014
+            '3': 'ResNet18',         # 2015
+            '4': 'ResNet50',         # 2015
+            '5': 'ResNet101',        # 2015
+            '6': 'DenseNet121',      # 2016
+            '7': 'EfficientNetB0',   # 2019
+            '8': 'EfficientNet_v2',  # 2021
+            '9': 'Swin-Transformer', # 2021
+            '10': 'Vit-Transformer', # 2021
+            '11': 'CustomModelV1',
+            '12': 'CustomModelV2',
+            '13': 'CustomModelV3',
+            '14': 'CustomModelV4',
+            '15': 'CustomModelV5',
+            '16': 'CustomModelV6',
+            '17': 'CustomModelV7',
+            '18': 'CustomModelV8',
+            '19': 'CustomWRNB4ECA',
         }
-        
+
         self.band_selection = {
             '1': 'all_bands',
             '2': 'all_imp_bands',

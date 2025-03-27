@@ -525,7 +525,7 @@ class CustomModelV3(BaseModel):
             MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, 
                             bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
             ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
-            ECA(in_channels=128, k_size=3), # ECA Module
+            ECA(in_channels=128), # ECA Module
         )
         # -- BLock 3 --
         self.block3 = nn.Sequential(
@@ -535,9 +535,9 @@ class CustomModelV3(BaseModel):
             nn.GELU(),
             MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
-            SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
+            SE(in_channels=256, kernel_size=1), # Squeeze and Excitation Module
         )
-        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape", batch_first=True)
+        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape")
         self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
         # -- Block 4 -- 
@@ -558,10 +558,10 @@ class CustomModelV3(BaseModel):
         )
     # Override forward function for CustomModel
     def forward(self, x):
-        x = self.spectral_mixer(x)                      # Step 1: Spectral mixing
-        features_low = self.block1(x)                   # Step 2: Extract low-level features.
-        features_mid = self.block2(features_low)         # Step 3: Compute mid-level features.
-        features_deep = self.block3(features_mid)        # Step 4: Compute deep features.
+        x = self.spectral_mixer(x) # Step 1: Spectral mixing
+        features_low = self.block1(x) # Step 2: Extract low-level features.
+        features_mid = self.block2(features_low) # Step 3: Compute mid-level features.
+        features_deep = self.block3(features_mid) # Step 4: Compute deep features.
         features_deep = self.transformer_block(features_deep)  # Apply transformer block for global context
         adapted_features_low = self.skip_adapter(features_low) # Adjust low-level features
     
@@ -821,7 +821,7 @@ class CustomModelV5(BaseModel):
 class CustomModelV6(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
-        super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        super(CustomModelV6, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
     
         # Spectral Mixing and Initial Feature Extraction
         self.spectral_mixer = nn.Sequential(
@@ -916,7 +916,7 @@ class CustomModelV6(BaseModel):
         
         return out
 
-        # Override optimizer configuration for CustomModel
+    # Override optimizer configuration for CustomModel
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
@@ -929,7 +929,6 @@ class CustomModelV6(BaseModel):
                 'frequency': 1
             }
         }
-
 
 # Custom Model Version 7
 class CustomModelV7(BaseModel):
@@ -1223,6 +1222,21 @@ class CustomModelV8(BaseModel):
 
         out = self.classifier(fused_features_high)  # Classifier (19)
         return out
+    
+    # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+
 
 # -- State-Of-The-Art Models (adapted from torch) --
 # ResNet18 Model

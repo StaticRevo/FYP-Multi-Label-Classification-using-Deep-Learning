@@ -170,7 +170,7 @@ class BaseModel(pl.LightningModule):
         precision = getattr(self, f'{phase}_precision')(preds, y)
         one_error = getattr(self, f'{phase}_one_error')(probs, y)
         hamming_distance = self.hamming_loss(preds, y)
-        hamming_loss_val = hamming_distance / y.size(1)
+        hamming_loss_val = hamming_distance #/ y.size(1)
 
         # Log aggregate metrics
         self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True, batch_size=len(x))

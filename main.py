@@ -43,10 +43,10 @@ class ModelSelectionGUI:
 
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
-        self.models = {
-            '1': 'CustomModel',      # Custom
-            '2': 'CustomWRNB4ECA'
-        }
+        # self.models = {
+        #     '1': 'CustomModel',      # Custom
+        #     '2': 'CustomWRNB4ECA'
+        # }
         # self.models = {
         #     '1': 'VGG16',            # 2014
         #     '2': 'VGG19',            # 2014
@@ -63,16 +63,16 @@ class ModelSelectionGUI:
         #     '13': 'Vit-Transformer', # 2021
         # }
 
-        # self.models = {
-        #     '1': 'CustomModelV1',
-        #     '2': 'CustomModelV2',
-        #     '3': 'CustomModelV3',
-        #     '4': 'CustomModelV4',
-        #     '5': 'CustomModelV5',
-        #     '6': 'CustomModelV6',
-        #     '7': 'CustomModelV7',
-        #     '8': 'CustomModelV8'
-        # }
+        self.models = {
+            '1': 'CustomModelV1',
+            '2': 'CustomModelV2',
+            '3': 'CustomModelV3',
+            '4': 'CustomModelV4',
+            '5': 'CustomModelV5',
+            '6': 'CustomModelV6',
+            '7': 'CustomModelV7',
+            '8': 'CustomModelV8'
+        }
         
         self.band_selection = {
             '1': 'all_bands',

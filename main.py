@@ -62,6 +62,17 @@ class ModelSelectionGUI:
         #     '12': 'Swin-Transformer',# 2021
         #     '13': 'Vit-Transformer', # 2021
         # }
+
+        # self.models = {
+        #     '1': 'CustomModelV1',
+        #     '2': 'CustomModelV2',
+        #     '3': 'CustomModelV3',
+        #     '4': 'CustomModelV4',
+        #     '5': 'CustomModelV5',
+        #     '6': 'CustomModelV6',
+        #     '7': 'CustomModelV7',
+        #     '8': 'CustomModelV8'
+        # }
         
         self.band_selection = {
             '1': 'all_bands',

@@ -1,10 +1,10 @@
- # Custom Model
+# Custom Model
 class CustomModel(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity()  # Dummy model for custom architecture to pass to the base model
         super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
     
-        # Spectral Mixing and Initial Feature Extraction
+        # -- Spectral Mixing and Initial Feature Extraction --
         self.spectral_mixer = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
                       dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (in_channels->64)
@@ -12,8 +12,10 @@ class CustomModel(BaseModel):
             nn.GELU(),  # GELU Activation Function
             nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (64->32)
             nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer
+            SpectralAttention(in_channels=32),  # SpectralAttention Module (32->32)
             nn.MaxPool2d(kernel_size=2, stride=2)  # Max Pooling Layer - (120x120 -> 60x60)
         )
+
         # -- Block 1 --
         block1_downsample = nn.Sequential(
             nn.Conv2d(32, 48, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (32->48)
@@ -30,6 +32,7 @@ class CustomModel(BaseModel):
             CoordinateAttention(in_channels=48, reduction=16),  # CoordinateAttention Module (48->48)
             nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
         )
+
         # -- Block 2 --
         block2_downsample = nn.Sequential(
             nn.Conv2d(48, 96, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (48->96)
@@ -44,6 +47,7 @@ class CustomModel(BaseModel):
             ECA(in_channels=96),  # ECA Module
             nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
         )
+
         # -- Block 3 --
         block3_downsample = nn.Sequential(
             nn.Conv2d(96, 168, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (96->168)
@@ -58,23 +62,34 @@ class CustomModel(BaseModel):
             SE(in_channels=168, kernel_size=1),  # Squeeze and Excitation Module (168->168)
             nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)  # Dropout Layer
         )
+
         # -- Skip Connection Adapters --
-        self.skip_adapter = nn.Sequential( # Skip Connection from Block 1 to Block 3
+        self.skip_adapter = nn.Sequential( # Skip Connection from Block 1 to Block Fusion 1
             nn.Conv2d(in_channels=48, out_channels=168, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (48->168)
             nn.AvgPool2d(kernel_size=4, stride=4)  # Average Pooling Layer (60x60 -> 15x15)
         )
-        self.skip_adapter_mid = nn.Sequential( # Skip Connection from Block 2 to Block 4
+        self.skip_adapter_spectral = nn.Sequential(  # Skip Connection from Spectral Mixer to Fusion 2
+            nn.Conv2d(in_channels=32, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.AvgPool2d(kernel_size=4, stride=4)  # Downsample from 60x60 to 15x15
+        )
+        self.skip_adapter_mid = nn.Sequential( # Skip Connection from Block 2 to Fusion 2
             nn.Conv2d(in_channels=96, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros'),  # (96->232)
             nn.AvgPool2d(kernel_size=2, stride=2)  # (30x30 -> 15x15)
         )
-        self.skip_adapter_deep = nn.Sequential( # Skip Connection from Block 3 to Block 4
+        self.skip_adapter_deep = nn.Sequential( # Skip Connection from Block 3 to Fusion 2
             nn.Conv2d(in_channels=168, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros')  # (168->232)
         )
         self.fusion_conv = nn.Sequential(
-            nn.Conv2d(336, 2, kernel_size=1, bias=False),  # (336 -> 2)
+            nn.Conv2d(336, 2, kernel_size=1, bias=False),  # 336 -> 2
             nn.BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.Sigmoid()
         )
+        self.fusion_conv2 = nn.Sequential(
+            nn.Conv2d(928, 4, kernel_size=1, bias=False),  # 928 -> 4 
+            nn.BatchNorm2d(4, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.Sigmoid()
+        )
+
         # -- Block 4 -- 
         block4_downsample = nn.Sequential(
             nn.Conv2d(168, 232, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (168->232)
@@ -87,6 +102,7 @@ class CustomModel(BaseModel):
             CBAM(in_channels=232),  # CBAM Module (Channel+Spatial Attention) (232->232)
             nn.Dropout(p=ModuleConfig.dropout_rt * 2)  # Dropout Layer
         )
+
         # -- Block 5 -- 
         self.classifier = nn.Sequential(
             nn.Conv2d(in_channels=232, out_channels=128, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (232->128)
@@ -108,8 +124,9 @@ class CustomModel(BaseModel):
         adapted_features_low = self.skip_adapter(features_low)  # (168, 15, 15)
         adapted_features_mid = self.skip_adapter_mid(features_mid)  # (232, 15, 15)
         adapted_features_deep = self.skip_adapter_deep(features_deep)  # (232, 15, 15)
+        adapted_features_spectral = self.skip_adapter_spectral(x)  # (232, 15, 15)
 
-        # Lightweight attention-guided fusion for features_deep and adapted_features_low
+        # Fusion 1: Learned convolutional approach
         fused_input = torch.cat([features_deep, adapted_features_low], dim=1)  # (336, 15, 15)
         weights = self.fusion_conv(fused_input)  # (2, 15, 15)
         w_deep, w_low = weights[:, 0:1, :, :], weights[:, 1:2, :, :]  # Split into two masks
@@ -117,29 +134,11 @@ class CustomModel(BaseModel):
 
         features_high = self.block4(fused_features)  # Block 4: High-level features (232, 15, 15)
 
-        # Parameter-free attention-guided fusion for features_high, adapted_features_mid, and adapted_features_deep
-        mask_high = torch.sigmoid(torch.mean(features_high, dim=1, keepdim=True) + torch.max(features_high, dim=1, keepdim=True)[0])
-        mask_mid = torch.sigmoid(torch.mean(adapted_features_mid, dim=1, keepdim=True) + torch.max(adapted_features_mid, dim=1, keepdim=True)[0])
-        mask_deep = torch.sigmoid(torch.mean(adapted_features_deep, dim=1, keepdim=True) + torch.max(adapted_features_deep, dim=1, keepdim=True)[0])
-        mask_sum = mask_high + mask_mid + mask_deep + 1e-8  # Add small epsilon to avoid division by zero
-        mask_high = mask_high / mask_sum
-        mask_mid = mask_mid / mask_sum
-        mask_deep = mask_deep / mask_sum
-        fused_features_high = (mask_high * features_high) + (mask_mid * adapted_features_mid) + (mask_deep * adapted_features_deep)
+        # Fusion 2: Learned convolutional approach
+        fusion_input2 = torch.cat([features_high, adapted_features_mid, adapted_features_deep, adapted_features_spectral], dim=1)  # (928, 15, 15)
+        weights2 = self.fusion_conv2(fusion_input2)  # (4, 15, 15)
+        w_high, w_mid, w_deep, w_early = weights2[:, 0:1, :, :], weights2[:, 1:2, :, :], weights2[:, 2:3, :, :], weights2[:, 3:4, :, :]  # Split into four masks
+        fused_features_high = (w_high * features_high) + (w_mid * adapted_features_mid) + (w_deep * adapted_features_deep) + (w_early * adapted_features_spectral)  # (232, 15, 15)
 
         out = self.classifier(fused_features_high)  # Classifier (19)
         return out
-    
-    # Override optimizer configuration for CustomModel
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'monitor': 'val_loss',
-                'interval': 'epoch',
-                'frequency': 1
-            }
-        }

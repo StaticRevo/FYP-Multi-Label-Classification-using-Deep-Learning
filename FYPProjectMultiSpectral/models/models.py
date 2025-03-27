@@ -398,6 +398,823 @@ class CustomWRNB0(BaseModel):
             }
         }
     
+# -- Custom Model Versions --
+# Custom Model Version 1
+class CustomModelV1(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        custom_model_1 = nn.Sequential(
+            # -- Block 1 --
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
+            SpectralAttention(in_channels=32), # SpectralAttention Module
+
+            # -- Block 2 --
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
+            ECA(in_channels=64, k_size=3), # ECA Module
+
+            # -- BLock 3 -- 
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
+            SE(in_channels=128), # Squeeze and Excitation Module
+
+            # -- Block 4 -- 
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
+            DualAttention(in_channels=256), # DualAttention Module
+
+            # Global Pool and Classifier
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Dropout(ModelConfig.dropout),
+            nn.Linear(256, num_classes)
+        )
+        super(CustomModelV1, self).__init__(custom_model_1, num_classes, class_weights, in_channels, main_path)
+        
+# Custom Model Version 2
+class CustomModelV2(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        custom_model_2 = nn.Sequential(
+            # Spectral Mixing 
+            nn.Conv2d(in_channels, 16, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+
+            # -- Block 1 --
+            DepthwiseSeparableConv(16, 32, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
+            SpectralAttention(in_channels=32), # SpectralAttention Module
+            CoordinateAttention(32),
+
+            # -- Block 2 --
+            DepthwiseSeparableConv(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            MultiScaleBlock(64, 64),
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
+            ECA(in_channels=64, k_size=3), # ECA Module
+
+            # -- BLock 3 -- 
+            DepthwiseSeparableConv(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            MultiScaleBlock(128, 128),
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
+            SE(in_channels=128), # Squeeze and Excitation Module
+
+            # -- Block 4 -- 
+            DepthwiseSeparableConv(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
+            DualAttention(in_channels=256), # DualAttention Module
+
+            # Global Pool and Classifier
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Dropout(ModelConfig.dropout),
+            nn.Linear(256, num_classes)
+        )
+        super(CustomModelV2, self).__init__(custom_model_2, num_classes, class_weights, in_channels, main_path)
+
+# Custom Model Version 3
+class CustomModelV3(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()
+        super(CustomModelV3, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+    
+        # Spectral Mixing & Initial Feature Extraction
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.GELU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        # -- Block 1 --
+        self.block1 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64)  
+            SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
+            CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)
+        )
+        # -- Block 2 --
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->128)
+            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, 
+                            bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
+            ECA(in_channels=128, k_size=3), # ECA Module
+        )
+        # -- BLock 3 --
+        self.block3 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1, 
+                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->256)
+            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
+            SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
+        )
+        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape", batch_first=True)
+        self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
+
+        # -- Block 4 -- 
+        self.block4 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->512)
+            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            ResidualBlock(in_channels=512, out_channels=512, stride=1), # Residual Block (512->512)
+            DualAttention(in_channels=512, kernel_size=7, stride=1), # DualAttention Module (Spectal+Spatial Attention Modules)
+        )
+        # -- Block 5 -- 
+        self.classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d(output_size=(1, 1)), # Adaptive Average Pooling Layer
+            nn.Flatten(), # Flatten Layer
+            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+            nn.Linear(in_features=512, out_features=num_classes) # Fully Connected Layer
+        )
+    # Override forward function for CustomModel
+    def forward(self, x):
+        x = self.spectral_mixer(x)                      # Step 1: Spectral mixing
+        features_low = self.block1(x)                   # Step 2: Extract low-level features.
+        features_mid = self.block2(features_low)         # Step 3: Compute mid-level features.
+        features_deep = self.block3(features_mid)        # Step 4: Compute deep features.
+        features_deep = self.transformer_block(features_deep)  # Apply transformer block for global context
+        adapted_features_low = self.skip_adapter(features_low) # Adjust low-level features
+    
+        # If spatial dimensions differ interpolate adapted_features_low to match features_deep
+        adapted_features_low = torch.nn.functional.interpolate(
+            adapted_features_low,
+            size=(15, 15),  
+            mode='bilinear',
+            align_corners=False
+        )
+    
+        fused_features = features_deep + adapted_features_low  # Step 5: Fuse features.
+        features_high = self.block4(fused_features)      # Step 6: Refine high-level representations.
+        out = self.classifier(features_high)             # Step 7: Final classification.
+        return out
+
+    # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+    
+# Custom Model Version 4
+class CustomModelV4(BaseModel):
+     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+         dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
+         super(CustomModelV4, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+     
+         # Spectral Mixing and Initial Feature Extraction
+         self.spectral_mixer = nn.Sequential(
+             nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
+                       dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (in_channels->64)
+             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+             nn.GELU(), # GELU Activation Function
+             nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer - (120x120 -> 60x60)
+         )
+         # -- Block 1 --
+         block1_downsample = nn.Sequential(
+             nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (64->128)
+             nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+         )
+         self.block1 = nn.Sequential(
+             DepthwiseSeparableConv(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1, 
+                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->64)
+             nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+             nn.GELU(), # GELU Activation Function
+             Bottleneck(in_channels=64, out_channels=32, stride=1, downsample=block1_downsample), # Bottleneck Block (64->128 (32*4))  
+             SpectralAttention(in_channels=128), # SpectralAttention Module (128->128)
+             CoordinateAttention(in_channels=128, reduction=16), # CoordinateAttention Module (128->128)
+         )
+         # -- Block 2 --
+         block2_downsample = nn.Sequential(
+             nn.Conv2d(128, 256, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (128->256)
+             nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+         )
+         self.block2 = nn.Sequential(
+             DepthwiseSeparableConv(in_channels=128, out_channels=128, kernel_size=3, stride=2, padding=1, 
+                                    dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->128)
+             nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+             nn.GELU(),
+             MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, 
+                             bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
+             Bottleneck(in_channels=128, out_channels=64, stride=1, downsample=block2_downsample), # Bottleneck Block (128->256 (64*4)) 
+             ECA(in_channels=256), # ECA Module
+         )
+         # -- Block 3 --
+         block3_downsample = nn.Sequential(
+             nn.Conv2d(256, 512, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (256->512)
+             nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+         )
+         self.block3 = nn.Sequential(
+             DepthwiseSeparableConv(in_channels=256, out_channels=256, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->256)
+             nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+             nn.GELU(),
+             MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
+             Bottleneck(in_channels=256, out_channels=128, stride=1, downsample=block3_downsample), # Bottleneck Block (256->512 (128*4)) 
+             SE(in_channels=512, kernel_size=1), # Squeeze and Excitation Module
+         )
+         self.skip_adapter = nn.Sequential(
+             nn.Conv2d(in_channels=128, out_channels=512, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (128->512)
+             nn.AvgPool2d(kernel_size=4, stride=4) # Average Pooling Layer (60x60 -> 15x15)
+         )
+         # -- Block 4 -- 
+         block4_downsample = nn.Sequential(
+             nn.Conv2d(512, 1024, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (512->1024)
+             nn.BatchNorm2d(num_features=1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+         )
+         self.block4 = nn.Sequential(
+             DepthwiseSeparableConv(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=2, 
+                                    dilation=2, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (512->512)
+             nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+             nn.GELU(),
+             Bottleneck(in_channels=512, out_channels=256, stride=1, downsample=block4_downsample), # Bottleneck Block (512->1024 (256*4))
+             DualAttention(in_channels=1024, kernel_size=7, stride=1), # DualAttention Module (Spectral+Spatial Attention Modules)
+         )
+         # -- Block 5 -- 
+         self.classifier = nn.Sequential(
+             nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1, padding=1, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer
+             nn.GELU(),
+             nn.AdaptiveAvgPool2d(1), # Adaptive Average Pooling Layer
+             nn.Flatten(), # Flatten Layer
+             nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+             nn.Linear(in_features=1024, out_features=num_classes) # Fully Connected Layer
+         )
+     
+     # Override forward function for CustomModel
+     def forward(self, x):
+         x = self.spectral_mixer(x) # Spectral mixing (64, 60, 60)
+         features_low = self.block1(x) # Block 1: Low-level features (128, 60, 60)
+         features_mid = self.block2(features_low) # Block 2: Mid-level features (256, 30, 30)
+         features_deep = self.block3(features_mid) # Block 3: Deep features (512, 15, 15)
+         adapted_features_low = self.skip_adapter(features_low) # Adapt low-level features to match deep features (512, 15, 15)
+         fused_features = features_deep + adapted_features_low  # Fuse low level and deep features (512, 15, 15)
+         features_high = self.block4(fused_features) # Refine high-level representations (1024, 15, 15)
+         out = self.classifier(features_high) # Final classification (19)
+         return out
+     
+     # Override optimizer configuration for CustomModel
+     def configure_optimizers(self):
+         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
+         return {
+             'optimizer': optimizer,
+             'lr_scheduler': {
+                 'scheduler': scheduler,
+                 'monitor': 'val_loss',
+                 'interval': 'epoch',
+                 'frequency': 1
+             }
+         }
+
+# Custom Model Version 5
+class CustomModelV5(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
+        super(CustomModelV5, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+    
+        # Spectral Mixing and Initial Feature Extraction
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
+                      dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (in_channels->32)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+            nn.GELU(), # GELU Activation Function
+            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False, padding_mode='zeros'), # Convolutional Layer (32->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer
+            nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer - (120x120 -> 60x60)
+        )
+        # -- Block 1 --
+        block1_downsample = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (32->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block1 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+            nn.GELU(), # GELU Activation Function
+            WideBottleneck(in_channels=32, out_channels=16, stride=1, downsample=block1_downsample, widen_factor=4), # WideBottleneck Block (32->64 (16*4))  
+            SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
+            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+            CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        # -- Block 2 --
+        block2_downsample = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (64->128)
+            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=64, out_channels=64, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=64, out_channels=32, stride=1, downsample=block2_downsample, widen_factor=4), # WideBottleneck Block (64->128 (32*4)) 
+            ECA(in_channels=128), # ECA Module,
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        # -- Block 3 --
+        block3_downsample = nn.Sequential(
+            nn.Conv2d(128, 256, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (128->256)
+            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block3 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=128, out_channels=128, kernel_size=3, stride=2, padding=1, 
+                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->128)
+            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=128, out_channels=64, stride=1, downsample=block3_downsample, widen_factor=4), # WideBottleneck Block (128->256 (64*4)) 
+            SE(in_channels=256, kernel_size=1), # Squeeze and Excitation Module
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        self.skip_adapter = nn.Sequential(
+            nn.Conv2d(in_channels=64, out_channels=256, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (64->256)
+            nn.AvgPool2d(kernel_size=4, stride=4) # Average Pooling Layer (60x60 -> 15x15)
+        )
+        # -- Block 4 -- 
+        block4_downsample = nn.Sequential(
+            nn.Conv2d(256, 512, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (256->512)
+            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block4 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=2, 
+                                   dilation=2, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (256->256)
+            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=256, out_channels=128, stride=1, downsample=block4_downsample, widen_factor=4), # WideBottleneck Block (256->512 (128*4))
+            CBAM(in_channels=512), # CBAM Module (Channel+Spatial Attention)
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        # -- Block 5 -- 
+        self.classifier = nn.Sequential(
+            nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (512->256)
+            nn.GELU(),
+            nn.AdaptiveAvgPool2d(1), # Adaptive Average Pooling Layer
+            nn.Flatten(), # Flatten Layer
+            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+            nn.Linear(in_features=256, out_features=num_classes) # Fully Connected Layer (256->19)
+        )
+    
+    # Override forward function for CustomModel
+    def forward(self, x):
+        x = self.spectral_mixer(x) # Spectral mixing (32, 60, 60)
+        features_low = self.block1(x) # Block 1: Low-level features (64, 60, 60)
+        features_mid = self.block2(features_low) # Block 2: Mid-level features (128, 30, 30)
+        features_deep = self.block3(features_mid) # Block 3: Deep features (256, 15, 15)
+        adapted_features_low = self.skip_adapter(features_low) # Adapt low-level features to match deep features (256, 15, 15)
+        fused_features = features_deep + adapted_features_low  # Fuse low level and deep features (256, 15, 15)
+        features_high = self.block4(fused_features) # Refine high-level representations (512, 15, 15)
+        out = self.classifier(features_high) # Final classification (19)
+        
+        return out
+    
+    # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+
+# Custom Model Version 6
+class CustomModelV6(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
+        super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+    
+        # Spectral Mixing and Initial Feature Extraction
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
+                      dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (in_channels->32)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+            nn.GELU(), # GELU Activation Function
+            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False, padding_mode='zeros'), # Convolutional Layer (32->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer
+            nn.MaxPool2d(kernel_size=2, stride=2) # Max Pooling Layer - (120x120 -> 60x60)
+        )
+        # -- Block 1 --
+        block1_downsample = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (32->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block1 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (32->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), # Batch Normalization Layer 
+            nn.GELU(), # GELU Activation Function
+            WideBottleneck(in_channels=32, out_channels=16, stride=1, downsample=block1_downsample, widen_factor=4), # WideBottleneck Block (32->64 (16*4))  
+            SpectralAttention(in_channels=64), # SpectralAttention Module (64->64)
+            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+            CoordinateAttention(in_channels=64, reduction=16), # CoordinateAttention Module (64->64)
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        # -- Block 2 --
+        block2_downsample = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (64->128)
+            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=64, out_channels=64, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (64->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=64, out_channels=32, stride=1, downsample=block2_downsample, widen_factor=4), # WideBottleneck Block (64->128 (32*4)) 
+            ECA(in_channels=128), # ECA Module,
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        # -- Block 3 --
+        block3_downsample = nn.Sequential(
+            nn.Conv2d(128, 256, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (128->256)
+            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block3 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=128, out_channels=128, kernel_size=3, stride=2, padding=1, 
+                                  dilation=1, bias=False, padding_mode='zeros'), # Depthwise Separable Convolution (128->128)
+            nn.BatchNorm2d(num_features=128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=128, out_channels=64, stride=1, downsample=block3_downsample, widen_factor=4), # WideBottleneck Block (128->256 (64*4)) 
+            SE(in_channels=256, kernel_size=1), # Squeeze and Excitation Module
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        self.skip_adapter = nn.Sequential(
+            nn.Conv2d(in_channels=64, out_channels=256, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (64->256)
+            nn.AvgPool2d(kernel_size=4, stride=4) # Average Pooling Layer (60x60 -> 15x15)
+        )
+        # -- Block 4 -- 
+        block4_downsample = nn.Sequential(
+            nn.Conv2d(256, 512, kernel_size=1, stride=1, bias=False, padding_mode='zeros'), # Downsample path (256->512)
+            nn.BatchNorm2d(num_features=512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) # Batch Normalization for downsample
+        )
+        self.block4 = nn.Sequential(
+            MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=False, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            WideBottleneck(in_channels=256, out_channels=128, stride=1, downsample=block4_downsample, widen_factor=4), # WideBottleneck Block (256->512 (128*4))
+            CBAM(in_channels=512), # CBAM Module (Channel+Spatial Attention)
+            nn.Dropout(p=ModuleConfig.dropout_rt) # Dropout Layer
+        )
+        # -- Block 5 -- 
+        self.classifier = nn.Sequential(
+            nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'), # Convolutional Layer (512->256)
+            nn.GELU(),
+            nn.AdaptiveAvgPool2d(1), # Adaptive Average Pooling Layer
+            nn.Flatten(), # Flatten Layer
+            nn.Dropout(p=ModuleConfig.dropout_rt), # Dropout Layer
+            nn.Linear(in_features=256, out_features=num_classes) # Fully Connected Layer (256->19)
+        )
+    
+    # Override forward function for CustomModel
+    def forward(self, x):
+        x = self.spectral_mixer(x) # Spectral mixing (32, 60, 60)
+        features_low = self.block1(x) # Block 1: Low-level features (64, 60, 60)
+        features_mid = self.block2(features_low) # Block 2: Mid-level features (128, 30, 30)
+        features_deep = self.block3(features_mid) # Block 3: Deep features (256, 15, 15)
+        adapted_features_low = self.skip_adapter(features_low) # Adapt low-level features to match deep features (256, 15, 15)
+        fused_features = features_deep + adapted_features_low  # Fuse low level and deep features (256, 15, 15)
+        features_high = self.block4(fused_features) # Refine high-level representations (512, 15, 15)
+        out = self.classifier(features_high) # Final classification (19)
+        
+        return out
+
+        # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+
+
+# Custom Model Version 7
+class CustomModelV7(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()  # Dummy model for custom architecture to pass to the base model
+        super(CustomModelV7, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+    
+        # Spectral Mixing and Initial Feature Extraction
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
+                      dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (in_channels->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer 
+            nn.GELU(),  # GELU Activation Function
+            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (64->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer
+            nn.MaxPool2d(kernel_size=2, stride=2)  # Max Pooling Layer - (120x120 -> 60x60)
+        )
+        # -- Block 1 --
+        block1_downsample = nn.Sequential(
+            nn.Conv2d(32, 48, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (32->48)
+            nn.BatchNorm2d(num_features=48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block1 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'),  # Depthwise Separable Convolution (32->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer 
+            nn.GELU(),  # GELU Activation Function
+            WideBottleneck(in_channels=32, out_channels=24, stride=1, downsample=block1_downsample, widen_factor=2),  # WideBottleneck Block (32->48 (24*2))  
+            SpectralAttention(in_channels=48),  # SpectralAttention Module (48->48)
+            nn.Dropout(p=ModuleConfig.dropout_rt),  # Dropout Layer
+            CoordinateAttention(in_channels=48, reduction=16),  # CoordinateAttention Module (48->48)
+            nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
+        )
+        # -- Block 2 --
+        block2_downsample = nn.Sequential(
+            nn.Conv2d(48, 96, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (48->96)
+            nn.BatchNorm2d(num_features=96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=48, out_channels=48, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'),  # Depthwise Separable Convolution (48->48)
+            nn.BatchNorm2d(num_features=48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=48, out_channels=48, stride=1, downsample=block2_downsample, widen_factor=2),  # WideBottleneck Block (48->96 (48*2)) 
+            ECA(in_channels=96),  # ECA Module
+            nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
+        )
+        # -- Block 3 --
+        block3_downsample = nn.Sequential(
+            nn.Conv2d(96, 168, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (96->168)
+            nn.BatchNorm2d(num_features=168, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block3 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=96, out_channels=96, kernel_size=3, stride=2, padding=1, 
+                                  dilation=1, bias=False, padding_mode='zeros'),  # Depthwise Separable Convolution (96->96)
+            nn.BatchNorm2d(num_features=96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=96, out_channels=84, stride=1, downsample=block3_downsample, widen_factor=2),  # WideBottleneck Block (96->168 (84*2)) 
+            SE(in_channels=168, kernel_size=1),  # Squeeze and Excitation Module (168->168)
+            nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)  # Dropout Layer
+        )
+        # -- Skip Connection Adapters --
+        self.skip_adapter = nn.Sequential( # Skip Connection from Block 1 to Block 3
+            nn.Conv2d(in_channels=48, out_channels=168, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (48->168)
+            nn.AvgPool2d(kernel_size=4, stride=4)  # Average Pooling Layer (60x60 -> 15x15)
+        )
+        self.skip_adapter_mid = nn.Sequential( # Skip Connection from Block 2 to Block 4
+            nn.Conv2d(in_channels=96, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros'),  # (96->232)
+            nn.AvgPool2d(kernel_size=2, stride=2)  # (30x30 -> 15x15)
+        )
+        self.skip_adapter_deep = nn.Sequential( # Skip Connection from Block 3 to Block 4
+            nn.Conv2d(in_channels=168, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros')  # (168->232)
+        )
+        self.fusion_conv = nn.Sequential(
+            nn.Conv2d(336, 2, kernel_size=1, bias=False),  # (336 -> 2)
+            nn.BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.Sigmoid()
+        )
+        # -- Block 4 -- 
+        block4_downsample = nn.Sequential(
+            nn.Conv2d(168, 232, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (168->232)
+            nn.BatchNorm2d(num_features=232, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block4 = nn.Sequential(
+            MultiScaleBlock(in_channels=168, out_channels=168, kernel_size=3, stride=1, groups=1, bias=False, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=168, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            WideBottleneck(in_channels=168, out_channels=116, stride=1, downsample=block4_downsample, widen_factor=2),  # WideBottleneck Block (168->232 (116*2))
+            CBAM(in_channels=232),  # CBAM Module (Channel+Spatial Attention) (232->232)
+            nn.Dropout(p=ModuleConfig.dropout_rt * 2)  # Dropout Layer
+        )
+        # -- Block 5 -- 
+        self.classifier = nn.Sequential(
+            nn.Conv2d(in_channels=232, out_channels=128, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (232->128)
+            nn.GELU(),
+            nn.AdaptiveAvgPool2d(1),  # Adaptive Average Pooling Layer
+            nn.Flatten(),  # Flatten Layer
+            nn.Dropout(p=ModuleConfig.dropout_rt * 2),  # Dropout Layer
+            nn.Linear(in_features=128, out_features=num_classes)  # Fully Connected Layer (128->19)
+        )
+    
+    # Override forward function for CustomModel
+    def forward(self, x):
+        x = self.spectral_mixer(x)  # Spectral mixing (32, 60, 60)
+        features_low = self.block1(x)  # Block 1: Low-level features (48, 60, 60)
+        features_mid = self.block2(features_low)  # Block 2: Mid-level features (96, 30, 30)
+        features_deep = self.block3(features_mid)  # Block 3: Deep features (168, 15, 15)
+
+        # Skip Connection Adapters
+        adapted_features_low = self.skip_adapter(features_low)  # (168, 15, 15)
+        adapted_features_mid = self.skip_adapter_mid(features_mid)  # (232, 15, 15)
+        adapted_features_deep = self.skip_adapter_deep(features_deep)  # (232, 15, 15)
+
+        # Lightweight attention-guided fusion for features_deep and adapted_features_low
+        fused_input = torch.cat([features_deep, adapted_features_low], dim=1)  # (336, 15, 15)
+        weights = self.fusion_conv(fused_input)  # (2, 15, 15)
+        w_deep, w_low = weights[:, 0:1, :, :], weights[:, 1:2, :, :]  # Split into two masks
+        fused_features = (w_deep * features_deep) + (w_low * adapted_features_low)  # (168, 15, 15)
+
+        features_high = self.block4(fused_features)  # Block 4: High-level features (232, 15, 15)
+
+        # Parameter-free attention-guided fusion for features_high, adapted_features_mid, and adapted_features_deep
+        mask_high = torch.sigmoid(torch.mean(features_high, dim=1, keepdim=True) + torch.max(features_high, dim=1, keepdim=True)[0])
+        mask_mid = torch.sigmoid(torch.mean(adapted_features_mid, dim=1, keepdim=True) + torch.max(adapted_features_mid, dim=1, keepdim=True)[0])
+        mask_deep = torch.sigmoid(torch.mean(adapted_features_deep, dim=1, keepdim=True) + torch.max(adapted_features_deep, dim=1, keepdim=True)[0])
+        mask_sum = mask_high + mask_mid + mask_deep + 1e-8  # Add small epsilon to avoid division by zero
+        mask_high = mask_high / mask_sum
+        mask_mid = mask_mid / mask_sum
+        mask_deep = mask_deep / mask_sum
+        fused_features_high = (mask_high * features_high) + (mask_mid * adapted_features_mid) + (mask_deep * adapted_features_deep)
+
+        out = self.classifier(fused_features_high)  # Classifier (19)
+        return out
+    
+    # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+
+# Custom Model Version 8
+class CustomModelV8(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()  # Dummy model for custom architecture to pass to the base model
+        super(CustomModelV8, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+    
+        # -- Spectral Mixing and Initial Feature Extraction --
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0,
+                      dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (in_channels->64)
+            nn.BatchNorm2d(num_features=64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer 
+            nn.GELU(),  # GELU Activation Function
+            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (64->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer
+            SpectralAttention(in_channels=32),  # SpectralAttention Module (32->32)
+            nn.MaxPool2d(kernel_size=2, stride=2)  # Max Pooling Layer - (120x120 -> 60x60)
+        )
+
+        # -- Block 1 --
+        block1_downsample = nn.Sequential(
+            nn.Conv2d(32, 48, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (32->48)
+            nn.BatchNorm2d(num_features=48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block1 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'),  # Depthwise Separable Convolution (32->32)
+            nn.BatchNorm2d(num_features=32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),  # Batch Normalization Layer 
+            nn.GELU(),  # GELU Activation Function
+            WideBottleneck(in_channels=32, out_channels=24, stride=1, downsample=block1_downsample, widen_factor=2),  # WideBottleneck Block (32->48 (24*2))  
+            SpectralAttention(in_channels=48),  # SpectralAttention Module (48->48)
+            nn.Dropout(p=ModuleConfig.dropout_rt),  # Dropout Layer
+            CoordinateAttention(in_channels=48, reduction=16),  # CoordinateAttention Module (48->48)
+            nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
+        )
+
+        # -- Block 2 --
+        block2_downsample = nn.Sequential(
+            nn.Conv2d(48, 96, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (48->96)
+            nn.BatchNorm2d(num_features=96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=48, out_channels=48, kernel_size=3, stride=2, padding=1, 
+                                   dilation=1, bias=False, padding_mode='zeros'),  # Depthwise Separable Convolution (48->48)
+            nn.BatchNorm2d(num_features=48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=48, out_channels=48, stride=1, downsample=block2_downsample, widen_factor=2),  # WideBottleneck Block (48->96 (48*2)) 
+            ECA(in_channels=96),  # ECA Module
+            nn.Dropout(p=ModuleConfig.dropout_rt)  # Dropout Layer
+        )
+
+        # -- Block 3 --
+        block3_downsample = nn.Sequential(
+            nn.Conv2d(96, 168, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (96->168)
+            nn.BatchNorm2d(num_features=168, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block3 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=96, out_channels=96, kernel_size=3, stride=2, padding=1, 
+                                  dilation=1, bias=False, padding_mode='zeros'),  # Depthwise Separable Convolution (96->96)
+            nn.BatchNorm2d(num_features=96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.GELU(),
+            WideBottleneck(in_channels=96, out_channels=84, stride=1, downsample=block3_downsample, widen_factor=2),  # WideBottleneck Block (96->168 (84*2)) 
+            SE(in_channels=168, kernel_size=1),  # Squeeze and Excitation Module (168->168)
+            nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)  # Dropout Layer
+        )
+
+        # -- Skip Connection Adapters --
+        self.skip_adapter = nn.Sequential( # Skip Connection from Block 1 to Block Fusion 1
+            nn.Conv2d(in_channels=48, out_channels=168, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (48->168)
+            nn.AvgPool2d(kernel_size=4, stride=4)  # Average Pooling Layer (60x60 -> 15x15)
+        )
+        self.skip_adapter_spectral = nn.Sequential(  # Skip Connection from Spectral Mixer to Fusion 2
+            nn.Conv2d(in_channels=32, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.AvgPool2d(kernel_size=4, stride=4)  # Downsample from 60x60 to 15x15
+        )
+        self.skip_adapter_mid = nn.Sequential( # Skip Connection from Block 2 to Fusion 2
+            nn.Conv2d(in_channels=96, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros'),  # (96->232)
+            nn.AvgPool2d(kernel_size=2, stride=2)  # (30x30 -> 15x15)
+        )
+        self.skip_adapter_deep = nn.Sequential( # Skip Connection from Block 3 to Fusion 2
+            nn.Conv2d(in_channels=168, out_channels=232, kernel_size=1, stride=1, padding=0, bias=False, padding_mode='zeros')  # (168->232)
+        )
+        self.fusion_conv = nn.Sequential(
+            nn.Conv2d(336, 2, kernel_size=1, bias=False),  # 336 -> 2
+            nn.BatchNorm2d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.Sigmoid()
+        )
+        self.fusion_conv2 = nn.Sequential(
+            nn.Conv2d(928, 4, kernel_size=1, bias=False),  # 928 -> 4 
+            nn.BatchNorm2d(4, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.Sigmoid()
+        )
+
+        # -- Block 4 -- 
+        block4_downsample = nn.Sequential(
+            nn.Conv2d(168, 232, kernel_size=1, stride=1, bias=False, padding_mode='zeros'),  # Downsample path (168->232)
+            nn.BatchNorm2d(num_features=232, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  # Batch Normalization for downsample
+        )
+        self.block4 = nn.Sequential(
+            MultiScaleBlock(in_channels=168, out_channels=168, kernel_size=3, stride=1, groups=1, bias=False, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=168, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            WideBottleneck(in_channels=168, out_channels=116, stride=1, downsample=block4_downsample, widen_factor=2),  # WideBottleneck Block (168->232 (116*2))
+            CBAM(in_channels=232),  # CBAM Module (Channel+Spatial Attention) (232->232)
+            nn.Dropout(p=ModuleConfig.dropout_rt * 2)  # Dropout Layer
+        )
+
+        # -- Block 5 -- 
+        self.classifier = nn.Sequential(
+            nn.Conv2d(in_channels=232, out_channels=128, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (232->128)
+            nn.GELU(),
+            nn.AdaptiveAvgPool2d(1),  # Adaptive Average Pooling Layer
+            nn.Flatten(),  # Flatten Layer
+            nn.Dropout(p=ModuleConfig.dropout_rt * 2),  # Dropout Layer
+            nn.Linear(in_features=128, out_features=num_classes)  # Fully Connected Layer (128->19)
+        )
+    
+    # Override forward function for CustomModel
+    def forward(self, x):
+        x = self.spectral_mixer(x)  # Spectral mixing (32, 60, 60)
+        features_low = self.block1(x)  # Block 1: Low-level features (48, 60, 60)
+        features_mid = self.block2(features_low)  # Block 2: Mid-level features (96, 30, 30)
+        features_deep = self.block3(features_mid)  # Block 3: Deep features (168, 15, 15)
+
+        # Skip Connection Adapters
+        adapted_features_low = self.skip_adapter(features_low)  # (168, 15, 15)
+        adapted_features_mid = self.skip_adapter_mid(features_mid)  # (232, 15, 15)
+        adapted_features_deep = self.skip_adapter_deep(features_deep)  # (232, 15, 15)
+        adapted_features_spectral = self.skip_adapter_spectral(x)  # (232, 15, 15)
+
+        # Fusion 1: Learned convolutional approach
+        fused_input = torch.cat([features_deep, adapted_features_low], dim=1)  # (336, 15, 15)
+        weights = self.fusion_conv(fused_input)  # (2, 15, 15)
+        w_deep, w_low = weights[:, 0:1, :, :], weights[:, 1:2, :, :]  # Split into two masks
+        fused_features = (w_deep * features_deep) + (w_low * adapted_features_low)  # (168, 15, 15)
+
+        features_high = self.block4(fused_features)  # Block 4: High-level features (232, 15, 15)
+
+        # Fusion 2: Learned convolutional approach
+        fusion_input2 = torch.cat([features_high, adapted_features_mid, adapted_features_deep, adapted_features_spectral], dim=1)  # (928, 15, 15)
+        weights2 = self.fusion_conv2(fusion_input2)  # (4, 15, 15)
+        w_high, w_mid, w_deep, w_early = weights2[:, 0:1, :, :], weights2[:, 1:2, :, :], weights2[:, 2:3, :, :], weights2[:, 3:4, :, :]  # Split into four masks
+        fused_features_high = (w_high * features_high) + (w_mid * adapted_features_mid) + (w_deep * adapted_features_deep) + (w_early * adapted_features_spectral)  # (232, 15, 15)
+
+        out = self.classifier(fused_features_high)  # Classifier (19)
+        return out
 
 # -- State-Of-The-Art Models (adapted from torch) --
 # ResNet18 Model

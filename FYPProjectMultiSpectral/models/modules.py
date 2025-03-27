@@ -476,3 +476,73 @@ class MixedDepthwiseConv(nn.Module):
         
         return out
 
+
+# -- Old Custom Model version Modules --
+# Residual Block Module (ResidualBlock)
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        
+        self.downsample = None
+        if in_channels != out_channels:
+            self.downsample = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
+    
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        if self.downsample:
+            residual = self.downsample(x)
+        out += residual
+        out = self.relu(out)
+        return out
+
+# Positional Encoding Module (PositionalEncoding)
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)  # Shape: (1, max_len, d_model)
+        self.register_buffer('pe', pe)
+ 
+    def forward(self, x):   
+        seq_len = x.size(1) # x: (B, seq_len, d_model)
+        return x + self.pe[:, :seq_len, :]
+     
+# Transformer Module (TransformerModule)
+class TransformerModule(nn.Module):
+    def __init__(self, d_model, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape"):
+        super(TransformerModule, self).__init__()
+        encoder_layer = TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout)
+        self.transformer_encoder = TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.positional_encoding = PositionalEncoding(d_model)
+        self.return_mode = return_mode
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+        tokens = x.flatten(2).transpose(1, 2) # Flatten spatial dimensions -> (B, H*W, C)
+        tokens = self.positional_encoding(tokens)
+        tokens = self.transformer_encoder(tokens)
+
+        if self.return_mode == "reshape":
+            tokens = tokens.transpose(1, 2).reshape(B, C, H, W) # Reshape back to 4D
+        elif self.return_mode == "pool":
+            tokens = tokens.mean(dim=1)  # Aggregate tokens to (B, C)
+        else:
+            raise ValueError("Unsupported return_mode. Choose 'reshape' or 'pool'.")
+        return tokens

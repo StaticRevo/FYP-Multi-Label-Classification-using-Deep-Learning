@@ -26,5 +26,6 @@ def get_model_class(model_name):
         'CustomModelV6': (CustomModelV6, 'custom_model_v6'),
         'CustomModelV7': (CustomModelV7, 'custom_model_v7'),
         'CustomModelV8': (CustomModelV8, 'custom_model_v8'),
+        'CustomModelV9': (CustomModelV9, 'custom_model_v9'),
     }
     return model_mapping.get(model_name, (None, None))

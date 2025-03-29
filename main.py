@@ -90,7 +90,8 @@ class ModelSelectionGUI:
             '16': 'CustomModelV6',
             '17': 'CustomModelV7',
             '18': 'CustomModelV8',
-            '19': 'CustomWRNB4ECA',
+            '19': 'CustomModelV9',
+            '20': 'CustomWRNB4ECA',
         }
 
         self.band_selection = {

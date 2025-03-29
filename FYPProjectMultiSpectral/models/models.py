@@ -1260,7 +1260,7 @@ class CustomModelV9(BaseModel):
             nn.BatchNorm2d(num_features=52)
         )
         self.block1 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=36, out_channels=36, kernel_size=3, stride=1, padding=1, bias=False),
+            DepthwiseSeparableConv(in_channels=36, out_channels=36, kernel_size=3, stride=1, padding=1, bias=False, dilation=1, padding_mode='zeros'),
             nn.BatchNorm2d(num_features=36),
             nn.GELU(),
             WideBottleneck(in_channels=36, out_channels=26, stride=1, downsample=block1_downsample, widen_factor=2),
@@ -1276,7 +1276,7 @@ class CustomModelV9(BaseModel):
             nn.BatchNorm2d(num_features=104)
         )
         self.block2 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=52, out_channels=52, kernel_size=3, stride=2, padding=1, bias=False),
+            DepthwiseSeparableConv(in_channels=52, out_channels=52, kernel_size=3, stride=2, padding=1, bias=False, dilation=1, padding_mode='zeros'),
             nn.BatchNorm2d(num_features=52),
             nn.GELU(),
             WideBottleneck(in_channels=52, out_channels=52, stride=1, downsample=block2_downsample, widen_factor=2),
@@ -1290,7 +1290,7 @@ class CustomModelV9(BaseModel):
             nn.BatchNorm2d(num_features=172)
         )
         self.block3 = nn.Sequential(
-            DepthwiseSeparableConv(in_channels=104, out_channels=104, kernel_size=3, stride=2, padding=1, bias=False),
+            DepthwiseSeparableConv(in_channels=104, out_channels=104, kernel_size=3, stride=2, padding=1, bias=False, dilation=1, padding_mode='zeros'),
             nn.BatchNorm2d(num_features=104),
             nn.GELU(),
             WideBottleneck(in_channels=104, out_channels=86, stride=1, downsample=block3_downsample, widen_factor=2),

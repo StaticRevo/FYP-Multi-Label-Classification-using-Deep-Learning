@@ -3,23 +3,26 @@
 {% block title %}Home - Image Prediction{% endblock %}
 
 {% block content %}
-  <h1 class="mb-4">Welcome to the RS Imagery Prediction Platform</h1>
-  <p>Please choose one of the following options:</p>
+  <div class="container text-center">
+    <h1 class="mb-4 display-5">Welcome to the RS Imagery Prediction Platform</h1>
+    <p class="lead">Choose an option below to get started:</p>
 
-  <div class="d-grid gap-3">
-    {% set buttons = [
-      ('train_page', 'Train Network', 'primary'),
-      ('test_page', 'Test Network', 'secondary'),
-      ('predict_page', 'Predict Images', 'success'),
-      ('experiments_overview', 'Experiments', 'warning'),
-      ('detailed_inference', 'Inference Comparison', 'danger'),
-      ('bubble_chart', 'Bubble Chart', 'info'),
-      ('architectures', 'View Architectures', 'dark'),
-      ('data_exploration', 'Data Exploration', 'outline-info')
-    ] %}
+    <div class="d-grid gap-3 mx-auto button-grid">
+      {% set buttons = [
+        ('train_page', 'Train Network', 'primary'),
+        ('test_page', 'Test Network', 'secondary'),
+        ('predict_page', 'Predict Images', 'success'),
+        ('experiments_overview', 'Experiments', 'warning'),
+        ('detailed_inference', 'Inference Comparison', 'danger'),
+        ('bubble_chart', 'Bubble Chart', 'info'),
+        ('architectures', 'View Architectures', 'dark'),
+        ('data_exploration', 'Data Exploration', 'outline-info'),
+        ('map_page', 'Interactive Map', 'outline-primary')
+      ] %}
 
-    {% for route, label, color in buttons %}
-      <a href="{{ url_for(route) }}" class="btn btn-{{ color }} btn-lg">{{ label }}</a>
-    {% endfor %}
+      {% for route, label, color in buttons %}
+        <a href="{{ url_for(route) }}" class="btn btn-{{ color }} btn-lg custom-btn">{{ label }}</a>
+      {% endfor %}
+    </div>
   </div>
 {% endblock %}

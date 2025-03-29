@@ -2,67 +2,60 @@
     --bg-color: #121212;
     --text-color: #e0e0e0;
     --primary-color: #0d6efd;
+    --secondary-color: #1f1f1f;
     --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Base styles */
+/* Base Styles */
 html, body {
     height: 100%;
-}
-body {
     background-color: var(--bg-color);
     color: var(--text-color);
     font-family: var(--font-family);
-}
-/* Main content wrapper */
-.wrapper {
-    flex: 1;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
+/* Container Styling */
 .container {
-    max-width: 900px;
+    max-width: 800px;
+    padding: 40px 20px;
+    background: var(--secondary-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Navbar styles */
-.navbar-brand {
-    font-weight: bold;
-    font-size: 1.75rem;
+/* Typography */
+h1 {
+    font-weight: 700;
+    color: var(--primary-color);
 }
 
-/* Card styles */
-.card {
+p.lead {
+    font-size: 1.2rem;
     margin-bottom: 20px;
-    border-radius: 0.5rem;
 }
 
-/* Table styles */
-.table-sm th, .table-sm td {
-    padding: 0.3rem;
-}
-/* Button hover effect */
-.btn {
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-.btn:hover {
-    transform: translateY(-2px);
+/* Button Grid */
+.button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
 }
 
-/* Card hover effect */
-.card {
-    border-radius: 0.5rem;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transition: box-shadow 0.3s ease;
-}
-.card:hover {
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
-}
-
-/* Focus states */
-a:focus, button:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
+/* Button Styling */
+.custom-btn {
+    padding: 12px 18px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
 }
 
+.custom-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}

@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <!-- Row 2: GradCAM Overlays -->
+    <!-- Row 2: Individual GradCAM Overlays -->
     {% if gradcam %}
       <div class="row">
         {% for class_label, gradcam_url in gradcam.items() %}
@@ -40,9 +40,96 @@
     {% else %}
       <p>No GradCAM results available.</p>
     {% endif %}
+
+    <!-- Row 3: Combined Color-Coded GradCAM -->
+    {% if gradcam_colorcoded and gradcam_colorcoded.combined %}
+      <div class="card mb-4">
+        <div class="card-body">
+          <h6 class="card-title">Combined Color-Coded Grad-CAM</h6>
+          <div class="row justify-content-center">
+            <div class="col-12 text-center">
+              <img 
+              src="{{ gradcam_colorcoded.combined.url }}" 
+              alt="Color-Coded GradCAM" 
+              class="img-fluid"
+              style="width: 500px;"
+            >
+            </div>
+          </div>
+          <div class="row justify-content-center mt-3">
+            <div class="col-12 text-center">
+              <div class="legend-title">GRAD-CAM Multi-Label Classification</div>
+              <div class="legend-container">
+                {% set ordered_categories = [
+                  ('Urban & Industrial', 'rgb(255,0,0)'),
+                  ('Agricultural & Managed Lands', 'rgb(255,165,0)'),
+                  ('Forest & Woodland', 'rgb(0,128,0)'),
+                  ('Natural Vegetation (Non-Forest)', 'rgb(107,142,35)'),
+                  ('Coastal & Transitional', 'rgb(255,255,0)'),
+                  ('Wetlands', 'rgb(255,0,255)'),
+                  ('Water Bodies', 'rgb(0,0,255)')
+                ] %}
+                {% for cat_name, rgb_str in ordered_categories %}
+                  <div class="legend-item">
+                    <div class="legend-color-box" data-color="{{ rgb_str }}"></div>
+                    <span class="legend-text">{{ cat_name }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p>No color-coded GradCAM visualization generated.</p>
+    {% endif %}
   </div>
 
   <a href="javascript:history.back()" class="btn btn-secondary mt-4">Back to Predictions</a>
   <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Return Home</a>
 
+  <!-- Legend Styling -->
+  <style>
+    .legend-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .legend-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+    }
+    .legend-color-box {
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      border-radius: 4px;
+      border: 1px solid #333;
+    }
+    .legend-text {
+      color: #333;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+  </style>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('.legend-color-box').forEach(function(box) {
+        var color = box.getAttribute('data-color');
+        box.style.backgroundColor = color;
+      });
+    });
+  </script>
 {% endblock %}

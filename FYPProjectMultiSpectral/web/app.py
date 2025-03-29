@@ -15,7 +15,7 @@ import subprocess
 from datetime import datetime
 
 # Third-party imports
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
 from markupsafe import Markup
 from werkzeug.utils import secure_filename
 import torch
@@ -27,7 +27,9 @@ from nbconvert import HTMLExporter
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 from utils.file_utils import initialize_paths
 from models.models import *
+import models.models as models
 from utils.data_utils import extract_number
+from utils.model_utils import get_class_names
 from web_helper import *
 
 app = Flask(__name__)
@@ -39,6 +41,7 @@ _cached_testing_log = None
 _last_testing_log_time = 0
 
 CACHE_DURATION = 5
+
 # Configure upload and static folders
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
@@ -47,8 +50,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
+model_classes = get_class_names(models)
+
 # Model Options
-MODEL_OPTIONS = ["CustomModel", "ResNet18", "ResNet50", "ResNet101", "ResNet152", "VGG16", "VGG19", "DenseNet121", "EfficientNetB0", "EfficientNet_v2", "Vit-Transformer", "Swin-Transformer"]
+MODEL_OPTIONS = get_class_names(models)
 CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)) # Precompute class weights 
 EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
 ARCHITECTURES_DIR = os.path.join(parent_dir, "models", "Architecture")
@@ -299,6 +304,7 @@ def predict_page():
                         "actual_labels": actual_labels,
                         
                     })
+
             if not results_list:
                 flash("No valid files were uploaded with the required channel count.", "error")
                 experiments = get_experiments_list()
@@ -375,6 +381,14 @@ def batch_gradcam():
         in_channels=in_channels,
         predicted_indices=predicted_indices
     )
+    # Generate color-coded Grad-CAM visualization
+    gradcam_colorcoded = generate_colorcoded_gradcam(
+        model_instance, input_tensor,
+        class_labels=DatasetConfig.class_labels,
+        model_name=model_name,
+        in_channels=in_channels,
+        predicted_indices=predicted_indices
+    )
 
     patch_id = os.path.splitext(filename)[0]
     actual_labels = fetch_actual_labels(patch_id)
@@ -387,8 +401,9 @@ def batch_gradcam():
         filename=filename,
         experiment=experiment,
         gradcam=gradcam_results,
+        gradcam_colorcoded=gradcam_colorcoded,
         actual_labels=actual_labels,
-        original_img_url=original_img_url  # pass it to the template
+        original_img_url=original_img_url  
     )
 
 @app.route("/experiments")
@@ -972,6 +987,56 @@ def data_exploration():
     
     return render_template("notebook_view.html", notebook_content=Markup(body))
 
+# -- Map Page --
+@app.route("/map_page", methods=['GET', 'POST'])
+def map_page():
+    print("Map page accessed")
+    return render_template('map_page.html')
+
+# -- New route to handle map clicks --
+@app.route('/process_map_click', methods=['POST'])
+def process_map_click():
+    data = request.get_json()
+    top_left_lat = data['topLeftLat']
+    top_left_lng = data['topLeftLng']
+    bottom_right_lat = data['bottomRightLat']
+    bottom_right_lng = data['bottomRightLng']
+
+    image_path = 'path/to/your/malta_image.tif'
+
+    try:
+        cropped_image_path = crop_image_from_coords(
+            app,  # Pass the Flask app instance here
+            image_path,
+            top_left_lat,
+            top_left_lng,
+            bottom_right_lat,
+            bottom_right_lng
+        )
+        filename = os.path.basename(cropped_image_path)
+
+        # Assuming you want to use the first experiment for prediction from the list
+        experiments = get_experiments_list()
+        if not experiments:
+            return jsonify({"error": "No experiments available for prediction."}), 400
+        selected_experiment = experiments[0] # Or let the user select this
+
+        # Determine bands based on the experiment
+        experiment_details = parse_experiment_folder(selected_experiment)
+        selected_bands_str = experiment_details["bands"]
+        _, default_bands = get_channels_and_bands(selected_bands_str)
+
+        prediction_result = process_prediction(cropped_image_path, filename, default_bands, selected_experiment)
+
+        # Clean up the temporary cropped image
+        os.remove(cropped_image_path)
+
+        return jsonify(prediction_result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)
+
 

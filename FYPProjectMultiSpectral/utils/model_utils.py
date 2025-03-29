@@ -1,4 +1,7 @@
 from models.models import *
+import os
+import sys
+import inspect
 
 # Get the model class
 def get_model_class(model_name):
@@ -29,3 +32,10 @@ def get_model_class(model_name):
         'CustomModelV9': (CustomModelV9, 'custom_model_v9'),
     }
     return model_mapping.get(model_name, (None, None))
+
+def get_class_names(module):
+    # Get all classes defined in the module
+    classes = inspect.getmembers(module, inspect.isclass)
+    class_names = [cls[0] for cls in classes if cls[1].__module__ == module.__name__]
+    
+    return class_names

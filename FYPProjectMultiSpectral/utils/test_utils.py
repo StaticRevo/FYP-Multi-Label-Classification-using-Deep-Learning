@@ -80,10 +80,19 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
         logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
 # Get the Grad-CAM target layer
-def get_target_layer(model, model_name, logger=None):
-    if model_name == 'ResNet18':
+def get_target_layer(model, model_name):
+    target_layer = None
+    
+    # Determine target layer based on model_name
+    if 'CustomModel' in model_name:
+        target_layer = model.block4[2].conv2  
+    elif model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
     elif model_name == 'ResNet50':
+        target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'ResNet101':
+        target_layer = model.model.layer3[-1].conv3
+    elif model_name == 'ResNet152':
         target_layer = model.model.layer3[-1].conv3
     elif model_name == 'VGG16':
         target_layer = model.model.features[28]
@@ -92,18 +101,16 @@ def get_target_layer(model, model_name, logger=None):
     elif model_name == 'EfficientNetB0':
         target_layer = model.model.features[8][0]
     elif model_name == 'EfficientNet_v2':
-       target_layer = model.model.features[7][4].block[3]
+        target_layer = model.model.features[7][4].block[3]
     elif model_name == 'Swin-Transformer':
         target_layer = model.model.stages[3].blocks[-1].norm1
     elif model_name == 'Vit-Transformer':
         target_layer = model.model.layers[-1].attention
-    elif model_name == 'CustomModel':
-        target_layer = model.block4[2]
     elif model_name == 'DenseNet121':
         target_layer = model.model.features.norm5
     else:
         print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
-
+    
     return target_layer
 
 # Generate Grad-CAM visualizations for a select number of random images

@@ -1,6 +1,7 @@
 # Standard library imports
 import os
 import sys
+import time
 
 # Set up directories
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +21,7 @@ import pandas as pd
 import matplotlib.cm as cm
 from scipy.ndimage import zoom, gaussian_filter
 from PIL import ImageEnhance
+from rasterio.transform import from_bounds 
 
 # Local application imports
 from utils.model_utils import get_model_class
@@ -28,6 +30,7 @@ from models.models import *
 from utils.gradcam import GradCAM, overlay_heatmap 
 from utils.data_utils import get_band_indices
 from transformations.transforms import TransformsConfig
+from utils.test_utils import get_target_layer
 
 EXPERIMENTS_DIR = DatasetConfig.experiment_path
 STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
@@ -177,39 +180,6 @@ def predict_image_for_model(model, image_tensor):
             label = DatasetConfig.reversed_class_labels_dict.get(idx, f"Class_{idx}")
             predictions.append({"label": label, "probability": prob})
     return predictions
-
-def get_target_layer(model, model_name):
-    target_layer = None
-    
-    # Determine target layer based on model_name
-    if model_name == 'ResNet18':
-        target_layer = model.model.layer3[-1].conv2
-    elif model_name == 'ResNet50':
-        target_layer = model.model.layer3[-1].conv3
-    elif model_name == 'ResNet101':
-        target_layer = model.model.layer3[-1].conv3
-    elif model_name == 'ResNet152':
-        target_layer = model.model.layer3[-1].conv3
-    elif model_name == 'VGG16':
-        target_layer = model.model.features[28]
-    elif model_name == 'VGG19':
-        target_layer = model.model.features[34]
-    elif model_name == 'EfficientNetB0':
-        target_layer = model.model.features[8][0]
-    elif model_name == 'EfficientNet_v2':
-       target_layer = model.model.features[7][4].block[3]
-    elif model_name == 'Swin-Transformer':
-        target_layer = model.model.stages[3].blocks[-1].norm1
-    elif model_name == 'Vit-Transformer':
-        target_layer = model.model.layers[-1].attention
-    elif model_name == 'CustomModel':
-        target_layer = model.block4[2].conv2
-    elif model_name == 'DenseNet121':
-        target_layer = model.model.features.norm5
-    else:
-        print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
-    
-    return target_layer
 
 # Generate a Grad-CAM visualization for a single image
 def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
@@ -630,3 +600,32 @@ def convert_image_to_tiff(file_path):
         except Exception as e:
             raise ValueError(f"Error converting image to TIFF: {e}")
     return file_path
+
+# --- Helper function to crop the image ---
+def crop_image_from_coords(app, image_path, top_left_lat, top_left_lng, bottom_right_lat, bottom_right_lng, out_width=120, out_height=120):
+    with rasterio.open(image_path) as src:
+        transform = src.transform
+        left, bottom = rasterio.transform.xy(transform, src.height, 0)
+        right, top = rasterio.transform.xy(transform, 0, src.width)
+
+        # Determine the window based on the provided coordinates
+        window = rasterio.windows.from_bounds(top_left_lng, bottom_right_lat, bottom_right_lng, top_left_lat, transform=transform)
+
+        # Read the data within the window
+        cropped_data = src.read(window=window)
+
+        # Calculate the transform for the cropped image
+        out_transform = from_bounds(top_left_lng, bottom_right_lat, bottom_right_lng, top_left_lat, out_width, out_height)
+
+        # Create a temporary file to save the cropped image
+        temp_filename = f"cropped_{time.time()}.tif"
+        temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+
+        # Write the cropped data to the temporary file
+        with rasterio.open(temp_filepath, 'w', driver='GTiff',
+                           height=out_height, width=out_width,
+                           count=cropped_data.shape[0], dtype=cropped_data.dtype,
+                           crs=src.crs, transform=out_transform) as dst:
+            dst.write(cropped_data)
+
+        return temp_filepath

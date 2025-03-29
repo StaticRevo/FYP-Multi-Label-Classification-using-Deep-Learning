@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Interactive Map - Image Prediction{% endblock %}
+
+{% block content %}
+  <div class="container text-center">
+    <h1 class="mb-4">Interactive Map for Prediction</h1>
+    <p class="lead">Click on the map to get predictions for that area.</p>
+  </div>
+
+  <div id="map"></div>
+
+  <style>
+    #map {
+      width: 100%;
+      height: 800px;
+      border: 1px solid #ccc;
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var map = L.map('map').setView([35.9375, 14.3754], 11);  // Malta coordinates and zoom level
+
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+      }).addTo(map);
+
+      setTimeout(function() {
+        map.invalidateSize();
+      }, 100);
+
+      // Handle click events on the map
+      map.on('click', function(e) {
+        var clickLatLng = e.latlng;
+        console.log("Clicked Coordinates: " + clickLatLng.lat + ", " + clickLatLng.lng);
+
+        var pixelSize = 120; // Size of the image in pixels
+        var mapSize = map.getSize();
+        var clickPoint = map.latLngToContainerPoint(clickLatLng);
+
+        // Calculate the bounding box in pixels
+        var topLeftPixel = clickPoint.subtract([pixelSize / 2, pixelSize / 2]);
+        var bottomRightPixel = clickPoint.add([pixelSize / 2, pixelSize / 2]);
+
+        // Convert pixel coordinates to geographical coordinates
+        var topLeftLatLng = map.containerPointToLatLng(topLeftPixel);
+        var bottomRightLatLng = map.containerPointToLatLng(bottomRightPixel);
+
+        // Send the bounding box coordinates to the server
+        fetch('/process_map_click', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            topLeftLat: topLeftLatLng.lat,
+            topLeftLng: topLeftLatLng.lng,
+            bottomRightLat: bottomRightLatLng.lat,
+            bottomRightLng: bottomRightLatLng.lng
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert("Prediction: " + data.prediction);  // Show prediction
+        })
+        .catch(error => console.log('Error:', error));
+      });
+    });
+  </script>
+{% endblock %}

@@ -2,6 +2,7 @@
 import os
 #os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 import sys
+import time  
 
 # Set up directories
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +23,9 @@ import torch
 import pandas as pd
 import nbformat
 from nbconvert import HTMLExporter
+from sentinel import fetch_sentinel_patch 
+import rasterio
+import matplotlib.pyplot as plt
 
 # Local application imports
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
@@ -993,50 +997,50 @@ def map_page():
     print("Map page accessed")
     return render_template('map_page.html')
 
-# -- New route to handle map clicks --
-@app.route('/process_map_click', methods=['POST'])
-def process_map_click():
-    data = request.get_json()
-    top_left_lat = data['topLeftLat']
-    top_left_lng = data['topLeftLng']
-    bottom_right_lat = data['bottomRightLat']
-    bottom_right_lng = data['bottomRightLng']
+@app.route('/get_image', methods=['POST'])
+def get_image():
+    # Get coordinates from the map click
+    lat = float(request.form['lat'])
+    lon = float(request.form['lon'])
 
-    image_path = 'path/to/your/malta_image.tif'
+    # Generate unique filename with timestamp
+    timestamp = int(time.time())
+    tiff_path = os.path.join('static', 'images', f'multispectral_patch_{timestamp}.tif')
 
-    try:
-        cropped_image_path = crop_image_from_coords(
-            app,  # Pass the Flask app instance here
-            image_path,
-            top_left_lat,
-            top_left_lng,
-            bottom_right_lat,
-            bottom_right_lng
-        )
-        filename = os.path.basename(cropped_image_path)
+    # Fetch Sentinel-2 patch and save as TIFF
+    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path)
 
-        # Assuming you want to use the first experiment for prediction from the list
-        experiments = get_experiments_list()
-        if not experiments:
-            return jsonify({"error": "No experiments available for prediction."}), 400
-        selected_experiment = experiments[0] # Or let the user select this
+    # Extract RGB bands (B04, B03, B02)
+    red = data[:, :, 3]   # B04
+    green = data[:, :, 2] # B03
+    blue = data[:, :, 1]  # B02
 
-        # Determine bands based on the experiment
-        experiment_details = parse_experiment_folder(selected_experiment)
-        selected_bands_str = experiment_details["bands"]
-        _, default_bands = get_channels_and_bands(selected_bands_str)
+    # Normalize for display
+    red = red.astype(np.float32)
+    green = green.astype(np.float32)
+    blue = blue.astype(np.float32)
 
-        prediction_result = process_prediction(cropped_image_path, filename, default_bands, selected_experiment)
+    # Normalize bands using percentile clipping
+    red /= np.max(red)
+    green /= np.max(green)
+    blue /= np.max(blue)
 
-        # Clean up the temporary cropped image
-        os.remove(cropped_image_path)
+    # Stack the bands into an RGB image
+    rgb = np.dstack((red, green, blue))
 
-        return jsonify(prediction_result)
+    # Save RGB as PNG
+    image_path = os.path.join('static', 'images', f'rgb_patch_{timestamp}.png')
+    plt.imsave(image_path, rgb)
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Return image URL, bounds, and TIFF filename for the map
+    bounds = [[bbox_coords[1], bbox_coords[0]], [bbox_coords[3], bbox_coords[2]]]
+    return jsonify({
+        'image_url': f'/static/images/rgb_patch_{timestamp}.png',
+        'bounds': bounds,
+        'tiff_file': f'multispectral_patch_{timestamp}.tif'
+    })
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='127.0.0.1', port=5001, debug=True)
 
 

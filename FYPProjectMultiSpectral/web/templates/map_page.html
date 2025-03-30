@@ -3,70 +3,66 @@
 {% block title %}Interactive Map - Image Prediction{% endblock %}
 
 {% block content %}
-  <div class="container text-center">
-    <h1 class="mb-4">Interactive Map for Prediction</h1>
-    <p class="lead">Click on the map to get predictions for that area.</p>
-  </div>
-
-  <div id="map"></div>
-
-  <style>
-    #map {
-      width: 100%;
-      height: 800px;
-      border: 1px solid #ccc;
-    }
-  </style>
+  <h1>Sentinel-2 RGB Viewer</h1>
+  <p>Click the map to fetch a 120x120 Sentinel-2 patch!</p>
+  <div id="map" style="height: 500px; width: 80%; margin: 20px auto;"></div>
+  <div id="image-container"></div>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      var map = L.map('map').setView([35.9375, 14.3754], 11);  // Malta coordinates and zoom level
+        var map = L.map('map').setView([35.9375, 14.3754], 11); // Malta coordinates and zoom level
 
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-        maxZoom: 19
-      }).addTo(map);
+        // Add Esri World Imagery (satellite view)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 19
+        }).addTo(map);
 
-      setTimeout(function() {
-        map.invalidateSize();
-      }, 100);
+        // Ensure the map renders correctly
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 100);
 
-      // Handle click events on the map
-      map.on('click', function(e) {
-        var clickLatLng = e.latlng;
-        console.log("Clicked Coordinates: " + clickLatLng.lat + ", " + clickLatLng.lng);
+        var imageOverlay = null;
 
-        var pixelSize = 120; // Size of the image in pixels
-        var mapSize = map.getSize();
-        var clickPoint = map.latLngToContainerPoint(clickLatLng);
+        // Function to fetch an image based on latitude and longitude
+        function fetchImage(lat, lon) {
+            var formData = new FormData();
+            formData.append('lat', lat);
+            formData.append('lon', lon);
 
-        // Calculate the bounding box in pixels
-        var topLeftPixel = clickPoint.subtract([pixelSize / 2, pixelSize / 2]);
-        var bottomRightPixel = clickPoint.add([pixelSize / 2, pixelSize / 2]);
+            document.getElementById('image-container').innerHTML = 'Loading...';
 
-        // Convert pixel coordinates to geographical coordinates
-        var topLeftLatLng = map.containerPointToLatLng(topLeftPixel);
-        var bottomRightLatLng = map.containerPointToLatLng(bottomRightPixel);
+            fetch('/get_image', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (imageOverlay) {
+                    map.removeLayer(imageOverlay);
+                }
+                imageOverlay = L.imageOverlay(data.image_url, data.bounds).addTo(map);
+                map.fitBounds(data.bounds);
+                document.getElementById('image-container').innerHTML = `
+                    <img src="${data.image_url}" alt="RGB Image" style="max-width: 300px;">
+                    <p>Multispectral TIFF saved as: ${data.tiff_file}</p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('image-container').innerHTML = 'Error fetching image.';
+            });
+        }
 
-        // Send the bounding box coordinates to the server
-        fetch('/process_map_click', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            topLeftLat: topLeftLatLng.lat,
-            topLeftLng: topLeftLatLng.lng,
-            bottomRightLat: bottomRightLatLng.lat,
-            bottomRightLng: bottomRightLatLng.lng
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          alert("Prediction: " + data.prediction);  // Show prediction
-        })
-        .catch(error => console.log('Error:', error));
-      });
+        // Add a click event listener to the map
+        map.on('click', function(e) {
+            var lat = e.latlng.lat;
+            var lon = e.latlng.lng;
+            fetchImage(lat, lon);
+        });
     });
-  </script>
+</script>
+
 {% endblock %}

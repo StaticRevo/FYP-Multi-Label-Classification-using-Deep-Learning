@@ -14,6 +14,7 @@ import secrets
 import time
 import subprocess
 from datetime import datetime
+import glob
 
 # Third-party imports
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
@@ -594,7 +595,7 @@ def detailed_inference():
                 except Exception as e:
                     for metric in ['test_acc', 'test_loss', 'test_f1', 'test_f2', 
                                    'test_precision', 'test_recall', 'test_one_error', 
-                                   'test_hamming_loss', 'test_avg_precision']:
+                                   'test_hamming_loss', 'test_avg_precision', 'one_error']:
                         testing_comparison_data.setdefault(metric, {})[exp] = f"Error: {e}"
             
             # Load hyperparameters
@@ -688,12 +689,15 @@ def detailed_inference():
                 agg_keys.update(exp_data["aggregated_metrics"].keys())
         agg_keys = sorted(agg_keys)
 
-        # Optionally, remove any unwanted key from validation metrics
         if "val_subset_accuracy" in comparison_data:
             comparison_data.pop("val_subset_accuracy")
         
         # Define metrics that should be minimized 
-        min_metrics = {"val_loss", "val_hamming_loss", "val_one_error"}
+        min_metrics = {"val_loss", "val_hamming_loss", "val_one_error", "training_time_sec"}
+
+        agg_min_metrics = {"hamming_loss", "one_error", "avg_hamming_loss", "subset_loss", 
+                  "ranking_loss", "one_error_macro", "one_error_micro", 
+                  "hamming_loss_macro", "hamming_loss_micro"}
         
         # Compute best_models: for each validation metric, choose the best experiment (minimize or maximize as needed)
         best_models = {}
@@ -826,7 +830,7 @@ def detailed_inference():
         sort_by = request.args.get('sort_by', 'date_trained')
         order = request.args.get('order', 'asc')
         
-        # Create a list of experiment details (including creation time)
+        # Create a list of experiment details 
         experiments_details = []
         for exp in available_experiments:
             parsed = parse_experiment_folder(exp)
@@ -995,22 +999,20 @@ def data_exploration():
 @app.route("/map_page", methods=['GET', 'POST'])
 def map_page():
     print("Map page accessed")
-    return render_template('map_page.html')
+    experiments = get_experiments_list()  # Fetch the list of experiments (assumed to be defined elsewhere)
+    return render_template('map_page.html', experiments=experiments)
 
 @app.route('/get_image', methods=['POST'])
 def get_image():
-    # Get coordinates from the map click
-    lat = float(request.form['lat'])
+    lat = float(request.form['lat']) # Get coordinates from the map click
     lon = float(request.form['lon'])
 
     # Generate unique filename with timestamp
     timestamp = int(time.time())
     tiff_path = os.path.join('static', 'images', f'multispectral_patch_{timestamp}.tif')
 
-    # Fetch Sentinel-2 patch and save as TIFF
-    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path)
+    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path) # Fetch Sentinel-2 patch and save as TIFF
 
-    # Extract RGB bands (B04, B03, B02)
     red = data[:, :, 3]   # B04
     green = data[:, :, 2] # B03
     blue = data[:, :, 1]  # B02
@@ -1039,6 +1041,93 @@ def get_image():
         'bounds': bounds,
         'tiff_file': f'multispectral_patch_{timestamp}.tif'
     })
+
+# -- Predict from Map Page ---
+@app.route('/predict_from_map', methods=['POST'])
+def predict_from_map():
+    selected_experiment = request.form['experiment']
+
+    tiff_dir = os.path.join('static', 'images')
+    tiff_files = glob.glob(os.path.join(tiff_dir, 'multispectral_patch_*.tif'))
+
+    if not tiff_files:
+        return jsonify({'error': 'No TIFF files found in static/images.'}), 404
+
+    latest_tiff = max(tiff_files, key=os.path.getctime)
+    file_path = latest_tiff
+    filename = os.path.basename(latest_tiff)
+
+    try:
+        experiment_details = parse_experiment_folder(selected_experiment)
+        model_name = experiment_details["model"]
+        selected_bands_str = experiment_details["bands"]
+        in_channels, default_bands = get_channels_and_bands(selected_bands_str)
+
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in [".tif", ".tiff"]:
+             raise ValueError("Latest file is not a TIFF.")
+
+        actual_channels = validate_image_channels(file_path, in_channels)
+
+        if actual_channels < in_channels:
+             raise ValueError(f"Image has only {actual_channels} bands, but model requires {in_channels}.")
+        elif actual_channels > in_channels:
+            print(f"Warning: Image has {actual_channels} bands, model expects {in_channels}. Using first {in_channels} bands from default list: {default_bands[:in_channels]}")
+            bands = default_bands[:in_channels] 
+        else:
+            bands = default_bands
+
+        rgb_url = create_rgb_visualization(file_path)
+        input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
+        model_instance = load_model_from_experiment(selected_experiment)
+
+        device = next(model_instance.parameters()).device
+        input_tensor = input_tensor.to(device)
+
+        # --- Get Predictions ---
+        with torch.no_grad():
+            output = model_instance(input_tensor)
+            probs = torch.sigmoid(output).squeeze().cpu().numpy()
+        predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
+
+        predictions_list = [
+            {"label": DatasetConfig.class_labels[idx], "probability": float(probs[idx])}
+            for idx in predicted_indices
+        ]
+        predictions_list.sort(key=lambda x: x["probability"], reverse=True)
+
+        gradcam_urls = generate_gradcam_for_single_image(
+            model_instance, input_tensor,
+            class_labels=DatasetConfig.class_labels,
+            model_name=model_name,
+            in_channels=len(bands),
+            predicted_indices=predicted_indices
+        )
+        gradcam_colorcoded_url = generate_colorcoded_gradcam(
+            model_instance, input_tensor,
+            class_labels=DatasetConfig.class_labels,
+            model_name=model_name,
+            in_channels=len(bands),
+            predicted_indices=predicted_indices
+        )
+
+        patch_id = os.path.splitext(filename)[0]
+        actual_labels = fetch_actual_labels(patch_id)
+
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'predictions': predictions_list,
+            'actual_labels': actual_labels,
+            'rgb_url': rgb_url,
+            'gradcam_urls': gradcam_urls,
+            'gradcam_colorcoded_url': gradcam_colorcoded_url,
+            'experiment_details': experiment_details,
+            'selected_experiment': selected_experiment
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5001, debug=True)

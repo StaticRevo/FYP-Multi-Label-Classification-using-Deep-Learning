@@ -4,65 +4,201 @@
 
 {% block content %}
   <h1>Sentinel-2 RGB Viewer</h1>
-  <p>Click the map to fetch a 120x120 Sentinel-2 patch!</p>
+  <p>Click the map to fetch a 120x120 Sentinel-2 patch and predict its land cover!</p>
+
+  <div class="mb-4" style="width: 80%; margin: 0 auto;">
+    <label for="experiment-select" class="form-label">Select Experiment:</label>
+    <select id="experiment-select" class="form-select" style="width: 50%;">
+      {% for exp in experiments %}
+        <option value="{{ exp }}">{{ exp }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
   <div id="map" style="height: 500px; width: 80%; margin: 20px auto;"></div>
-  <div id="image-container"></div>
+
+  <div class="container mt-4">
+      <div class="row">
+          <div class="col-md-4" id="image-container">
+              </div>
+          <div class="col-md-8" id="prediction-container">
+              </div>
+      </div>
+  </div>
+
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var map = L.map('map').setView([35.9375, 14.3754], 11); // Malta coordinates and zoom level
-
-        // Add Esri World Imagery (satellite view)
+        var map = L.map('map').setView([35.9375, 14.3754], 11); // Example coordinates (Malta)
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            attribution: 'Tiles © Esri',
             maxZoom: 19
         }).addTo(map);
 
-        // Ensure the map renders correctly
         setTimeout(function() {
             map.invalidateSize();
         }, 100);
 
         var imageOverlay = null;
+        var imageContainer = document.getElementById('image-container');
+        var predictionContainer = document.getElementById('prediction-container');
 
-        // Function to fetch an image based on latitude and longitude
-        function fetchImage(lat, lon) {
+        function fetchImageAndPrediction(lat, lon) {
             var formData = new FormData();
             formData.append('lat', lat);
             formData.append('lon', lon);
 
-            document.getElementById('image-container').innerHTML = 'Loading...';
+            // Clear previous results and show loading indicators
+            if (imageOverlay) {
+                map.removeLayer(imageOverlay);
+                imageOverlay = null;
+            }
+            imageContainer.innerHTML = '<div class="card"><div class="card-body"><p class="text-center">Loading image...</p></div></div>';
+            predictionContainer.innerHTML = '<div class="card"><div class="card-body"><p class="text-center">Loading prediction...</p></div></div>';
 
+            // --- Step 1: Fetch the image patch ---
             fetch('/get_image', {
                 method: 'POST',
                 body: formData,
                 headers: { 'Accept': 'application/json' }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (imageOverlay) {
-                    map.removeLayer(imageOverlay);
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                imageOverlay = L.imageOverlay(data.image_url, data.bounds).addTo(map);
-                map.fitBounds(data.bounds);
-                document.getElementById('image-container').innerHTML = `
-                    <img src="${data.image_url}" alt="RGB Image" style="max-width: 300px;">
-                    <p>Multispectral TIFF saved as: ${data.tiff_file}</p>
+                return response.json();
+            })
+            .then(data => {
+                imageOverlay = L.imageOverlay(data.image_url, data.bounds).addTo(map);  // Display image on map
+                map.fitBounds(data.bounds); // Zoom to the fetched patch
+
+                // Display image info in its container
+                imageContainer.innerHTML = `
+                    <div class="card">
+                        <div class="card-header">Selected Patch</div>
+                        <div class="card-body">
+                            <img src="${data.image_url}" alt="RGB Image Patch" class="img-fluid mb-2">
+                            <p class="card-text"><small>Multispectral TIFF saved as: ${data.tiff_file}</small></p>
+                            <p class="card-text"><small>Coords: ${lat.toFixed(4)}, ${lon.toFixed(4)}</small></p>
+                        </div>
+                    </div>
                 `;
+
+                // --- Step 2: Fetch the prediction using the selected experiment ---
+                var predictFormData = new FormData();
+                predictFormData.append('experiment', document.getElementById('experiment-select').value);
+                return fetch('/predict_from_map', { // Chain the fetch call
+                    method: 'POST',
+                    body: predictFormData,
+                    headers: { 'Accept': 'application/json' }
+                });
+            })
+            .then(response => { // Handle prediction response
+                 if (!response.ok) {
+                     return response.json().then(errData => {
+                         throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+                     }).catch(() => {
+                         throw new Error(`HTTP error! status: ${response.status}`);
+                     });
+                 }
+                 return response.json();
+            })
+            .then(predData => {
+                 if (predData.error) { // Handle errors reported in JSON payload
+                      predictionContainer.innerHTML = `<div class="alert alert-danger">${predData.error}</div>`;
+                      return;
+                 }
+
+                 let predictionHTML = `<div class="card">`;
+                 predictionHTML += `<div class="card-header">Prediction Results for ${predData.selected_experiment}</div>`;
+                 predictionHTML += `<div class="card-body">`;
+                 predictionHTML += `<h5 class="card-title">File: ${predData.filename}</h5>`;
+
+                 // Display Experiment Details
+                 if (predData.experiment_details) {
+                     predictionHTML += `<p><small>Model: ${predData.experiment_details.model}, Bands: ${predData.experiment_details.bands}</small></p>`;
+                 }
+                 // Display Predictions
+                 predictionHTML += `<h6>Predicted Labels (Threshold > 0.5):</h6>`;
+                 if (predData.predictions && predData.predictions.length > 0) {
+                     predictionHTML += `<ul class="list-group list-group-flush mb-3">`;
+                     predData.predictions.forEach(p => {
+                         predictionHTML += `<li class="list-group-item">${p.label}: ${(p.probability * 100).toFixed(1)}%</li>`;
+                     });
+                     predictionHTML += `</ul>`;
+                 } else {
+                     predictionHTML += `<p>No labels predicted above the threshold.</p>`;
+                 }
+
+                 // Display Actual Labels
+                 if (predData.actual_labels && predData.actual_labels.length > 0) {
+                    predictionHTML += `<ul class="list-group list-group-flush mb-3">`;
+                    predData.actual_labels.forEach(label => {
+                         predictionHTML += `<li class="list-group-item">${label}</li>`;
+                     });
+                     predictionHTML += `</ul>`;
+                 } else {
+                     predictionHTML += `<p>No actual labels available.</p>`;
+                 }
+
+                 // Display Visualizations (RGB, GradCAMs) in tabs or sections
+                 predictionHTML += `<h6>Visualizations:</h6>`;
+                 predictionHTML += `<nav><div class="nav nav-tabs" id="vis-tab" role="tablist">
+                        <button class="nav-link active" id="nav-rgb-tab" data-bs-toggle="tab" data-bs-target="#nav-rgb" type="button" role="tab">RGB</button>`;
+                 if (predData.gradcam_colorcoded_url) {
+                     predictionHTML += `<button class="nav-link" id="nav-gradcam-color-tab" data-bs-toggle="tab" data-bs-target="#nav-gradcam-color" type="button" role="tab">Grad-CAM Overlay</button>`;
+                 }
+                 if (predData.gradcam_urls && Object.keys(predData.gradcam_urls).length > 0) {
+                      predictionHTML += `<button class="nav-link" id="nav-gradcam-individual-tab" data-bs-toggle="tab" data-bs-target="#nav-gradcam-individual" type="button" role="tab">Individual Grad-CAMs</button>`;
+                 }
+                 predictionHTML += `</div></nav>`; // End nav-tabs
+
+                 predictionHTML += `<div class="tab-content mt-2" id="nav-tabContent">`;
+                 predictionHTML += `<div class="tab-pane fade show active" id="nav-rgb" role="tabpanel"><img src="${predData.rgb_url}" alt="RGB Visualization" class="img-fluid"></div>`;
+
+                 // Colorcoded GradCAM Tab Pane
+                 if (predData.gradcam_colorcoded_url) {
+                     predictionHTML += `<div class="tab-pane fade" id="nav-gradcam-color" role="tabpanel"><img src="${predData.gradcam_colorcoded_url}" alt="Colorcoded Grad-CAM" class="img-fluid"></div>`;
+                 }
+
+                 // Individual GradCAMs Tab Pane
+                 if (predData.gradcam_urls && Object.keys(predData.gradcam_urls).length > 0) {
+                     predictionHTML += `<div class="tab-pane fade" id="nav-gradcam-individual" role="tabpanel">`;
+                     predictionHTML += `<div class="row">`; // Use rows for layout
+                     for (const label in predData.gradcam_urls) {
+                         predictionHTML += `<div class="col-md-6 col-lg-4 mb-2">`; // Adjust column size as needed
+                         predictionHTML += `<strong>${label}:</strong><br>`;
+                         predictionHTML += `<img src="${predData.gradcam_urls[label]}" alt="Grad-CAM for ${label}" class="img-fluid">`;
+                         predictionHTML += `</div>`;
+                     }
+                      predictionHTML += `</div></div>`; 
+                 }
+                  predictionHTML += `</div>`;
+
+                 predictionHTML += `</div></div>`;
+
+                 // Update the prediction container
+                 predictionContainer.innerHTML = predictionHTML;
+
+                 var triggerTabList = [].slice.call(document.querySelectorAll('#vis-tab button'))
+                 triggerTabList.forEach(function (triggerEl) {
+                    var tabTrigger = new bootstrap.Tab(triggerEl)
+                 })
+
             })
             .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('image-container').innerHTML = 'Error fetching image.';
+                console.error('Error during fetch process:', error);
+                const errorMsg = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                imageContainer.innerHTML = errorMsg;
+                predictionContainer.innerHTML = errorMsg;
             });
-        }
+        } 
 
-        // Add a click event listener to the map
         map.on('click', function(e) {
             var lat = e.latlng.lat;
             var lon = e.latlng.lng;
-            fetchImage(lat, lon);
+            fetchImageAndPrediction(lat, lon);
         });
-    });
-</script>
-
+    }); 
+  </script>
 {% endblock %}

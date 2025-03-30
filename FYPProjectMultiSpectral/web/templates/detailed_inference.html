@@ -163,7 +163,10 @@
                       {% set ns_agg.best_value = current %}
                       {% set ns_agg.best_experiment = exp %}
                     {% else %}
-                      {% if metric == 'hamming_loss' %}
+                      {% if metric == 'hamming_loss' or metric == 'one_error' or metric == 'avg_hamming_loss' or 
+                           metric == 'subset_loss' or metric == 'ranking_loss' or metric == 'one_error_macro' or 
+                           metric == 'one_error_micro' or metric == 'hamming_loss_macro' or metric == 'hamming_loss_micro' or
+                           'loss' in metric or 'error' in metric %}
                         {% if current < ns_agg.best_value %}
                           {% set ns_agg.best_value = current %}
                           {% set ns_agg.best_experiment = exp %}
@@ -203,7 +206,6 @@
       </div>
     </div>
   </div>
-  
   
   <!-- Summary Table for Testing Metrics -->
   <div class="card mb-4">

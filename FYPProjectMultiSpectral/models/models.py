@@ -1243,7 +1243,7 @@ class CustomModelV9(BaseModel):
         dummy_model = nn.Identity()
         super(CustomModelV9, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
         
-        # -- Enhanced Spectral Mixing and Initial Feature Extraction --
+        # -- Spectral Mixing and Initial Feature Extraction --
         self.spectral_mixer = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(num_features=64),
@@ -1322,17 +1322,12 @@ class CustomModelV9(BaseModel):
             nn.Conv2d(in_channels=172, out_channels=236, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(236)  
         )
-        
-        # -- Enhanced Fusion Mechanisms --
-        # Fusion 1: Dynamic weighted sum of deep and low features
-        self.fusion_conv = nn.Sequential(
+        self.fusion_conv = nn.Sequential(  # Fusion 1: Dynamic weighted sum of deep and low features
             nn.Conv2d(344, 2, kernel_size=1, bias=False),  # 344 = 172 + 172
             nn.BatchNorm2d(2),
             nn.Sigmoid()
         )
-        
-        # Fusion 2: Combines all feature streams with dynamic weights
-        self.fusion_conv2 = nn.Sequential(
+        self.fusion_conv2 = nn.Sequential( # Fusion 2: Combines all feature streams with dynamic weights
             nn.Conv2d(944, 4, kernel_size=1, bias=False),  # 944 = 236*4
             nn.BatchNorm2d(4),
             nn.Sigmoid()
@@ -1382,7 +1377,6 @@ class CustomModelV9(BaseModel):
         weights = self.fusion_conv(fused_input)  # (2, 15, 15)
         w_deep, w_low = weights[:, 0:1, :, :], weights[:, 1:2, :, :]
         
-        # Improved fusion with learned complementary features
         fused_features = (w_deep * features_deep) + (w_low * adapted_features_low)  # (172, 15, 15)
 
         # Block 4: High-level processing

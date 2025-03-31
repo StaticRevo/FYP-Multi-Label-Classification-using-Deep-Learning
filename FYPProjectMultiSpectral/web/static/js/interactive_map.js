@@ -1,4 +1,4 @@
-// static/js/interactive_map.js
+// interactive_map.js
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the map
     var map = L.map('map').setView([35.9375, 14.3754], 11); // Malta
@@ -12,8 +12,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 
     var imageOverlay = null;
+    var previewRectangle = null;
     var imageContainer = document.getElementById('image-container');
     var predictionContainer = document.getElementById('prediction-container');
+
+    // Function to calculate square bounds in Web Mercator projection
+    function calculateSquareBounds(lat, lon) {
+        // Step 1: Convert the center point to Web Mercator coordinates
+        const centerPoint = map.project([lat, lon], map.getZoom());
+
+        // Step 2: Calculate the size of the patch in Web Mercator units
+        const zoom = map.getZoom();
+        const metersPerPixel = 40075016.686 / (256 * Math.pow(2, zoom)); // Earth's circumference / pixels at zoom
+        const patchSizeMeters = 1200; // 1200m x 1200m
+        const patchSizePixels = patchSizeMeters / metersPerPixel; // Size in Web Mercator units
+
+        // Step 3: Calculate the square bounds in Web Mercator coordinates
+        const halfSize = patchSizePixels / 2;
+        const southWestPoint = L.point(centerPoint.x - halfSize, centerPoint.y + halfSize);
+        const northEastPoint = L.point(centerPoint.x + halfSize, centerPoint.y - halfSize);
+
+        // Step 4: Convert back to geographic coordinates
+        const southWestLatLng = map.unproject(southWestPoint, zoom);
+        const northEastLatLng = map.unproject(northEastPoint, zoom);
+
+        return [
+            [southWestLatLng.lat, southWestLatLng.lng], // South-West corner
+            [northEastLatLng.lat, northEastLatLng.lng]  // North-East corner
+        ];
+    }
+
+    // Function to draw the preview rectangle
+    function drawPreviewRectangle(lat, lon) {
+        if (previewRectangle) {
+            map.removeLayer(previewRectangle);
+        }
+
+        const bounds = calculateSquareBounds(lat, lon);
+
+        previewRectangle = L.rectangle(bounds, {
+            color: '#fff',
+            weight: 2,
+            opacity: 0.8,
+            fillOpacity: 0,
+            dashArray: '5, 5'
+        }).addTo(map);
+    }
+
+    // Function to remove the preview rectangle
+    function removePreviewRectangle() {
+        if (previewRectangle) {
+            map.removeLayer(previewRectangle);
+            previewRectangle = null;
+        }
+    }
 
     function fetchImageAndPrediction(lat, lon) {
         var formData = new FormData();
@@ -25,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
             map.removeLayer(imageOverlay);
             imageOverlay = null;
         }
+        removePreviewRectangle();
         imageContainer.innerHTML = `
             <div class="text-center">
                 <p><i class="fas fa-spinner fa-spin"></i> Loading image...</p>
@@ -49,8 +102,13 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             console.log('get_image data:', data);
-            imageOverlay = L.imageOverlay(data.image_url, data.bounds).addTo(map);
-            map.fitBounds(data.bounds);
+
+            // Calculate square bounds for the image overlay
+            const squareBounds = calculateSquareBounds(lat, lon);
+
+            // Use the square bounds instead of data.bounds
+            imageOverlay = L.imageOverlay(data.image_url, squareBounds).addTo(map);
+            map.fitBounds(squareBounds);
 
             // Display the image in the image-container
             imageContainer.innerHTML = `
@@ -159,9 +217,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Add mousemove event to show the preview rectangle
+    map.on('mousemove', function(e) {
+        var lat = e.latlng.lat;
+        var lon = e.latlng.lng;
+        drawPreviewRectangle(lat, lon);
+    });
+
+    // Add click event to fetch the patch
     map.on('click', function(e) {
         var lat = e.latlng.lat;
         var lon = e.latlng.lng;
         fetchImageAndPrediction(lat, lon);
+    });
+
+    // Remove the preview rectangle when the mouse leaves the map
+    map.on('mouseout', function() {
+        removePreviewRectangle();
     });
 });

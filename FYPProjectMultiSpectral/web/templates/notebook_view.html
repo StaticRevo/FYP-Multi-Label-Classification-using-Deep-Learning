@@ -2,17 +2,102 @@
 {% block title %}Data Exploration{% endblock %}
 {% block content %}
 <div class="container mt-4">
-  <h1>Data Exploration</h1>
-  <div class="mb-3">
-    <a href="{{ url_for('index') }}" class="btn btn-primary">
-      Return Home
-    </a>
-    <button class="btn btn-secondary" onclick="location.reload();">
-      Refresh Notebook
-    </button>
-  </div>
-  <div>
-    {{ notebook_content|safe }}
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <h1 class="mb-4 section-title">Data Exploration</h1>
+      <div class="card p-4 mb-4">
+        <div class="d-flex gap-2 mb-3">
+          <a href="{{ url_for('index') }}" class="btn btn-primary">Return Home</a>
+          <button class="btn btn-secondary" onclick="location.reload();">Refresh Notebook</button>
+        </div>
+        <div class="notebook-content">
+          {{ notebook_content|safe }}
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<style>
+  .notebook-content {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+  }
+
+  /* Ensure the entire notebook container matches the theme */
+  .notebook-content, 
+  .notebook-content * {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+  }
+
+  /* Override specific Jupyter notebook elements */
+  .notebook-content pre,
+  .notebook-content code {
+    background-color: var(--secondary) !important;
+    border: 1px solid var(--secondary-light) !important;
+    color: var(--text-color) !important;
+  }
+
+  /* Markdown and text cells */
+  .notebook-content .rendered_html,
+  .notebook-content .text_cell_render {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+  }
+
+  /* Headers in markdown cells */
+  .notebook-content h1,
+  .notebook-content h2,
+  .notebook-content h3,
+  .notebook-content h4,
+  .notebook-content h5,
+  .notebook-content h6 {
+    color: var(--text-color) !important;
+  }
+
+  /* Paragraphs and other text */
+  .notebook-content p,
+  .notebook-content li,
+  .notebook-content span {
+    color: var(--text-color) !important;
+  }
+
+  /* Tables */
+  .notebook-content table {
+    background-color: var(--card-bg) !important;
+    border-color: var(--secondary) !important;
+  }
+
+  .notebook-content th,
+  .notebook-content td {
+    border-color: var(--secondary) !important;
+    color: var(--text-color) !important;
+  }
+
+  /* Output areas (like plots or printed text) */
+  .notebook-content .output_area,
+  .notebook-content .output_subarea {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+  }
+
+  .notebook-content .input_area {
+    background-color: var(--card-bg) !important;
+  }
+
+  .notebook-content .output_png,
+  .notebook-content img {
+    background-color: var(--card-bg) !important;
+  }
+
+  .notebook-content [style*="background"],
+  .notebook-content [style*="background-color"] {
+    background-color: var(--card-bg) !important;
+  }
+
+  .notebook-content [style*="color"] {
+    color: var(--text-color) !important;
+  }
+</style>
 {% endblock %}

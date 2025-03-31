@@ -1,32 +1,42 @@
 {% extends "base.html" %}
 {% block title %}Upload Image(s) for Prediction{% endblock %}
 {% block content %}
-  <h1 class="mb-4">Upload TIFF Image(s) for Prediction</h1>
-  <p>You can select a single image for a single prediction or multiple images for batch prediction.</p>
-  
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-  
-  <form method="post" enctype="multipart/form-data">
-    <div class="mb-3">
-      <label for="formFiles" class="form-label">Select Image File(s)</label>
-      <input class="form-control" type="file" name="file" accept=".tif,.tiff,.png,.jpeg,.jpg" id="formFiles" multiple required>
+<!-- Upload Page for TIFF Image(s) -->
+<div class="container mt-5"> 
+  <div class="row justify-content-center">
+    <div class="col-md-8"> 
+      <h1 class="mb-4 section-title">Upload TIFF Image(s) for Prediction</h1>
+      <p>You can select a single image for a single prediction or multiple images for batch prediction.</p>
+      
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      
+      <!-- File Upload Form -->
+      <div class="card p-4"> 
+        <form method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="formFiles" class="form一句话翻译成英文form-label">Select Image File(s)</label>
+            <input class="form-control" type="file" name="file" accept=".tif,.tiff,.png,.jpeg,.jpg" id="formFiles" multiple required>
+          </div>
+          <div class="mb-3">
+            <label for="experimentSelect" class="form-label">Select Experiment</label>
+            <select class="form-select" name="experiment" id="experimentSelect" required>
+              {% for option in experiments %}
+                <option value="{{ option }}">{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Upload and Predict</button> <!-- Full width button -->
+        </form>
+      </div>
     </div>
-    <div class="mb-3">
-      <label for="experimentSelect" class="form-label">Select Experiment</label>
-      <select class="form-select" name="experiment" id="experimentSelect" required>
-        {% for option in experiments %}
-          <option value="{{ option }}">{{ option }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <button type="submit" class="btn btn-primary">Upload and Predict</button>
-  </form>
+  </div>
+</div>
 {% endblock %}

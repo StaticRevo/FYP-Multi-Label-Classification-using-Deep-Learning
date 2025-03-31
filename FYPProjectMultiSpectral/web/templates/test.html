@@ -1,24 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Test Network{% endblock %}
 {% block content %}
-  <h1 class="mb-4">Test a Network</h1>
-  <form method="post">
-    <div class="mb-3">
-      <label for="experiment" class="form-label">Select Untested Experiment</label>
-      <select class="form-select" id="experiment" name="experiment" required>
-        {% for exp in untested_experiments %}
-          <option value="{{ exp }}">{{ exp }}</option>
-        {% endfor %}
-      </select>
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8"> <!-- Adjust to col-md-10 or col-md-12 for wider -->
+      <h1 class="mb-4 section-title">Test a Network</h1>
+      <div class="card p-4">
+        <form method="post">
+          <div class="mb-3">
+            <label for="experiment" class="form-label">Select Untested Experiment</label>
+            <select class="form-select" id="experiment" name="experiment" required>
+              {% for exp in untested_experiments %}
+                <option value="{{ exp }}">{{ exp }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="checkpoint_type" class="form-label">Checkpoint Type</label>
+            <select class="form-select" id="checkpoint_type" name="checkpoint_type" required>
+              <option value="last">Last</option>
+              <option value="best_acc">Best Accuracy</option>
+              <option value="best_loss">Best Loss</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Start Testing</button>
+        </form>
+      </div>
     </div>
-    <div class="mb-3">
-      <label for="checkpoint_type" class="form-label">Checkpoint Type</label>
-      <select class="form-select" id="checkpoint_type" name="checkpoint_type" required>
-         <option value="last">Last</option>
-         <option value="best_acc">Best Accuracy</option>
-         <option value="best_loss">Best Loss</option>
-      </select>
-    </div>
-    <button type="submit" class="btn btn-primary">Start Testing</button>
-  </form>
+  </div>
+</div>
 {% endblock %}

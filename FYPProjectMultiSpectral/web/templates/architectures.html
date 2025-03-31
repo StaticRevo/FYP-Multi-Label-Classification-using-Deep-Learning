@@ -3,44 +3,58 @@
 {% block title %}Model Architectures{% endblock %}
 
 {% block content %}
-  <h1 class="mb-4">Available Model Architectures</h1>
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-10"> 
+      <h1 class="mb-4 section-title">Available Model Architectures</h1>
 
-  <!-- Navigation Menu -->
-  <nav class="mb-4">
-    <h4>Select a Model:</h4>
-    <ul class="list-inline">
-      {% for arch in architectures %}
-        <li class="list-inline-item">
-          <a href="#{{ arch.name | replace(' ', '_') }}">{{ arch.name }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  </nav>
+      <!-- Navigation Menu -->
+      <div class="card p-3 mb-4" style="overflow-x: auto; white-space: nowrap;">
+        <nav>
+          <h4 class="mb-2">Select a Model:</h4>
+          <ul class="list-inline mb-0">
+            {% for arch in architectures %}
+              <li class="list-inline-item">
+                <a href="#{{ arch.name | replace(' ', '_') }}" class="btn btn-secondary btn-sm py-1 px-2">{{ arch.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      </div>
 
-  <!-- Model Sections -->
-  {% if architectures %}
-    {% for arch in architectures %}
-      <section id="{{ arch.name | replace(' ', '_') }}" class="mb-5">
-        <h2>{{ arch.name }}</h2>
-        <ul>
-          {% for file in arch.files %}
-            <li>
-              <strong>{{ file.name }}</strong>
-              {% if file.is_text %}
-                <pre style="background-color: black; padding: 1em; border: 1px solid #ddd; margin-top: 0.5em;">
-                  {{ file.content }}
-                </pre>
-              {% else %}
-                <a href="{{ url_for('architecture_file', architecture=arch.name, filename=file.name) }}" target="_blank">
-                  View/Download File
-                </a>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </section>
-    {% endfor %}
-  {% else %}
-    <p>No architectures found.</p>
-  {% endif %}
+      <!-- Model Sections -->
+      {% if architectures %}
+        {% for arch in architectures %}
+          <section id="{{ arch.name | replace(' ', '_') }}" class="mb-5">
+            <div class="card p-4">
+              <h2 class="mb-3">{{ arch.name }}</h2>
+              <ul class="list-unstyled">
+                {% for file in arch.files %}
+                  <li class="mb-3">
+                    <strong>{{ file.name }}</strong>
+                    {% if file.is_text %}
+                      <pre class="mt-2 p-3" style="background-color: var(--secondary); border: 1px solid var(--secondary-light); color: var(--text-color);">
+                        {{ file.content }}
+                      </pre>
+                    {% else %}
+                      <div class="mt-2">
+                        <a href="{{ url_for('architecture_file', architecture=arch.name, filename=file.name) }}" target="_blank" class="btn btn-primary btn-sm">
+                          View/Download File
+                        </a>
+                      </div>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </section>
+        {% endfor %}
+      {% else %}
+        <div class="card p-4">
+          <p>No architectures found.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endblock %}

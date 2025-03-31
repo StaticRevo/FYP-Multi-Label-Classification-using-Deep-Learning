@@ -37,12 +37,9 @@ Follow these steps to set up and run the project locally.
    conda activate Fyp311
 
 ## Dataset Setup
-<img src="https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df" width="300">
+![Image](https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df)
 
-The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of: 
-- **590,326 patches**
-- **19 land cover types** 
-- **12 spectral bands at 10m,20m and 60m per pixel resolution**
+The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of: **590,326 patches**, **19 land cover types** and **12 spectral bands at 10m,20m and 60m per pixel resolution**
 
 Official Source: [BigEarthNet](https://bigearth.net/)
 

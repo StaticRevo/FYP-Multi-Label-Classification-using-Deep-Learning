@@ -37,6 +37,7 @@ Follow these steps to set up and run the project locally.
    conda activate Fyp311
 
 ## Dataset Setup
+<img src="https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df" width="300">
 ![Image](https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df)
 The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of: 
 - **590,326 patches**
@@ -53,6 +54,13 @@ The Script will:
 - **Download** the Dataset
 - **Extract** All Necessary Files
 - **Clean and Organise** the Dataset
+
+## Configuration Setup
+Before running either the command-line interface (main.py) or the web application (app.py), you must update the configuration paths in FYPProjectMultiSpectral/config/config.py. This file contains critical settings such as:
+- **Experiment paths:** Where model outputs and logs will be stored.
+- **Dataset paths:** Locations of the BigEarthNet dataset.
+- **Metadata paths:** Locations of metadata files for the dataset.
+Update these paths to match your local environment to ensure the project runs correctly.
 
 ## Running the Project - Command Line (Training and Testing Models)
 To run the project, simply run:

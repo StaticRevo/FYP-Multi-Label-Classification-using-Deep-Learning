@@ -38,7 +38,6 @@ Follow these steps to set up and run the project locally.
 
 ## Dataset Setup
 <img src="https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df" width="300">
-![Image](https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df)
 The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of: 
 - **590,326 patches**
 - **19 land cover types** 

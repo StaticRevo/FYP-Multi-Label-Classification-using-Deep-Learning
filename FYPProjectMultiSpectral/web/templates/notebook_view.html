@@ -3,15 +3,19 @@
 {% block content %}
 <div class="container mt-4">
   <div class="row justify-content-center">
-    <div class="col-md-10">
-      <h1 class="mb-4 section-title">Data Exploration</h1>
-      <div class="card p-4 mb-4">
-        <div class="d-flex gap-2 mb-3">
-          <a href="{{ url_for('index') }}" class="btn btn-primary">Return Home</a>
-          <button class="btn btn-secondary" onclick="location.reload();">Refresh Notebook</button>
+    <div class="col-md-22">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white fw-bold">
+          <h1 class="mb-0 section-title">Data Exploration</h1>
         </div>
-        <div class="notebook-content">
-          {{ notebook_content|safe }}
+        <div class="card-body p-4">
+          <div class="d-flex gap-2 mb-3">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Return Home</a>
+            <button class="btn btn-secondary" onclick="location.reload();">Refresh Notebook</button>
+          </div>
+          <div class="notebook-content">
+            {{ notebook_content|safe }}
+          </div>
         </div>
       </div>
     </div>
@@ -19,31 +23,49 @@
 </div>
 
 <style>
-  .notebook-content {
-    background-color: var(--card-bg);
-    color: var(--text-color);
+  /* Ensure the card matches the theme */
+  .card {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--secondary-light) !important;
   }
 
-  /* Ensure the entire notebook container matches the theme */
-  .notebook-content, 
-  .notebook-content * {
+  .card-header {
+    background-color: var(--primary) !important;
+    border-bottom: 1px solid var(--secondary-light) !important;
+  }
+
+  .card-body {
     background-color: var(--card-bg) !important;
     color: var(--text-color) !important;
   }
 
-  /* Override specific Jupyter notebook elements */
-  .notebook-content pre,
-  .notebook-content code {
-    background-color: var(--secondary) !important;
-    border: 1px solid var(--secondary-light) !important;
+  /* Notebook content container */
+  .notebook-content {
+    background-color: var(--card-bg) !important;
     color: var(--text-color) !important;
+    padding: 1rem;
+    border-radius: 0.25rem;
   }
 
-  /* Markdown and text cells */
+  /* Override Jupyter notebook styles */
+  .notebook-content * {
+    background-color: transparent !important;
+    color: inherit !important;
+  }
+
+  /* Specific Jupyter notebook elements */
+  .notebook-content pre,
+  .notebook-content code,
+  .notebook-content .code_cell,
+  .notebook-content .input_area,
+  .notebook-content .output_area,
+  .notebook-content .output_subarea,
   .notebook-content .rendered_html,
   .notebook-content .text_cell_render {
-    background-color: var(--card-bg) !important;
+    background-color: var(--secondary) !important;
     color: var(--text-color) !important;
+    border: 1px solid var(--secondary-light) !important;
   }
 
   /* Headers in markdown cells */
@@ -56,10 +78,11 @@
     color: var(--text-color) !important;
   }
 
-  /* Paragraphs and other text */
+  /* Text elements */
   .notebook-content p,
   .notebook-content li,
-  .notebook-content span {
+  .notebook-content span,
+  .notebook-content div {
     color: var(--text-color) !important;
   }
 
@@ -71,33 +94,31 @@
 
   .notebook-content th,
   .notebook-content td {
+    background-color: var(--card-bg) !important;
     border-color: var(--secondary) !important;
     color: var(--text-color) !important;
   }
 
-  /* Output areas (like plots or printed text) */
-  .notebook-content .output_area,
-  .notebook-content .output_subarea {
-    background-color: var(--card-bg) !important;
-    color: var(--text-color) !important;
-  }
-
-  .notebook-content .input_area {
-    background-color: var(--card-bg) !important;
-  }
-
+  /* Images and plots */
   .notebook-content .output_png,
   .notebook-content img {
-    background-color: var(--card-bg) !important;
+    background-color: transparent !important;
   }
 
+  /* Override inline styles */
   .notebook-content [style*="background"],
   .notebook-content [style*="background-color"] {
-    background-color: var(--card-bg) !important;
+    background-color: transparent !important;
   }
 
   .notebook-content [style*="color"] {
     color: var(--text-color) !important;
+  }
+
+  /* Ensure plots (e.g., Matplotlib) have a transparent background */
+  .notebook-content .output_area img,
+  .notebook-content .output_area svg {
+    background-color: transparent !important;
   }
 </style>
 {% endblock %}

@@ -24,7 +24,7 @@
             <div class="card-body text-center">
               <i class="bi bi-image display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Predict Images</h4>
-              <p class="card-text mb-4">Upload and analyze remote sensing imagery using our trained models.</p>
+              <p class="card-text mb-4">Upload and analyse remote sensing imagery using our trained models.</p>
               <a href="{{ url_for('predict_page') }}" class="btn btn-primary w-100">
                 <i class="bi bi-image me-2"></i>Predict Images
               </a>
@@ -67,7 +67,7 @@
             <div class="card-body text-center">
               <i class="bi bi-bar-chart display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Data Exploration</h4>
-              <p class="card-text mb-4">Visualize and explore your data with interactive charts.</p>
+              <p class="card-text mb-4">Visualize and explore BigEarthNet with interactive charts.</p>
               <a href="{{ url_for('data_exploration') }}" class="btn btn-success w-100">
                 <i class="bi bi-bar-chart me-2"></i>Explore Data
               </a>
@@ -79,7 +79,7 @@
             <div class="card-body text-center">
               <i class="bi bi-diagram-3 display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Bubble Chart</h4>
-              <p class="card-text mb-4">Analyze multi-dimensional data relationships visually.</p>
+              <p class="card-text mb-4">Analyse multi-dimensional data relationships visually.</p>
               <a href="{{ url_for('bubble_chart') }}" class="btn btn-success w-100">
                 <i class="bi bi-diagram-3 me-2"></i>View Charts
               </a>
@@ -147,66 +147,4 @@
 {% endblock %}
 
 {% block extra_head %}
-<style>
-  .hero-section {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .hero-section::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 20px;
-    background: linear-gradient(to right bottom, transparent 49%, var(--body-bg) 50%);
-  }
-  
-  /* Card hover effects */
-  .card {
-    overflow: hidden;
-    border-radius: 10px;
-    border-top: 3px solid transparent;
-    transition: all 0.3s ease;
-  }
-  
-  .row:nth-child(1) .card {
-    border-top-color: #375a7f;
-  }
-  
-  .row:nth-child(2) .card {
-    border-top-color: #00bc8c;
-  }
-  
-  .row:nth-child(3) .card {
-    border-top-color: #444;
-  }
-  
-  .card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-  }
-  
-  .card:hover i {
-    transform: scale(1.1);
-  }
-  
-  .card i {
-    transition: transform 0.3s ease;
-  }
-  
-  .btn {
-    border-radius: 6px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-  }
-  
-  .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-</style>
 {% endblock %}

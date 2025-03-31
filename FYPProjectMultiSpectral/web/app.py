@@ -551,7 +551,6 @@ def experiment_detail(experiment_name):
                     line = line.strip()
                     # Skip empty lines or header lines (if any)
                     if line and not line.lower().startswith("aggregated metrics"):
-                        # Expecting lines like: "precision_micro: 0.653570221237276"
                         if ":" in line:
                             key, value = line.split(":", 1)
                             aggregated_data[key.strip()] = value.strip()
@@ -656,7 +655,7 @@ def detailed_inference():
                 if os.path.exists(json_path):
                     with open(json_path, 'r') as f:
                         per_class = json.load(f)
-                    break  # Use test metrics if available; otherwise fall back to validation
+                    break  # Use test metrics if available otherwise fall back to validation
             
             # Load aggregated metrics
             aggregated_metrics = None

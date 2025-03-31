@@ -9,12 +9,14 @@
     --card-bg: #303030;
     --body-bg: #222;
 }
+
 body {
     background-color: var(--body-bg);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-  }
+}
+
 #map {
     border: 1px solid #ccc;
 }
@@ -22,106 +24,139 @@ body {
 .legend-title {
     font-weight: bold;
     margin-bottom: 8px;
-  }
+}
 
-  /* Container for the entire set of legend items */
-  .legend-container {
+.legend-container {
     display: flex;
-    flex-wrap: wrap;             
-    justify-content: center;     
-    gap: 12px;                
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
     max-width: 700px;
-    margin: 0 auto;            
+    margin: 0 auto;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 8px;
-    background-color: #f9f9f9;   
-  }
-  .legend-item {
+    background-color: #f9f9f9;
+}
+
+.legend-item {
     display: flex;
     align-items: center;
-  }
-  .legend-color-box {
+}
+
+.legend-color-box {
     width: 18px;
     height: 18px;
     margin-right: 8px;
-    border-radius: 4px;       
-    border: 1px solid #333;   
-  }
+    border-radius: 4px;
+    border: 1px solid #333;
+}
 
-  .legend-text {
+.legend-text {
     color: #333;
     font-weight: 500;
     font-size: 0.9rem;
-  }
+}
 
 .navbar {
     padding: 0.8rem 1rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
 }
-    
+
 .navbar-brand {
     letter-spacing: 0.5px;
 }
-    
+
 .nav-link {
     font-weight: 500;
     padding: 0.8rem 1rem !important;
     transition: all 0.3s ease;
     border-bottom: 2px solid transparent;
 }
-    
-.nav-link:hover, .nav-link.active {
+
+.nav-link:hover,
+.nav-link.active {
     border-bottom: 2px solid var(--accent);
 }
-    
+
+.nav-link.active {
+    font-weight: 700;
+}
+
 .wrapper {
     flex: 1;
 }
-    
+
 .card {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 8px;
+    border-radius: 10px; /* Chose 10px over 8px */
+    border-top: 3px solid transparent;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease; /* Chose 'all' over specific properties */
     margin-bottom: 1.5rem;
+    overflow: hidden;
 }
-    
+
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    transform: translateY(-8px); /* Chose -8px over -5px */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Chose the larger shadow */
 }
-    
+
+.card:hover i {
+    transform: scale(1.1);
+}
+
+.card i {
+    transition: transform 0.3s ease;
+}
+
+.row:nth-child(1) .card {
+    border-top-color: #375a7f;
+}
+
+.row:nth-child(2) .card {
+    border-top-color: #00bc8c;
+}
+
+.row:nth-child(3) .card {
+    border-top-color: #444;
+}
+
 .btn {
     border-radius: 6px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
+    font-weight: 600; /* Chose 600 over 500 */
+    letter-spacing: 0.5px; /* Chose 0.5px over 0.3px */
     text-transform: uppercase;
     padding: 0.6rem 1.2rem;
     transition: all 0.3s ease;
 }
-    
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 .btn-primary {
     background-color: var(--primary);
     border-color: var(--primary);
 }
-    
+
 .btn-primary:hover {
     background-color: var(--primary-dark);
     border-color: var(--primary-dark);
 }
-    
+
 .btn-success {
     background-color: var(--accent);
     border-color: var(--accent);
 }
-    
+
 .btn-success:hover {
     background-color: var(--accent-dark);
     border-color: var(--accent-dark);
 }
-    
+
 .section-title {
     position: relative;
     padding-bottom: 1rem;
@@ -129,7 +164,7 @@ body {
     color: var(--text-color);
     font-weight: 600;
 }
-    
+
 .section-title:after {
     content: '';
     position: absolute;
@@ -140,37 +175,72 @@ body {
     background-color: var(--accent);
     transform: translateX(-50%);
 }
-    
+
 footer {
     background-color: var(--card-bg);
     color: #aaa;
     padding: 1.5rem 0;
     margin-top: 2rem;
 }
-    
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
-    
+
 ::-webkit-scrollbar-track {
     background: #2d2d2d;
 }
-    
+
 ::-webkit-scrollbar-thumb {
     background: #444;
     border-radius: 4px;
 }
-    
+
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
-    
-.nav-link.active {
-    font-weight: 700;
-}
-    
-.leaflet-control-layers, .leaflet-control-zoom {
+
+.leaflet-control-layers,
+.leaflet-control-zoom {
     filter: invert(100%) hue-rotate(180deg);
+}
+
+.leaflet-container {
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.selection-box {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.coordinate-info {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.hero-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(to right bottom, transparent 49%, var(--body-bg) 50%);
 }

@@ -23,6 +23,7 @@
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
+        <!-- Navigation Links -->
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" href="{{ url_for('index') }}">Home</a></li>

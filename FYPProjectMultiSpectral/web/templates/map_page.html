@@ -114,7 +114,7 @@
 
                 imageContainer.innerHTML = `
                     <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white">Selected Patch</div>
+                        <div class="card-header bg-primary text-white fw-bold fs-4">Selected Patch</div>
                         <div class="card-body">
                             <img src="${data.image_url}" alt="RGB Image Patch" class="img-fluid mb-3 rounded" style="width: 300px;">
                             <p class="card-text"><small class="text-muted">Multispectral TIFF saved as: ${data.tiff_file}</small></p>
@@ -158,7 +158,7 @@
                 // Render predictions
                 let predictionHtml = `
                     <div class="card shadow-sm">
-                        <div class="card-header bg-success text-white">Prediction Results</div>
+                        <div class="card-header bg-success text-white fw-bold fs-4">Prediction Results</div>
                         <div class="card-body">
                             <h5>Experiment: ${data.selected_experiment}</h5>
                             <table class="table table-striped">
@@ -179,7 +179,7 @@
                 predictionHtml += `
                                 </tbody>
                             </table>
-                            <h6>Grad-CAM Visualizations</h6>
+                            <h5 class="fw-bold">Grad-CAM Visualizations</h5>
                             <div class="row">`;
                 for (let [className, url] of Object.entries(data.gradcam)) {
                     predictionHtml += `
@@ -190,7 +190,7 @@
                 }
                 predictionHtml += `
                             </div>
-                            <h6>Color-Coded Grad-CAM</h6>
+                            <h5 class="fw-bold">Color-Coded Grad-CAM</h5>
                             <img src="${data.gradcam_colorcoded_.combined.url}" alt="Color-Coded Grad-CAM" class="img-fluid rounded mb-2" style="width: 300px;">
                             <div class="legend-title">Legend</div>
                             <div class="legend-container">`;

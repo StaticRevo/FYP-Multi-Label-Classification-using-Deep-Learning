@@ -3,97 +3,176 @@
 {% block title %}GradCAM Result{% endblock %}
 
 {% block content %}
-  <h2>GradCAM for {{ filename }}</h2>
-  <p><strong>Experiment:</strong> {{ experiment }}</p>
+<div class="container mt-5">
+  <h1 class="mb-4 text-center">GradCAM Result</h1>
+  <h5 class="text-center text-muted mb-4">
+    For file: {{ filename }} | Experiment: {{ experiment }}
+  </h5>
 
-  {% if actual_labels %}
-    <p><strong>Actual Labels:</strong> {{ actual_labels }}</p>
-  {% endif %}
+ <div class="row">
+  <!-- Predicted Labels -->
+  <div class="col-md-6">
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-primary text-white fw-bold">
+        Predicted Labels
+      </div>
+      <div class="card-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Probability</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pred in predictions %}
+              <tr>
+                <td {% if actual_labels and pred.label in actual_labels %}style="color: green;"{% endif %}>
+                  {{ pred.label }}
+                </td>
+                <td {% if actual_labels and pred.label in actual_labels %}style="color: green;"{% endif %}>
+                  {{ pred.probability | round(3) }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-  <div class="container">
-    <!-- Row 1: Original Image -->
-    <div class="row mb-4 justify-content-center">
-      <div class="col-md-6 text-center">
-        <h5>Original Image</h5>
-        {% if original_img_url %}
-          <img src="{{ original_img_url }}" alt="Original Image" class="img-fluid" style="width: 250px;">
+  <!-- Actual Labels -->
+  <div class="col-md-6">
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-primary text-white fw-bold">
+        Actual Labels
+      </div>
+      <div class="card-body">
+        {% if actual_labels and actual_labels|length > 0 %}
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Label</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for label in actual_labels %}
+                <tr>
+                  <td>{{ label }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         {% else %}
-          <p>No original image available.</p>
+          <p class="mb-0 text-muted">No actual labels available.</p>
         {% endif %}
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Row 2: Individual GradCAM Overlays -->
-    {% if gradcam %}
-      <div class="row">
-        {% for class_label, gradcam_url in gradcam.items() %}
-          <div class="col-md-4 mb-4 text-center">
-            <div class="card">
-              <div class="card-body">
-                <h5 class="card-title">{{ class_label }}</h5>
-                <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" class="img-fluid">
+  <!-- Original Image -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white fw-bold">
+      Original Image
+    </div>
+    <div class="card-body text-center">
+      {% if original_img_url %}
+        <div class="d-flex justify-content-center mb-3">
+          <img src="{{ original_img_url }}" alt="Original Image" class="img-fluid rounded" style="width: 100%; max-width: 300px;">
+        </div>
+      {% else %}
+        <p>No original image available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Individual GradCAM Overlays -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-success text-white fw-bold">
+      Individual Class GradCAM Visualizations
+    </div>
+    <div class="card-body">
+      {% if gradcam %}
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+          {% for class_label, gradcam_url in gradcam.items() %}
+            <div class="col">
+              <div class="card h-100 shadow-sm">
+                <div class="card-header text-white text-center">
+                  <strong>{{ class_label }}</strong>
+                </div>
+                <div class="card-body text-center">
+                  <img src="{{ gradcam_url }}" alt="GradCAM for {{ class_label }}" class="img-fluid rounded" style="max-width: 200px;">
+                </div>
               </div>
             </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p>No GradCAM results available.</p>
-    {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>No GradCAM results available.</p>
+      {% endif %}
+    </div>
+  </div>
 
-    <!-- Row 3: Combined Color-Coded GradCAM -->
-    {% if gradcam_colorcoded and gradcam_colorcoded.combined %}
-      <div class="card mb-4">
-        <div class="card-body">
-          <h6 class="card-title">Combined Color-Coded Grad-CAM</h6>
-          <div class="row justify-content-center">
-            <div class="col-12 text-center">
-              <img 
+  <!-- Combined Color-Coded GradCAM -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-success text-white fw-bold">
+      Combined Color-Coded Grad-CAM
+    </div>
+    <div class="card-body text-center">
+      {% if gradcam_colorcoded and gradcam_colorcoded.combined %}
+        <div class="row justify-content-center">
+          <div class="col-12">
+            <img 
               src="{{ gradcam_colorcoded.combined.url }}" 
               alt="Color-Coded GradCAM" 
-              class="img-fluid"
-              style="width: 500px;"
+              class="img-fluid rounded mb-3"
+              style="width: 300px;"
             >
-            </div>
           </div>
-          <div class="row justify-content-center mt-3">
-            <div class="col-12 text-center">
-              <div class="legend-title">GRAD-CAM Multi-Label Classification</div>
-              <div class="legend-container">
-                {% set ordered_categories = [
-                  ('Urban & Industrial', 'rgb(255,0,0)'),
-                  ('Agricultural & Managed Lands', 'rgb(255,165,0)'),
-                  ('Forest & Woodland', 'rgb(0,128,0)'),
-                  ('Natural Vegetation (Non-Forest)', 'rgb(107,142,35)'),
-                  ('Coastal & Transitional', 'rgb(255,255,0)'),
-                  ('Wetlands', 'rgb(255,0,255)'),
-                  ('Water Bodies', 'rgb(0,0,255)')
-                ] %}
-                {% for cat_name, rgb_str in ordered_categories %}
-                  <div class="legend-item">
-                    <div class="legend-color-box" data-color="{{ rgb_str }}"></div>
-                    <span class="legend-text">{{ cat_name }}</span>
-                  </div>
-                {% endfor %}
-              </div>
+          <div class="col-12 mt-3">
+            <div class="legend-title">GRAD-CAM Multi-Label Classification</div>
+            <div class="legend-container">
+              {% set ordered_categories = [
+                ('Urban & Industrial', 'rgb(255,0,0)'),
+                ('Agricultural & Managed Lands', 'rgb(255,165,0)'),
+                ('Forest & Woodland', 'rgb(0,128,0)'),
+                ('Natural Vegetation (Non-Forest)', 'rgb(107,142,35)'),
+                ('Coastal & Transitional', 'rgb(255,255,0)'),
+                ('Wetlands', 'rgb(255,0,255)'),
+                ('Water Bodies', 'rgb(0,0,255)')
+              ] %}
+              {% for cat_name, rgb_str in ordered_categories %}
+                <div class="legend-item">
+                  <div class="legend-color-box" data-color="{{ rgb_str }}"></div>
+                  <span class="legend-text">{{ cat_name }}</span>
+                </div>
+              {% endfor %}
             </div>
           </div>
         </div>
-      </div>
-    {% else %}
-      <p>No color-coded GradCAM visualization generated.</p>
-    {% endif %}
+      {% else %}
+        <p>No color-coded GradCAM visualization generated.</p>
+      {% endif %}
+    </div>
   </div>
 
-  <a href="javascript:history.back()" class="btn btn-secondary mt-4">Back to Predictions</a>
-  <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Return Home</a>
+  <div class="mt-4 text-center">
+    <a href="javascript:history.back()" class="btn btn-primary me-2" aria-label="Back to predictions">
+      <i class="bi bi-arrow-left me-1"></i> Back to Predictions
+    </a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" aria-label="Return to home page">
+      <i class="bi bi-house-door me-1"></i> Return Home
+    </a>
+  </div>
+</div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      document.querySelectorAll('.legend-color-box').forEach(function(box) {
-        var color = box.getAttribute('data-color');
-        box.style.backgroundColor = color;
-      });
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll('.legend-color-box').forEach(function(box) {
+      var color = box.getAttribute('data-color');
+      box.style.backgroundColor = color;
     });
-  </script>
+  });
+</script>
 {% endblock %}

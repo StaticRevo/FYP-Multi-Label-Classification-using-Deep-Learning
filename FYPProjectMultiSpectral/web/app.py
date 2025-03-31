@@ -375,6 +375,8 @@ def batch_gradcam():
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
 
+    predictions = predict_image_for_model(model_instance, input_tensor)
+
     experiment_details = parse_experiment_folder(experiment)
     model_name = experiment_details["model"]  
     in_channels, bands = get_channels_and_bands(experiment_details["bands"])
@@ -408,7 +410,8 @@ def batch_gradcam():
         gradcam=gradcam_results,
         gradcam_colorcoded=gradcam_colorcoded,
         actual_labels=actual_labels,
-        original_img_url=original_img_url  
+        original_img_url=original_img_url,
+        predictions=predictions  
     )
 
 @app.route("/experiments")

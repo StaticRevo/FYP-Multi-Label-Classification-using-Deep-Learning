@@ -14,33 +14,35 @@ config.save()
 if not config.sh_client_id or not config.sh_client_secret:
     raise ValueError("Sentinel Hub credentials not set!")
 
-# Evalscript for 12 bands
+# Evalscript for 12 bands with UINT16 output and proper scaling
 evalscript = """
 //VERSION=3
 function setup() {
   return {
     input: ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12"],
-    output: { bands: 12 }
+    output: { bands: 12, sampleType: "UINT16" }  // Request UINT16 output
   };
 }
 function evaluatePixel(sample) {
-  return [sample.B01, sample.B02, sample.B03, sample.B04, sample.B05, sample.B06,
-          sample.B07, sample.B08, sample.B8A, sample.B09, sample.B11, sample.B12];
+  // Scale reflectance to 0-10000 (Sentinel-2 L2A standard)
+  return [sample.B01 * 10000, sample.B02 * 10000, sample.B03 * 10000, sample.B04 * 10000,
+          sample.B05 * 10000, sample.B06 * 10000, sample.B07 * 10000, sample.B08 * 10000,
+          sample.B8A * 10000, sample.B09 * 10000, sample.B11 * 10000, sample.B12 * 10000];
 }
 """
 
 def fetch_sentinel_patch(lat, lon, output_tiff=None):
     """
-    Fetch a 120x120 Sentinel-2 patch at given coordinates.
+    Fetch a 120x120 Sentinel-2 patch at given coordinates in WGS84, matching BigEarthNet’s size and scaling.
     Args:
         lat (float): Latitude
         lon (float): Longitude
         output_tiff (str, optional): Path to save TIFF file
     Returns:
-        np.ndarray: Multispectral data (120, 120, 12)
+        np.ndarray: Multispectral data (120, 120, 12) in uint16
         list: Bounding box coordinates [min_lon, min_lat, max_lon, max_lat]
     """
-    delta = 0.0054  # ~600m radius for 120x120 at 10m resolution
+    delta = 0.0054  # 600m radius for 120x120 at 10m resolution in WGS84
     bbox_coords = [lon - delta, lat - delta, lon + delta, lat + delta]
     bbox = BBox(bbox=bbox_coords, crs=CRS.WGS84)
 
@@ -49,37 +51,37 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
         evalscript=evalscript,
         input_data=[SentinelHubRequest.input_data(
             data_collection=DataCollection.SENTINEL2_L2A,
-            time_interval=("2020-03-01", "2024-03-31"),
-            other_args={"dataFilter": {"maxCloudCoverage": 10}}
+            time_interval=("2018-06-01", "2024-08-31"),
+            other_args={"dataFilter": {"maxCloudCoverage": 1}}
         )],
         responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
         bbox=bbox,
-        size=[120, 120],
+        size=[120, 120],  # Enforce 120x120
         config=config
     )
 
     # Fetch data
-    data = request.get_data()[0]  # (120, 120, 12)
+    data = request.get_data()[0]  # (120, 120, 12) in uint16, scaled to 0-10000
 
     if output_tiff:
         # Transpose data to (bands, height, width) for rasterio
-        data_tiff = np.transpose(data, (2, 0, 1))  # (12, 120, 120)
+        data_tiff = np.transpose(data, (2, 0, 1)).astype(np.uint16)  # (12, 120, 120)
 
-        # Define metadata for the TIFF
+        # Define metadata in WGS84 (no reprojection)
         meta = {
             'driver': 'GTiff',
-            'height': data_tiff.shape[1],
-            'width': data_tiff.shape[2],
+            'height': 120, 
+            'width': 120,  
             'count': data_tiff.shape[0],
-            'dtype': data_tiff.dtype,
+            'dtype': 'uint16',
             'crs': 'EPSG:4326',
-            'transform': from_bounds(*bbox_coords, data_tiff.shape[2], data_tiff.shape[1])
+            'transform': from_bounds(*bbox_coords, 120, 120)  # Enforce 120x120 transform
         }
 
-        # Save as multispectral TIFF
+        # Save directly as multispectral TIFF in WGS84
         with rasterio.open(output_tiff, 'w', **meta) as dst:
             dst.write(data_tiff)
-        print(f"Saved patch as {output_tiff}")
+        print(f"Saved patch as {output_tiff} in EPSG:4326")
 
     return data, bbox_coords
 

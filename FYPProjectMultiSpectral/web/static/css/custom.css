@@ -3,18 +3,47 @@
     --text-color: #e0e0e0;
     --primary-color: #0d6efd;
     --secondary-color: #1f1f1f;
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 body {
-    font-family: Arial, sans-serif;
+    font-family: var(--font-family);
 }
 #map {
     border: 1px solid #ccc;
 }
-#image-container {
-    margin-top: 20px;
-}
-#image-container p {
-    font-size: 14px;
-    color: #555;
-}
+
+.legend-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  /* Container for the entire set of legend items */
+  .legend-container {
+    display: flex;
+    flex-wrap: wrap;             
+    justify-content: center;     
+    gap: 12px;                
+    max-width: 700px;
+    margin: 0 auto;            
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;   
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+  }
+  .legend-color-box {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    border-radius: 4px;       
+    border: 1px solid #333;   
+  }
+
+  .legend-text {
+    color: #333;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }

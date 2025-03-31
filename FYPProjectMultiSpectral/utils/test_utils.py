@@ -84,8 +84,10 @@ def get_target_layer(model, model_name):
     target_layer = None
     
     # Determine target layer based on model_name
-    if 'CustomModel' in model_name:
-        target_layer = model.block4[2].conv2  
+    if 'CustomModelV9' in model_name:
+        target_layer = model.block4[3].conv2
+    elif 'CustomModel' in model_name:
+        target_layer = model.block4[2].conv2 
     elif model_name == 'ResNet18':
         target_layer = model.model.layer3[-1].conv2
     elif model_name == 'ResNet50':

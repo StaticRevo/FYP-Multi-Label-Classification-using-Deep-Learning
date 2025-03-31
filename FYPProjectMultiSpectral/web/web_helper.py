@@ -268,7 +268,6 @@ CATEGORY_GROUPS = {
         "color": (255, 255, 0)  # yellow
     }
 }
-
 # Generate a color-coded Grad-CAM visualization
 def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
     gradcam_results = {}
@@ -371,7 +370,6 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
             best_cat_idx = argmax_map[i, j]
             activation = max_vals[i, j]
             if activation >= activation_threshold:
-                # color scaled by activation (comment out "* activation" for solid color)
                 overlay_array[i, j] = cat_colors[best_cat_idx] * activation
 
     # Alpha-blend with the base image
@@ -379,7 +377,6 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
     final_image = rgb_image * (1 - overlay_alpha) + overlay_array * overlay_alpha
     final_image = np.clip(final_image, 0, 1)
 
-    # Optional: boost saturation to avoid a washed-out look
     final_img = Image.fromarray((final_image * 255).astype(np.uint8))
     enhancer = ImageEnhance.Color(final_img)
     final_img = enhancer.enhance(1.2)  
@@ -544,11 +541,12 @@ def process_prediction(file_path, filename, bands, selected_experiment):
     input_tensor = input_tensor.to(next(model_instance.parameters()).device)
     
     preds = predict_image_for_model(model_instance, input_tensor)
-    print("Model Instance Loaded: ", model_instance)
     with torch.no_grad():
         output = model_instance(input_tensor)
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
+
+    class_probs = {DatasetConfig.class_labels[i]: float(prob) for i, prob in enumerate(probs)}
 
     experiment_details = parse_experiment_folder(selected_experiment)
     model_name = experiment_details["model"]
@@ -578,6 +576,7 @@ def process_prediction(file_path, filename, bands, selected_experiment):
     return render_template('result.html',
                            filename=filename,
                            predictions={selected_experiment: preds},
+                           probabilities=class_probs,
                            actual_labels=actual_labels,
                            rgb_url=rgb_url,
                            gradcam=gradcam,

@@ -88,42 +88,6 @@
   <a href="javascript:history.back()" class="btn btn-secondary mt-4">Back to Predictions</a>
   <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Return Home</a>
 
-  <!-- Legend Styling -->
-  <style>
-    .legend-title {
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-    .legend-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      max-width: 700px;
-      margin: 0 auto;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background-color: #f9f9f9;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-    }
-    .legend-color-box {
-      width: 18px;
-      height: 18px;
-      margin-right: 8px;
-      border-radius: 4px;
-      border: 1px solid #333;
-    }
-    .legend-text {
-      color: #333;
-      font-weight: 500;
-      font-size: 0.9rem;
-    }
-  </style>
-
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       document.querySelectorAll('.legend-color-box').forEach(function(box) {

@@ -18,13 +18,14 @@ from .config_utils import *
 class DatasetConfig:
     base_path = os.path.join(os.path.dirname(__file__), "metadata")
     
-    metadata_path = os.path.join(base_path, "metadata_50_percent.csv")
+    metadata_path = r'C:\Users\isaac\Desktop\BigEarthTests\100%_BigEarthNet\metadata_100_percent.csv'
     dataset_paths = {
-        "0.5": os.path.join(base_path, "0.5%_BigEarthNet", "CombinedImages"),
-        "1": os.path.join(base_path, "1%_BigEarthNet", "CombinedImages"),
-        "5": os.path.join(base_path, "5%_BigEarthNet", "CombinedImages"),
-        "10": os.path.join(base_path, "10%_BigEarthNet", "CombinedImages"),
-        "50": os.path.join(base_path, "50%_BigEarthNet", "CombinedImages"),
+        "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages",
+        "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages",
+        "5": r"C:\Users\isaac\Desktop\BigEarthTests\5%_BigEarthNet\CombinedImages",
+        "10": r"C:\Users\isaac\Desktop\BigEarthTests\10%_BigEarthNet\CombinedImages",
+        "50": r"C:\Users\isaac\Desktop\BigEarthTests\50%_BigEarthNet\CombinedImages",
+        "100": r"D:\100%_BigEarthNet"
     }
     metadata_paths = {
         "0.5": os.path.join(base_path, "metadata_0.5_percent.csv"),
@@ -36,7 +37,7 @@ class DatasetConfig:
     unwanted_metadata_file: str = os.path.join(base_path, "metadata_for_patches_with_snow_cloud_or_shadow.parquet")
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
 
-    experiment_path = os.path.expanduser("~/Desktop/experiments")
+    experiment_path = r'C:\Users\isaac\Desktop\experiments'
     
     class_labels = calculate_class_labels(pd.read_csv(metadata_path))
     class_labels = class_labels

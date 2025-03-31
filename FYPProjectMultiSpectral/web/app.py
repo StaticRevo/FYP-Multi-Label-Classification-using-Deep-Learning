@@ -1002,36 +1002,50 @@ def map_page():
     experiments = get_experiments_list()  # Fetch the list of experiments (assumed to be defined elsewhere)
     return render_template('map_page.html', experiments=experiments)
 
+# -- Get Image from Map Page ---
 @app.route('/get_image', methods=['POST'])
 def get_image():
-    lat = float(request.form['lat']) # Get coordinates from the map click
+    lat = float(request.form['lat'])  # Get coordinates from the map click
     lon = float(request.form['lon'])
 
     # Generate unique filename with timestamp
     timestamp = int(time.time())
     tiff_path = os.path.join('static', 'images', f'multispectral_patch_{timestamp}.tif')
 
-    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path) # Fetch Sentinel-2 patch and save as TIFF
+    # Fetch Sentinel-2 patch and save as TIFF
+    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path)
 
+    # Scale reflectance values to [0, 1] (Sentinel-2 L2A data is scaled by 10,000)
+    data = data / 10000.0
+
+    # Extract RGB bands (B04, B03, B02)
     red = data[:, :, 3]   # B04
     green = data[:, :, 2] # B03
     blue = data[:, :, 1]  # B02
 
-    # Normalize for display
+    # Ensure float32 for processing
     red = red.astype(np.float32)
     green = green.astype(np.float32)
     blue = blue.astype(np.float32)
 
-    # Normalize bands using percentile clipping
-    red /= np.max(red)
-    green /= np.max(green)
-    blue /= np.max(blue)
+    # Percentile clipping for contrast enhancement (2nd and 98th percentiles)
+    def clip_band(band, lower_percentile=2, upper_percentile=98):
+        lower, upper = np.percentile(band, [lower_percentile, upper_percentile])
+        return np.clip(band, lower, upper)
 
-    # Stack the bands into an RGB image
+    red = clip_band(red)
+    green = clip_band(green)
+    blue = clip_band(blue)
+
+    # Normalize to [0, 1] after clipping, preserving relative color balance
     rgb = np.dstack((red, green, blue))
+    rgb_min, rgb_max = rgb.min(), rgb.max()
+    if rgb_max > rgb_min:  # Avoid division by zero
+        rgb = (rgb - rgb_min) / (rgb_max - rgb_min)
+    else:
+        rgb = np.zeros_like(rgb)  # Fallback if image is uniform (e.g., all zeros)
 
-    # Save RGB as PNG
-    image_path = os.path.join('static', 'images', f'rgb_patch_{timestamp}.png')
+    image_path = os.path.join('static', 'images', f'rgb_patch_{timestamp}.png') # Save RGB as PNG
     plt.imsave(image_path, rgb)
 
     # Return image URL, bounds, and TIFF filename for the map
@@ -1065,15 +1079,15 @@ def predict_from_map():
 
         ext = os.path.splitext(filename)[1].lower()
         if ext not in [".tif", ".tiff"]:
-             raise ValueError("Latest file is not a TIFF.")
+            raise ValueError("Latest file is not a TIFF.")
 
         actual_channels = validate_image_channels(file_path, in_channels)
 
         if actual_channels < in_channels:
-             raise ValueError(f"Image has only {actual_channels} bands, but model requires {in_channels}.")
+            raise ValueError(f"Image has only {actual_channels} bands, but model requires {in_channels}.")
         elif actual_channels > in_channels:
             print(f"Warning: Image has {actual_channels} bands, model expects {in_channels}. Using first {in_channels} bands from default list: {default_bands[:in_channels]}")
-            bands = default_bands[:in_channels] 
+            bands = default_bands[:in_channels]
         else:
             bands = default_bands
 
@@ -1081,29 +1095,27 @@ def predict_from_map():
         input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
         model_instance = load_model_from_experiment(selected_experiment)
 
-        device = next(model_instance.parameters()).device
-        input_tensor = input_tensor.to(device)
+        input_tensor = input_tensor.to(next(model_instance.parameters()).device)
 
-        # --- Get Predictions ---
+        # Get Predictions (unchanged predict_image_for_model)
+        preds = predict_image_for_model(model_instance, input_tensor)
         with torch.no_grad():
             output = model_instance(input_tensor)
             probs = torch.sigmoid(output).squeeze().cpu().numpy()
         predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
 
-        predictions_list = [
-            {"label": DatasetConfig.class_labels[idx], "probability": float(probs[idx])}
-            for idx in predicted_indices
-        ]
-        predictions_list.sort(key=lambda x: x["probability"], reverse=True)
+        preds_list = preds  # preds is a list of dicts with float32 probabilities
 
-        gradcam_urls = generate_gradcam_for_single_image(
+        print(f"preds type: {type(preds)}, value: {preds}")
+
+        gradcam = generate_gradcam_for_single_image(
             model_instance, input_tensor,
             class_labels=DatasetConfig.class_labels,
             model_name=model_name,
             in_channels=len(bands),
             predicted_indices=predicted_indices
         )
-        gradcam_colorcoded_url = generate_colorcoded_gradcam(
+        gradcam_colorcoded = generate_colorcoded_gradcam(
             model_instance, input_tensor,
             class_labels=DatasetConfig.class_labels,
             model_name=model_name,
@@ -1111,21 +1123,34 @@ def predict_from_map():
             predicted_indices=predicted_indices
         )
 
-        patch_id = os.path.splitext(filename)[0]
-        actual_labels = fetch_actual_labels(patch_id)
+        # Helper function to convert NumPy types to JSON-serializable types
+        def convert_to_serializable(obj):
+            if isinstance(obj, (np.float32, np.float64)):  # Handle float32 and float64
+                return float(obj)
+            if isinstance(obj, np.ndarray):  # Handle NumPy arrays
+                return obj.tolist()
+            if isinstance(obj, dict):  # Recursively process dictionaries
+                return {k: convert_to_serializable(v) for k, v in obj.items()}
+            if isinstance(obj, list):  # Recursively process lists
+                return [convert_to_serializable(item) for item in obj]
+            return obj
 
-        return jsonify({
+        # Prepare the response data
+        response_data = {
             'success': True,
             'filename': filename,
-            'predictions': predictions_list,
-            'actual_labels': actual_labels,
+            'predictions': {selected_experiment: preds_list},
             'rgb_url': rgb_url,
-            'gradcam_urls': gradcam_urls,
-            'gradcam_colorcoded_url': gradcam_colorcoded_url,
+            'gradcam': gradcam,
+            'gradcam_colorcoded_': gradcam_colorcoded,
             'experiment_details': experiment_details,
             'selected_experiment': selected_experiment
-        })
+        }
 
+        # Convert all non-serializable types
+        serializable_response = convert_to_serializable(response_data)
+
+        return jsonify(serializable_response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

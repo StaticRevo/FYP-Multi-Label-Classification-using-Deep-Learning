@@ -54,7 +54,7 @@ The Script will:
 - **Extract** All Necessary Files
 - **Clean and Organise** the Dataset
 
-## Running the Project
+## Running the Project - Command Line (Training and Testing Models)
 To run the project, simply run:
 
      python main.py
@@ -68,7 +68,23 @@ After running the script users can:
 - Specify **Weights**: Pre-trained or Not
 - Select **Training Option**: Train Only, Train and Test, Test Only
 
-Users are also encouraged to experiment with different hyperparamters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file.
+Users are also encouraged to experiment with different hyperparamters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file. - It is important to note that the experiment paths, dataset and metadata paths need to be updated through 'config/config.py'
+
+## Running the Web Application
+For a more interactive experience with additional features such as prediction and inference, you can run the web application by navigating to the web folder and executing:
+    
+    cd FYPProjectMultiSpectral/web
+      python app.py
+
+This will start a Flask-based web server (by default at http://127.0.0.1:5000) that provides:
+- **Training and Testing:** Configure and run training/testing experiments through a web interface with direct logging capabilities.
+- **Prediction:** Upload Sentinel-2 imagery or fetch patches from an interactive map to classify land cover types using trained models.
+- **Inference and Comparison:** Compare model performance across experiments with detailed metrics and visualisations.
+- **Data Exploration:** Interactive charts and visualizations of the BigEarthNet dataset.
+- **Experiment Management**: View, filter, and analyze past experiments with detailed logs, metrics, and visualszations.
+- **Model Visualization:** Explore model architectures and Grad-CAM heatmaps for interpretability.
+
+The web application extends the functionality of main.py by providing a user-friendly interface and additional capabilities for real-time inference and visualization.
 
 ## Experiment Tracking and Reporoducability
 The project follows automated experiment logging in a structured directory format:
@@ -113,5 +129,4 @@ Beyond the above standard metrics, the project also makes use of additional Eval
 - **ROC and AUC Curves**
 - **Label Co-occurrence Analysis**
 - **Grad-CAM and Activation Maps**
-
 The results are stored within experiment/results folder.

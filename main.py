@@ -44,36 +44,33 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         self.models = {
-            '1': 'CustomModelV8',
-            '2': 'CustomModelV9',
-            '3': 'VGG16',
-            '4': 'EfficientNetB0',
-            '5': 'DenseNet121',
-            '6': 'Vit-Transformer',
-            '7': 'Swin-Transformer',
+            '1': 'VGG16',
+            '2': 'VGG19',
+            '3': 'CustomModelV2',
+            '4': 'CustomModelV4',
         }
-        self.models = {
-            '1': 'CustomModelV8',
-            '2': 'CustomModelV9',
-            '3': 'CustomWRNB4ECA',
-            '4': 'VGG16',            # 2014
-            '5': 'VGG19',            # 2014
-            '6': 'ResNet18',         # 2015
-            '7': 'ResNet50',         # 2015
-            '8': 'ResNet101',       # 2015
-            '9': 'DenseNet121',     # 2016
-            '10': 'EfficientNetB0',  # 2019
-            '11': 'EfficientNet_v2', # 2021
-            '12': 'Swin-Transformer',# 2021
-            '13': 'Vit-Transformer', # 2021
-            '14': 'CustomModelV1',
-            '15': 'CustomModelV2',
-            '16': 'CustomModelV3',
-            '17': 'CustomModelV4',
-            '18': 'CustomModelV5',
-            '19': 'CustomModelV6',
-            '20': 'CustomModelV7',
-        }
+        # self.models = {
+        #     '1': 'CustomModelV8',
+        #     '2': 'CustomModelV9',
+        #     '3': 'CustomWRNB4ECA',
+        #     '4': 'VGG16',            # 2014
+        #     '5': 'VGG19',            # 2014
+        #     '6': 'ResNet18',         # 2015
+        #     '7': 'ResNet50',         # 2015
+        #     '8': 'ResNet101',       # 2015
+        #     '9': 'DenseNet121',     # 2016
+        #     '10': 'EfficientNetB0',  # 2019
+        #     '11': 'EfficientNet_v2', # 2021
+        #     '12': 'Swin-Transformer',# 2021
+        #     '13': 'Vit-Transformer', # 2021
+        #     '14': 'CustomModelV1',
+        #     '15': 'CustomModelV2',
+        #     '16': 'CustomModelV3',
+        #     '17': 'CustomModelV4',
+        #     '18': 'CustomModelV5',
+        #     '19': 'CustomModelV6',
+        #     '20': 'CustomModelV7',
+        # }
         # self.models = {
         #     '1': 'VGG16',            # 2014
         #     '2': 'VGG19',            # 2014

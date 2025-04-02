@@ -90,17 +90,17 @@ body {
 .card {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 10px; /* Chose 10px over 8px */
+    border-radius: 10px; 
     border-top: 3px solid transparent;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease; /* Chose 'all' over specific properties */
+    transition: all 0.3s ease; 
     margin-bottom: 1.5rem;
     overflow: hidden;
 }
 
 .card:hover {
-    transform: translateY(-8px); /* Chose -8px over -5px */
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Chose the larger shadow */
+    transform: translateY(-8px); 
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); 
 }
 
 .card:hover i {
@@ -125,8 +125,8 @@ body {
 
 .btn {
     border-radius: 6px;
-    font-weight: 600; /* Chose 600 over 500 */
-    letter-spacing: 0.5px; /* Chose 0.5px over 0.3px */
+    font-weight: 600; 
+    letter-spacing: 0.5px; 
     text-transform: uppercase;
     padding: 0.6rem 1.2rem;
     transition: all 0.3s ease;

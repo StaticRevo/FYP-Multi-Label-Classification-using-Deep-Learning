@@ -1,4 +1,4 @@
-// static/js/map.js
+// map.js
 var map = L.map('map').setView([35.9, 14.5], 11); // Default: Malta
 
 // Add Esri World Imagery (satellite view)

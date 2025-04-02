@@ -23,7 +23,6 @@
 </div>
 
 <style>
-  /* Ensure the card matches the theme */
   .card {
     background-color: var(--card-bg) !important;
     color: var(--text-color) !important;
@@ -40,7 +39,6 @@
     color: var(--text-color) !important;
   }
 
-  /* Notebook content container */
   .notebook-content {
     background-color: var(--card-bg) !important;
     color: var(--text-color) !important;
@@ -48,13 +46,11 @@
     border-radius: 0.25rem;
   }
 
-  /* Override Jupyter notebook styles */
   .notebook-content * {
     background-color: transparent !important;
     color: inherit !important;
   }
 
-  /* Specific Jupyter notebook elements */
   .notebook-content pre,
   .notebook-content code,
   .notebook-content .code_cell,
@@ -114,8 +110,6 @@
   .notebook-content [style*="color"] {
     color: var(--text-color) !important;
   }
-
-  /* Ensure plots (e.g., Matplotlib) have a transparent background */
   .notebook-content .output_area img,
   .notebook-content .output_area svg {
     background-color: transparent !important;

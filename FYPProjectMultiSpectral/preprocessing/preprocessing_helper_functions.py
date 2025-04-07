@@ -103,8 +103,7 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
     metadata_subset.to_csv(os.path.join(subset_dir, f'metadata_{percentage}_percent.csv'), index=False)
 
 def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
-    # Ensure labels are parsed (i.e. convert from string to list)
-    metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels)
+    metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels) # Ensure labels are parsed 
     
     # Convert the list of labels into a binary matrix using MultiLabelBinarizer
     mlb = MultiLabelBinarizer()

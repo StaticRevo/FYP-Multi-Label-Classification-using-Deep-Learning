@@ -40,8 +40,7 @@ CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)
 # --- Helper Functions ---
 # Load the model from the experiment folder
 def load_model_from_experiment(experiment_name):
-    # Construct the checkpoint path from the experiment folder.
-    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt")
+    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt")     # Construct the checkpoint path from the experiment folder.
     
     # Parse the experiment folder name to extract model details.
     parsed = parse_experiment_folder(experiment_name)

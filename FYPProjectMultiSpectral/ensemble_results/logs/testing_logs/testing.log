@@ -1,0 +1,6 @@
+2025-04-08 14:04:20,467 - INFO - Loading ensemble model from C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\ensemble_results\custom_model9_custom_model6_custom_model7\ensemble_model_custom_model9_custom_model6_custom_model7.ckpt
+2025-04-08 14:04:20,748 - INFO - Loaded ensemble with weights: [0.3326070308685303, 0.3298524022102356, 0.3375405967235565]
+2025-04-08 14:04:21,188 - INFO - Testing the model...
+2025-04-08 14:12:56,169 - INFO - Loading ensemble model from C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\ensemble_results\custom_model9_custom_model6_custom_model7\ensemble_model_custom_model9_custom_model6_custom_model7.ckpt
+2025-04-08 14:12:56,508 - INFO - Loaded ensemble with weights: [0.3326070308685303, 0.3298524022102356, 0.3375405967235565]
+2025-04-08 14:12:56,949 - INFO - Testing the model...

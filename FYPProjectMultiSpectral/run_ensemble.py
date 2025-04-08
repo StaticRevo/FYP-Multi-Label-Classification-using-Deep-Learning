@@ -1,3 +1,4 @@
+# run_ensemble.py
 # Standard library imports
 import os
 import json
@@ -22,26 +23,21 @@ from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 # Set up logging with suppression of rasterio GDAL errors
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
-logging.getLogger("rasterio._env").setLevel(logging.WARNING) # Suppress rasterio._env INFO logs
+logging.getLogger("rasterio._env").setLevel(logging.WARNING)
 
 # Compute aggregated metrics with sklearn
 def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=None):
     logger.info("Computing aggregated metrics with sklearn...")
     metrics_dict = {}
     
-    # Micro-average
     metrics_dict['precision_micro'] = precision_score(all_labels, all_preds, average='micro', zero_division=0)
     metrics_dict['recall_micro'] = recall_score(all_labels, all_preds, average='micro', zero_division=0)
     metrics_dict['f1_micro'] = f1_score(all_labels, all_preds, average='micro', zero_division=0)
     metrics_dict['f2_micro'] = fbeta_score(all_labels, all_preds, beta=2.0, average='micro', zero_division=0)
-
-    # Macro-average
     metrics_dict['precision_macro'] = precision_score(all_labels, all_preds, average='macro', zero_division=0)
     metrics_dict['recall_macro'] = recall_score(all_labels, all_preds, average='macro', zero_division=0)
     metrics_dict['f1_macro'] = f1_score(all_labels, all_preds, average='macro', zero_division=0)
     metrics_dict['f2_macro'] = fbeta_score(all_labels, all_preds, beta=2.0, average='macro', zero_division=0)
-
-    # Other metrics
     metrics_dict['hamming_loss'] = hamming_loss(all_labels, all_preds)
     metrics_dict['subset_accuracy'] = accuracy_score(all_labels, all_preds)
 
@@ -71,45 +67,54 @@ def run_ensemble_inference():
     # Define the configurations for each trained model
     model_configs = [
         {
-            'arch': 'resnet18',
-            'ckpt_path': r'C:\Users\isaac\Desktop\experiments\ResNet18_None_all_bands_10%_BigEarthNet_50epochs\checkpoints\final.ckpt',
+            'arch': 'custom_model9',
+            'ckpt_path':  r"C:\Users\isaac\Desktop\experiments\CustomModelV9_None_all_bands_10%_BigEarthNet_50epochs_1\checkpoints\last.ckpt",
             'class_weights': class_weights,
             'num_classes': num_classes,
             'in_channels': in_channels,
             'model_weights': model_weights,
-            'main_path': r'C:\Users\isaac\Desktop\experiments\ResNet18_None_all_bands_10%_BigEarthNet_50epochs'
-        },
-        {
-            'arch': 'resnet50',
-            'ckpt_path': r'C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_10%_BigEarthNet_50epochs\checkpoints\final.ckpt',
+            'main_path': r'C:\Users\isaac\Desktop\experiments\CustomModelV9_None_all_bands_10%_BigEarthNet_50epochs_1'
+        }
+        ,{
+            'arch': 'custom_model6',
+            'ckpt_path':  r"C:\Users\isaac\Desktop\experiments\CustomModelV6_None_all_bands_10%_BigEarthNet_50epochs\checkpoints\last.ckpt",
             'class_weights': class_weights,
             'num_classes': num_classes,
             'in_channels': in_channels,
             'model_weights': model_weights,
-            'main_path': r'C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_10%_BigEarthNet_50epochs'
-        },
-    ]
+            'main_path': r'C:\Users\isaac\Desktop\experiments\CustomModelV6_None_all_bands_10%_BigEarthNet_50epochs'
+        }
+        ,{
+            'arch': 'custom_model7',
+            'ckpt_path':  r"C:\Users\isaac\Desktop\experiments\CustomModelV7_None_all_bands_10%_BigEarthNet_50epochs\checkpoints\last.ckpt",
+            'class_weights': class_weights,
+            'num_classes': num_classes,
+            'in_channels': in_channels,
+            'model_weights': model_weights,
+            'main_path': r'C:\Users\isaac\Desktop\experiments\CustomModelV7_None_all_bands_10%_BigEarthNet_50epochs'
+        }
 
-    # Build the ensemble
-    ensemble = EnsembleModel(model_configs, device=device)
+    ]
+    ensemble_weights = [0.809, 0.8023, 0.821]
+
+    # Build the ensemble with weights
+    ensemble = EnsembleModel(model_configs, weights=ensemble_weights, device=device)
     ensemble.eval()
 
     # Save ensemble as .ckpt
     checkpoint = {
         "state_dict": ensemble.state_dict(),
-        "model_configs": model_configs
+        "model_configs": model_configs,
+        "weights": ensemble.get_weights()  # Save normalized weights
     }
     arch_names = "_".join([config['arch'] for config in model_configs])
-
-    # Create a folder within 'ensemble_results' using the architecture names
     ensemble_dir = os.path.join('FYPProjectMultiSpectral', 'ensemble_results', arch_names)
     os.makedirs(ensemble_dir, exist_ok=True)
-
-    # Save the checkpoint file in the folder
     ckpt_filename = f"ensemble_model_{arch_names}.ckpt"
     ckpt_path = os.path.join(ensemble_dir, ckpt_filename)
     torch.save(checkpoint, ckpt_path)
     print(f"Ensemble checkpoint saved to {ckpt_path}")
+    print(f"Model weights: {ensemble.get_weights()}")
 
     # Load the data
     dataset_dir = DatasetConfig.dataset_paths['10']
@@ -152,7 +157,6 @@ def run_ensemble_inference():
         probs = torch.sigmoid(logits)
         preds = (probs > 0.5).int()
 
-        # Update torchmetrics
         ensemble_accuracy.update(preds, labels)
         ensemble_precision.update(preds, labels)
         ensemble_recall.update(preds, labels)
@@ -166,7 +170,6 @@ def run_ensemble_inference():
         ensemble_recall_per_class.update(preds, labels)
         ensemble_accuracy_per_class.update(preds, labels)
 
-        # Collect for sklearn
         all_preds.append(preds.cpu().numpy())
         all_labels.append(labels.cpu().numpy())
         all_probs.append(probs.cpu().numpy())
@@ -175,6 +178,18 @@ def run_ensemble_inference():
     all_preds = np.concatenate(all_preds, axis=0)
     all_labels = np.concatenate(all_labels, axis=0)
     all_probs = np.concatenate(all_probs, axis=0)
+
+    # Save predictions, labels, and probabilities as an .npz file
+    predictions_filename = f'ensemble_predictions_{arch_names}.npz'
+    predictions_save_path = os.path.join(ensemble_dir, predictions_filename)
+
+    np.savez(
+        predictions_save_path,
+        predictions=all_preds,
+        labels=all_labels,
+        probabilities=all_probs
+    )
+    print(f"Predictions saved to {predictions_save_path}")
 
     # Compute torchmetrics
     accuracy = ensemble_accuracy.compute()

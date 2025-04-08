@@ -19,4 +19,6 @@ tqdm==4.66.5
 zstandard==0.23.0
 pyarrow==17.0.0
 fastparquet==2024.2.0
-torchcam == 0.4.0
+torchcam==0.4.0
+flask==3.1.0
+sentinelhub==3.11.1

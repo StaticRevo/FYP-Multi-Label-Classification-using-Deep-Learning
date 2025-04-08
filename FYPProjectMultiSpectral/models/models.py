@@ -1405,19 +1405,8 @@ class CustomModelV9(BaseModel):
         return out
     
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
-            self.parameters(), 
-            lr=ModelConfig.learning_rate, 
-            weight_decay=ModelConfig.weight_decay,
-            eps=1e-8  # For numerical stability
-        )    
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, 
-            mode='min', 
-            factor=ModelConfig.lr_factor, 
-            patience=ModelConfig.lr_patience,
-            min_lr=1e-7  # Prevent learning rate from becoming too small
-        )
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay, eps=1e-8)    
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience, min_lr=1e-7)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {

@@ -16,6 +16,7 @@ class EnsembleModel(nn.Module):
     def __init__(self, model_configs, device=ModelConfig.device):
         super().__init__()
         self.device = device
+        self.model_configs = model_configs  
         self.models = nn.ModuleList()
 
         # Build each model based on its configuration
@@ -28,17 +29,13 @@ class EnsembleModel(nn.Module):
             model_weights = config.get('model_weights', None)
             main_path = config.get('main_path', None)
 
-            model = self._create_model(arch, class_weights, num_classes, in_channels, model_weights, main_path) # Step 1: Instantiate the model
-
+            model = self._create_model(arch, class_weights, num_classes, in_channels, model_weights, main_path)
             checkpoint = torch.load(ckpt_path, map_location=self.device, weights_only=False)
-            model.load_state_dict(checkpoint['state_dict']) # Step 2: Load the model's chekpoint
-
+            model.load_state_dict(checkpoint['state_dict'])
+            model.eval()
             model.to(self.device)
-            model.eval() # Step 3: Set the model to evaluation mode
+            self.models.append(model)
 
-            self.models.append(model) 
-
-    # Create the model based on the architecture
     def _create_model(self, arch, class_weights, num_classes, in_channels, model_weights, main_path):
         if arch == 'CustomModel':
             return CustomModel(class_weights, num_classes, in_channels, model_weights, main_path)
@@ -65,14 +62,11 @@ class EnsembleModel(nn.Module):
 
     @torch.no_grad()
     def forward(self, x):
-        outputs = [] # Collect outputs from each model
-        for model in self.models:
-            out = model(x.to(self.device))  # (batch_size, num_classes)
-            outputs.append(out)
-
-        # Stack into shape (num_models, batch_size, num_classes)
-        all_outputs = torch.stack(outputs, dim=0)
-        
-        # Average across the model dimension
-        avg_output = torch.mean(all_outputs, dim=0) # (batch_size, num_classes)
+        outputs = [model(x.to(self.device)) for model in self.models]
+        all_outputs = torch.stack(outputs, dim=0)  # [num_models, batch_size, num_classes]
+        avg_output = torch.mean(all_outputs, dim=0)  # [batch_size, num_classes]
         return avg_output
+
+    def get_configs(self):
+        """Return model_configs for reinitialization."""
+        return self.model_configs

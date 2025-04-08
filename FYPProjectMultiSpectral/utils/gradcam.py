@@ -63,7 +63,7 @@ class GradCAM:
 # Overlay the heatmap on the image
 def overlay_heatmap(img, heatmap, alpha=0.8, colormap='jet'):
     # Apply Gaussian smoothing to reduce noise
-    heatmap = gaussian_filter(heatmap, sigma=1) 
+    heatmap = gaussian_filter(heatmap, sigma=1.5) 
     heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min() + 1e-8)  # Re-normalize after smoothing
 
     heatmap = Image.fromarray((heatmap * 255).astype(np.uint8)).resize(img.size, Image.LANCZOS)

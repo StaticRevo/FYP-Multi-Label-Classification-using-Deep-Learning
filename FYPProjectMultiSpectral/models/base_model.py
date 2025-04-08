@@ -11,8 +11,7 @@ import torch.optim as optim
 import pytorch_lightning as pl
 from torchmetrics.classification import (
     MultilabelF1Score, MultilabelRecall, MultilabelPrecision, MultilabelAccuracy, 
-    MultilabelHammingDistance, MultilabelAveragePrecision, MultilabelFBetaScore,
-    MultilabelRankingAveragePrecision
+    MultilabelHammingDistance, MultilabelFBetaScore, MultilabelRankingAveragePrecision
 )
 from torchsummary import summary
 from torchinfo import summary as torchinfo_summary
@@ -325,12 +324,4 @@ class BaseModel(pl.LightningModule):
 
         # Save as ONNX file
         file_path_onnx = os.path.join(save_path, f'{model_name}.onnx')
-        torch.onnx.export(
-            self.model,           
-            x,                    
-            file_path_onnx,      
-            verbose=False,        
-            input_names=['input'],
-            output_names=['output']
-        )
         print(f"ONNX model saved to {file_path_onnx}. Open with Netron for interactive visualization.")

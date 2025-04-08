@@ -1,48 +1,35 @@
-from models.models import *
-from config.config import *
+import torch
+from pprint import pprint  # For pretty-printing
 
-metadata_path = DatasetConfig.metadata_paths["1"]
-metadata_csv = pd.read_csv(metadata_path)
-class_weights = calculate_class_weights(metadata_csv)
-num_classes = DatasetConfig.num_classes 
-in_channels = len(DatasetConfig.all_bands)
-model_weights = None
-main_path = r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_1%_BigEarthNet_15epochs_1"
-model = ResNet50.load_from_checkpoint(r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_1%_BigEarthNet_15epochs_1\checkpoints\last.ckpt", 
-                                      class_weights=class_weights,
-                                      num_classes=num_classes,
-                                      in_channels=in_channels,
-                                      model_weights=model_weights,
-                                      main_path=main_path)
+# Path to the checkpoint
+ckpt_path = r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_10%_BigEarthNet_50epochs\checkpoints\last.ckpt"
+ckpt_path2 = r"C:\Users\isaac\OneDrive\Documents\GitHub\Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery\FYPProjectMultiSpectral\FYPProjectMultiSpectral\ensemble_results\ensemble_model.ckpt"
 
-main_path2 = r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_1%_BigEarthNet_15epochs_2"
-model2 = ResNet50.load_from_checkpoint(r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_1%_BigEarthNet_15epochs_2\checkpoints\last.ckpt", 
-                                      class_weights=class_weights,
-                                      num_classes=num_classes,
-                                      in_channels=in_channels,
-                                      model_weights=model_weights,
-                                      main_path=main_path2)
+# Load the checkpoint
+checkpoint = torch.load(ckpt_path, map_location=torch.device('cpu')) 
 
-main_path3 = r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_1%_BigEarthNet_30epochs"
-model3 = ResNet50.load_from_checkpoint(r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_1%_BigEarthNet_30epochs\checkpoints\last.ckpt", 
-                                      class_weights=class_weights,
-                                      num_classes=num_classes,
-                                      in_channels=in_channels,
-                                      model_weights=model_weights,
-                                      main_path=main_path3)
+# Inspect the checkpoint contents
+print("Keys in the checkpoint:")
+pprint(checkpoint.keys())  # Pretty-print the keys
 
-metadata_path = DatasetConfig.metadata_paths["10"]
-metadata_csv = pd.read_csv(metadata_path)
-class_weights = calculate_class_weights(metadata_csv)
-main_path4 = r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_10%_BigEarthNet_25epochs"
-model4 = ResNet50.load_from_checkpoint(r"C:\Users\isaac\Desktop\experiments\ResNet50_None_all_bands_10%_BigEarthNet_25epochs\checkpoints\last.ckpt", 
-                                      class_weights=class_weights,
-                                      num_classes=num_classes,
-                                      in_channels=in_channels,
-                                      model_weights=model_weights,
-                                      main_path=main_path4)
+# If it contains a state_dict, inspect its keys
+if "state_dict" in checkpoint:
+    print("\nKeys in the state_dict:")
+    state_dict_keys = list(checkpoint["state_dict"].keys())  # Convert to a list for better formatting
+    for key in state_dict_keys:
+        print(key)
 
-print(model.criterion)
-print(model2.criterion)
-print(model3.criterion)
-print(model4.criterion)
+print()
+# Load the checkpoint
+checkpoint2 = torch.load(ckpt_path2, map_location=torch.device('cpu')) 
+
+# Inspect the checkpoint contents
+print("Keys in the checkpoint:")
+pprint(checkpoint2.keys())  # Pretty-print the keys
+
+# If it contains a state_dict, inspect its keys
+if "state_dict" in checkpoint2:
+    print("\nKeys in the state_dict:")
+    state_dict_keys = list(checkpoint2["state_dict"].keys())  # Convert to a list for better formatting
+    for key in state_dict_keys:
+        print(key)

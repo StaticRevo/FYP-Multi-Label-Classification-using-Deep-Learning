@@ -72,6 +72,8 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
              f.write(f"{metric}: {value}\n")
     print(f"Aggregated metrics saved to {aggregated_metrics_path}")
 
+    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=save_dir, logger=logger)
+
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) # Plot co-occurrence matrix
 
     if probs is not None:
@@ -85,7 +87,8 @@ def get_target_layer(model, model_name):
     
     # Determine target layer based on model_name
     if 'CustomModelV9' in model_name:
-        target_layer = model.block4[3].conv2
+        target_layer = model.classifier[1]
+        print(model)
     elif 'CustomModel' in model_name:
         target_layer = model.block4[2].conv2 
     elif model_name == 'ResNet18':
@@ -511,6 +514,64 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
         logger.warning("Probability outputs (all_probs) not provided. Skipping avg_precision and one_error.")
 
     return metrics_dict
+
+def compute_per_category_metrics(all_labels, all_preds, save_dir=None, logger=None):
+    class_labels = DatasetConfig.class_labels
+    reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict
+
+    if logger:
+        logger.info("Computing per-category metrics...")
+    
+    n_classes = all_labels.shape[1]
+    per_category_metrics = {}
+    
+    # Determine how to map indices to category names
+    if class_labels is not None:
+        if len(class_labels) != n_classes:
+            raise ValueError(f"Number of class labels ({len(class_labels)}) doesn't match number of classes ({n_classes})")
+        category_names = class_labels
+    elif reversed_class_labels_dict is not None:
+        if max(reversed_class_labels_dict.keys()) >= n_classes:
+            raise ValueError(f"Reversed class labels dict has indices exceeding number of classes ({n_classes})")
+        category_names = [reversed_class_labels_dict.get(i, f"Class_{i}") for i in range(n_classes)]
+    else:
+        category_names = [f"Class_{i}" for i in range(n_classes)]
+    
+    # Compute metrics for each category
+    for i in range(n_classes):
+        category_name = category_names[i]
+        true_cat = all_labels[:, i]
+        pred_cat = all_preds[:, i]
+        
+        per_category_metrics[category_name] = {
+            'precision': precision_score(true_cat, pred_cat, zero_division=0),
+            'recall': recall_score(true_cat, pred_cat, zero_division=0),
+            'f1': f1_score(true_cat, pred_cat, zero_division=0),
+            'f2': fbeta_score(true_cat, pred_cat, beta=2, zero_division=0),
+            'accuracy': accuracy_score(true_cat, pred_cat)
+        }
+    
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        per_category_metrics_path = os.path.join(save_dir, "per_category_metrics.txt")
+        with open(per_category_metrics_path, "w") as f:
+            f.write("Per-Category Metrics:\n\n")
+            for category, metrics in per_category_metrics.items():
+                f.write(f"Category: {category}\n")
+                for metric, value in metrics.items():
+                    f.write(f"  {metric}: {value:.4f}\n")
+                f.write("\n")
+        if logger:
+            logger.info(f"Per-category metrics saved to {per_category_metrics_path}")
+    
+    # Print metrics to console
+    print("Per-Category Metrics:")
+    for category, metrics in per_category_metrics.items():
+        print(f"\nCategory: {category}")
+        for metric, value in metrics.items():
+            print(f"  {metric}: {value:.4f}")
+    
+    return per_category_metrics
 
 # Plot and save the co-occurrence matrix
 def plot_cooccurrence_matrix(all_labels, all_preds, class_names=None, save_dir=None, logger=None):

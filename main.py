@@ -46,8 +46,8 @@ class ModelSelectionGUI:
         self.models = {
             '1': 'VGG16',
             '2': 'VGG19',
-            '3': 'CustomModelV2',
-            '4': 'CustomModelV4',
+            '3': 'CustomModelV4',
+            '4': 'CustomModelV2',
         }
         # self.models = {
         #     '1': 'CustomModelV8',

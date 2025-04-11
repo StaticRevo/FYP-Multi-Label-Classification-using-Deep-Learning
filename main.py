@@ -44,56 +44,27 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         self.models = {
-            '1': 'VGG16',
-            '2': 'VGG19',
-            '3': 'CustomModelV4',
-            '4': 'CustomModelV2',
+            '1': 'CustomModelV8',
+            '2': 'CustomModelV9',
+            '3': 'CustomWRNB4ECA',
+            '4': 'VGG16',            # 2014
+            '5': 'VGG19',            # 2014
+            '6': 'ResNet18',         # 2015
+            '7': 'ResNet50',         # 2015
+            '8': 'ResNet101',       # 2015
+            '9': 'DenseNet121',     # 2016
+            '10': 'EfficientNetB0',  # 2019
+            '11': 'EfficientNet_v2', # 2021
+            '12': 'Swin-Transformer',# 2021
+            '13': 'Vit-Transformer', # 2021
+            '14': 'CustomModelV1',
+            '15': 'CustomModelV2',
+            '16': 'CustomModelV3',
+            '17': 'CustomModelV4',
+            '18': 'CustomModelV5',
+            '19': 'CustomModelV6',
+            '20': 'CustomModelV7',
         }
-        # self.models = {
-        #     '1': 'CustomModelV8',
-        #     '2': 'CustomModelV9',
-        #     '3': 'CustomWRNB4ECA',
-        #     '4': 'VGG16',            # 2014
-        #     '5': 'VGG19',            # 2014
-        #     '6': 'ResNet18',         # 2015
-        #     '7': 'ResNet50',         # 2015
-        #     '8': 'ResNet101',       # 2015
-        #     '9': 'DenseNet121',     # 2016
-        #     '10': 'EfficientNetB0',  # 2019
-        #     '11': 'EfficientNet_v2', # 2021
-        #     '12': 'Swin-Transformer',# 2021
-        #     '13': 'Vit-Transformer', # 2021
-        #     '14': 'CustomModelV1',
-        #     '15': 'CustomModelV2',
-        #     '16': 'CustomModelV3',
-        #     '17': 'CustomModelV4',
-        #     '18': 'CustomModelV5',
-        #     '19': 'CustomModelV6',
-        #     '20': 'CustomModelV7',
-        # }
-        # self.models = {
-        #     '1': 'VGG16',            # 2014
-        #     '2': 'VGG19',            # 2014
-        #     '3': 'ResNet18',         # 2015
-        #     '4': 'ResNet50',         # 2015
-        #     '5': 'ResNet101',        # 2015
-        #     '6': 'DenseNet121',      # 2016
-        #     '7': 'EfficientNetB0',   # 2019
-        #     '8': 'EfficientNet_v2',  # 2021
-        #     '9': 'Swin-Transformer', # 2021
-        #     '10': 'Vit-Transformer', # 2021
-        #     '11': 'CustomModelV1',
-        #     '12': 'CustomModelV2',
-        #     '13': 'CustomModelV3',
-        #     '14': 'CustomModelV4',
-        #     '15': 'CustomModelV5',
-        #     '16': 'CustomModelV6',
-        #     '17': 'CustomModelV7',
-        #     '18': 'CustomModelV8',
-        #     '19': 'CustomModelV9',
-        #     '20': 'CustomWRNB4ECA',
-        # }
-
         self.band_selection = {
             '1': 'all_bands',
             '2': 'all_imp_bands',

@@ -22,6 +22,7 @@ class BestMetricsCallback(pl.Callback):
         self.model_size = None
         self.inference_rate = None
     
+    # Save temporary metrics to a JSON file
     def save_temp_metrics(self):
         # Create a temporary file name based on the final save path.
         temp_save_path = self.save_path.replace('best_metrics.json', 'best_metrics_temp.json')
@@ -200,8 +201,7 @@ class BestMetricsCallback(pl.Callback):
             # Time the inference
             start_time = time.time()
             pl_module(x)
-            # Synchronize to ensure the forward pass completes
-            if 'cuda' in device.type:
+            if 'cuda' in device.type: # Synchronize to ensure the forward pass completes
                 torch.cuda.synchronize()
             end_time = time.time()
 
@@ -250,8 +250,7 @@ class GradientLoggingCallback(pl.Callback):
         print(f"Gradient Norm before clipping: {total_norm:.4f}")
 
     def on_before_optimizer_step(self, trainer, pl_module, optimizer):
-        # Log gradient norm AFTER clipping but BEFORE optimizer scaling
-        total_norm = 0.0
+        total_norm = 0.0 # Log gradient norm after clipping but before optimizer scaling
         for p in pl_module.parameters():
             if p.grad is not None:
                 param_norm = p.grad.data.norm(2)

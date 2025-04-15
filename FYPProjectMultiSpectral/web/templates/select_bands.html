@@ -4,11 +4,13 @@
   <h1>Select Bands for Prediction</h1>
   <p>The uploaded image has more bands than required (expected {{ expected_count }}). Please select exactly {{ expected_count }} band(s) from the available list:</p>
   
+  <!-- Band Selection Form -->
   <form method="post" action="{{ url_for('select_bands') }}">
     <input type="hidden" name="file_path" value="{{ file_path }}">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="experiment" value="{{ experiment }}">
     
+    <!-- Band Selection Dropdown -->
     <div class="mb-3">
       <label for="bandsSelect" class="form-label">Select Bands</label>
       <select id="bandsSelect" name="selected_bands" class="form-select" multiple required>
@@ -19,6 +21,7 @@
       <small class="form-text text-muted">Hold down Ctrl (Windows) or Cmd (Mac) to select multiple bands. Please select exactly {{ expected_count }} band(s).</small>
     </div>
     
+    <!-- Submit Button -->
     <button type="submit" class="btn btn-primary">Continue</button>
   </form>
 {% endblock %}

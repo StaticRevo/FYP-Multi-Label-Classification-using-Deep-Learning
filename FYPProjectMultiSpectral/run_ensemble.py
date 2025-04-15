@@ -1,4 +1,3 @@
-# run_ensemble.py
 # Standard library imports
 import os
 import json
@@ -20,8 +19,7 @@ from models.ensemble import EnsembleModel
 from dataloader import BigEarthNetDataLoader
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 
-# Set up logging with suppression of rasterio GDAL errors
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO) # Set up logging with suppression of rasterio GDAL errors
 logger = logging.getLogger()
 logging.getLogger("rasterio._env").setLevel(logging.WARNING)
 
@@ -84,18 +82,9 @@ def run_ensemble_inference():
             'model_weights': model_weights,
             'main_path': r'C:\Users\isaac\Desktop\experiments\CustomModelV6_None_all_bands_10%_BigEarthNet_50epochs'
         }
-        ,{
-            'arch': 'custom_model7',
-            'ckpt_path':  r"C:\Users\isaac\Desktop\experiments\CustomModelV7_None_all_bands_10%_BigEarthNet_50epochs\checkpoints\last.ckpt",
-            'class_weights': class_weights,
-            'num_classes': num_classes,
-            'in_channels': in_channels,
-            'model_weights': model_weights,
-            'main_path': r'C:\Users\isaac\Desktop\experiments\CustomModelV7_None_all_bands_10%_BigEarthNet_50epochs'
-        }
 
     ]
-    ensemble_weights = [0.809, 0.8023, 0.821]
+    ensemble_weights = [0.82, 0.85]
 
     # Build the ensemble with weights
     ensemble = EnsembleModel(model_configs, weights=ensemble_weights, device=device)

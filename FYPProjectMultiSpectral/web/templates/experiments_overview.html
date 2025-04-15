@@ -8,6 +8,7 @@
   <div class="card p-4 mb-4">
     <form method="get" action="{{ url_for('experiments_overview') }}">
       <div class="row g-2">
+        <!-- Filter Fields -->
         <div class="col-md-2 col-6">
           <input type="text" name="model" class="form-control" placeholder="Model Name" value="{{ request.args.get('model', '') }}">
         </div>
@@ -34,24 +35,28 @@
   <!-- Sort Form -->
   <div class="card p-4 mb-4">
     <form method="get" action="{{ url_for('experiments_overview') }}">
+      <!-- Preserve Existing Filter Values -->
       <input type="hidden" name="model" value="{{ request.args.get('model', '') }}">
       <input type="hidden" name="weights" value="{{ request.args.get('weights', '') }}">
       <input type="hidden" name="bands" value="{{ request.args.get('bands', '') }}">
       <input type="hidden" name="dataset" value="{{ request.args.get('dataset', '') }}">
       <input type="hidden" name="epochs" value="{{ request.args.get('epochs', '') }}">
       <div class="row g-2">
+        <!-- Sort By Dropdown -->
         <div class="col-md-4">
           <select name="sort_by" class="form-select">
             <option value="date_trained" {% if request.args.get('sort_by') == 'date_trained' %}selected{% endif %}>Date Trained</option>
             <option value="model" {% if request.args.get('sort_by') == 'model' %}selected{% endif %}>Model</option>
           </select>
         </div>
+        <!-- Order Dropdown -->
         <div class="col-md-4">
           <select name="order" class="form-select">
             <option value="asc" {% if request.args.get('order') == 'asc' %}selected{% endif %}>Ascending</option>
             <option value="desc" {% if request.args.get('order') == 'desc' %}selected{% endif %}>Descending</option>
           </select>
         </div>
+        <!-- Sort Button -->
         <div class="col-md-4">
           <button type="submit" class="btn btn-primary w-100">Sort</button>
         </div>
@@ -59,10 +64,11 @@
     </form>
   </div>
 
-  <!-- Experiments -->
+  <!-- Experiments List -->
   {% if experiments %}
     <div class="row">
       {% for exp in experiments %}
+        <!-- Experiment Card -->
         <div class="col-md-4">
           <a href="{{ url_for('experiment_detail', experiment_name=exp.folder_name) }}" class="text-decoration-none text-reset">
             <div class="card mb-4">
@@ -86,6 +92,7 @@
   {% endif %}
 </div>
 
+<!-- Custom Styles -->
 <style>
   input::placeholder {
     color: var(--secondary-light) !important;

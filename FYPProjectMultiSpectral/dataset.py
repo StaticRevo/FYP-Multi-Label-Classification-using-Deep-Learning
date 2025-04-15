@@ -32,8 +32,7 @@ class BigEarthNetDataset(Dataset):
         else:
             raise ValueError("metadata_csv must be provided and contain 'patch_id' and 'labels' columns.")
 
-        # Extract the list of patch_ids for this subset
-        self.patch_ids = self.df['patch_id'].tolist()
+        self.patch_ids = self.df['patch_id'].tolist() # Extract the list of patch_ids for this subset
 
         # Construct image paths based on patch_ids
         self.image_paths = [self.root_dir / f"{pid}.tif" for pid in self.patch_ids]
@@ -60,7 +59,7 @@ class BigEarthNetDataset(Dataset):
         # 3. Convert image to a float32 tensor
         image = torch.tensor(image, dtype=torch.float32)
 
-        # 4. Apply transformations (e.g., augmentations)
+        # 4. Apply transformations 
         if self.transforms:
             image = self.transforms(image)
 

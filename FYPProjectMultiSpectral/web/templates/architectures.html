@@ -27,12 +27,15 @@
         {% for arch in architectures %}
           <section id="{{ arch.name | replace(' ', '_') }}" class="mb-5">
             <div class="card p-4">
+              <!-- Model Name -->
               <h2 class="mb-3">{{ arch.name }}</h2>
               <ul class="list-unstyled">
+                <!-- Files for the Model -->
                 {% for file in arch.files %}
                   <li class="mb-3">
                     <strong>{{ file.name }}</strong>
                     {% if file.is_text %}
+                      <!-- Display Text Content -->
                       <pre class="mt-2 p-3" style="background-color: var(--secondary); border: 1px solid var(--secondary-light); color: var(--text-color);">
                         {{ file.content }}
                       </pre>

@@ -20,7 +20,7 @@ from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear
 from utils.logging_utils import setup_logger
 from models.models import *
 
-# Testing the model
+# Test the model
 def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
@@ -56,8 +56,7 @@ def main():
     model_weights = None if weights == 'None' else weights
     model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
     model.eval()
-    # Register hooks for visualization of activations
-    register_hooks(model)
+    register_hooks(model) # Register hooks for visualization of activations
 
     # Initialize the data module
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
@@ -116,31 +115,31 @@ def main():
     )
     logger.info("Predictions and heatmaps saved.")
 
-    # # Visualize activations
-    # logger.info("Visualizing activations...")
-    # test_loader = data_module.test_dataloader()
-    # example_batch = next(iter(test_loader))
-    # example_imgs, example_lbls = example_batch
-    # show_rgb_from_batch(example_imgs[0], in_channels)
-    # example_imgs = example_imgs.to(model.device)
-    # clear_activations()
-    # with torch.no_grad():
-    #     _ = model(example_imgs[0].unsqueeze(0))
-    # visualize_activations(result_path=result_path, num_filters=16)  
-    # logger.info("Activations saved")
+    # Visualize activations
+    logger.info("Visualizing activations...")
+    test_loader = data_module.test_dataloader()
+    example_batch = next(iter(test_loader))
+    example_imgs, example_lbls = example_batch
+    show_rgb_from_batch(example_imgs[0], in_channels)
+    example_imgs = example_imgs.to(model.device)
+    clear_activations()
+    with torch.no_grad():
+        _ = model(example_imgs[0].unsqueeze(0))
+    visualize_activations(result_path=result_path, num_filters=16)  
+    logger.info("Activations saved")
     
-    # # Generate Grad-CAM visualizations
-    # logger.info("Generating Grad-CAM visualizations...")
-    # generate_gradcam_visualizations(
-    #     model=model,
-    #     data_module=data_module,
-    #     class_labels=class_labels,
-    #     model_name=model_name,
-    #     result_path=result_path,
-    #     in_channels=in_channels,
-    #     logger = logger
-    # )
-    # logger.info("Grad-CAM visualizations generated.")
+    # Generate Grad-CAM visualizations
+    logger.info("Generating Grad-CAM visualizations...")
+    generate_gradcam_visualizations(
+        model=model,
+        data_module=data_module,
+        class_labels=class_labels,
+        model_name=model_name,
+        result_path=result_path,
+        in_channels=in_channels,
+        logger = logger
+    )
+    logger.info("Grad-CAM visualizations generated.")
     logger.info("Testing completed successfully")
 
 if __name__ == "__main__":

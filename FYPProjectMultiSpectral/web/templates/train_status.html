@@ -5,19 +5,24 @@
   <div class="row justify-content-center">
     <div class="col-md-8"> 
       <h1 class="mb-4 section-title">Training Status</h1>
+      <!-- Status Message -->
       <p>{{ message }}</p>
       <p><em>Please remain on this page to monitor the training progress.</em></p>
 
+      <!-- Log Output Section -->
       <div id="log-output" class="card p-3" style="height: 300px; overflow-y: scroll;">
         Loading logs...
       </div>
 
+      <!-- Return to Home Button -->
       <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Return to Home</a>
     </div>
   </div>
 </div>
 
+<!-- JavaScript for Fetching Logs -->
 <script>
+  // Function to fetch logs from the server
   function fetchLogs() {
     fetch("/logs")
       .then(response => response.text())
@@ -29,6 +34,7 @@
         document.getElementById("log-output").innerText = "Error loading logs.";
       });
   }
+  // Fetch logs every 5 seconds
   setInterval(fetchLogs, 5000);
   fetchLogs();
 </script>

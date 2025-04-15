@@ -4,10 +4,13 @@
 <div class="container mt-4">
   <div class="row justify-content-center">
     <div class="col-md-8">
+      
       <h1 class="mb-4 section-title">Train a Network</h1>
       <div class="card p-4">
+        <!-- Training Configuration Form -->
         <form method="post">
           <div class="mb-3">
+            <!-- Model Selection -->
             <label for="model_name" class="form-label">Model Name</label>
             <select class="form-select" id="model_name" name="model_name" required>
               {% for option in models %}
@@ -16,6 +19,7 @@
             </select>
           </div>
           <div class="mb-3">
+            <!-- Pretrained Weights Selection -->
             <label for="weights" class="form-label">Weights</label>
             <select class="form-select" id="weights" name="weights" required>
               {% for opt in weights_options %}
@@ -24,6 +28,7 @@
             </select>
           </div>
           <div class="mb-3">
+            <!-- Band Combination Selection -->
             <label for="selected_bands" class="form-label">Band Combination</label>
             <select class="form-select" id="selected_bands" name="selected_bands" required>
               {% for opt in band_options %}
@@ -32,6 +37,7 @@
             </select>
           </div>
           <div class="mb-3">
+             <!-- Dataset Percentage Selection -->
             <label for="selected_dataset" class="form-label">Dataset Percentage</label>
             <select class="form-select" id="selected_dataset" name="selected_dataset" required>
               {% for opt in dataset_options %}
@@ -40,6 +46,7 @@
             </select>
           </div>
           <div class="mb-3">
+            <!-- Test Flag Selection -->
             <label for="test_variable" class="form-label">Test Flag (Train+Test?)</label>
             <select class="form-select" id="test_variable" name="test_variable" required>
               {% for opt in test_options %}
@@ -47,6 +54,7 @@
               {% endfor %}
             </select>
           </div>
+          <!-- Submit Button -->
           <button type="submit" class="btn btn-primary w-100">Start Training</button>
         </form>
       </div>

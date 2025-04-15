@@ -1,20 +1,18 @@
 # Standard library imports
 import os
-#os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 import sys
 import time  
-
-# Set up directories
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
-sys.path.insert(0, parent_dir)
-
 import json
 import secrets
 import time
 import subprocess
 from datetime import datetime
 import glob
+
+# Directory set-up
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.insert(0, parent_dir)
 
 # Third-party imports
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
@@ -37,6 +35,7 @@ from utils.data_utils import extract_number
 from utils.model_utils import get_class_names
 from web_helper import *
 
+# -- Flask app setup --
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 _cached_training_log = None
@@ -63,7 +62,7 @@ CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)
 EXPERIMENTS_DIR = DatasetConfig.experiment_path # Experiment directory
 ARCHITECTURES_DIR = os.path.join(parent_dir, "models", "Architecture")
 
-# -- Routes --
+# !-- Routes --!
 # -- Home Page --
 @app.route("/")
 def index():
@@ -73,6 +72,7 @@ def index():
 @app.route("/train", methods=['GET', 'POST'])
 def train_page():
     if request.method == 'POST':
+        # Extract form parameters
         model_name = request.form.get("model_name")
         weights = request.form.get("weights")
         selected_bands = request.form.get("selected_bands")
@@ -83,7 +83,7 @@ def train_page():
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
         
         session['main_path'] = main_path
-        session['train_params'] = {
+        session['train_params'] = { # Store training parameters in session
             'model_name': model_name,
             'weights': weights,
             'selected_bands': selected_bands,
@@ -96,6 +96,7 @@ def train_page():
 
         return render_template("train_status.html", message=f"Training for {model_name} has started.")
     
+    # GET: Render the training form with options
     return render_template("train.html", 
                            models=MODEL_OPTIONS, 
                            weights_options=["None", "DEFAULT"],
@@ -182,7 +183,7 @@ def test_page():
         subprocess.Popen(cmd, cwd=parent_dir)
         return render_template("test_status.html", message=f"Testing for {model_name} has started.")
     else:
-        # GET: List only the untested experiments (those without a 'visualizations' folder)
+        # GET: List only the untested experiments 
         untested_experiments = []
         if os.path.exists(EXPERIMENTS_DIR):
             for d in os.listdir(EXPERIMENTS_DIR):
@@ -206,7 +207,7 @@ def logs_test():
     if not main_path:
         return "No testing run information found in session."
 
-    # Construct the log file path for testing logs.
+    # Construct the log file path for testing logs
     log_dir = os.path.join(main_path, 'logs')
     testing_log_path = os.path.join(log_dir, 'testing_logs')
     log_file = os.path.join(testing_log_path, 'testing.log')
@@ -256,10 +257,10 @@ def predict_page():
                 actual_channels = validate_image_channels(file_path, in_channels)
             except ValueError as ve:
                 flash(str(ve), "error")
-                experiments = get_experiments_list()  # Reload experiments list for the upload page.
+                experiments = get_experiments_list()  # Reload experiments list for the upload page
                 return render_template('upload.html', experiments=experiments)
             
-            # If the image has extra bands, prompt the user to select bands.
+            # If the image has extra bands, prompt the user to select bands
             if actual_channels > in_channels:
                 return render_template('select_bands.html', 
                                        filename=filename,
@@ -268,7 +269,7 @@ def predict_page():
                                        expected_count=in_channels,
                                        experiment=selected_experiment)
             
-            # Otherwise, proceed with prediction using the default band selection.
+            # Otherwise, proceed with prediction using the default band selection
             bands = default_bands
             return process_prediction(file_path, filename, bands, selected_experiment)
             
@@ -388,8 +389,8 @@ def batch_gradcam():
         in_channels=in_channels,
         predicted_indices=predicted_indices
     )
-    # Generate color-coded Grad-CAM visualization
-    gradcam_colorcoded = generate_colorcoded_gradcam(
+    # Generate colour-coded Grad-CAM visualization
+    gradcam_colourcoded = generate_colourcoded_gradcam(
         model_instance, input_tensor,
         class_labels=DatasetConfig.class_labels,
         model_name=model_name,
@@ -408,12 +409,13 @@ def batch_gradcam():
         filename=filename,
         experiment=experiment,
         gradcam=gradcam_results,
-        gradcam_colorcoded=gradcam_colorcoded,
+        gradcam_colourcoded=gradcam_colourcoded,
         actual_labels=actual_labels,
         original_img_url=original_img_url,
         predictions=predictions  
     )
 
+# --- Experiment Overview Page ---
 @app.route("/experiments")
 def experiments_overview():
     experiments = []
@@ -549,8 +551,7 @@ def experiment_detail(experiment_name):
             with open(aggregated_path, 'r') as f:
                 for line in f:
                     line = line.strip()
-                    # Skip empty lines or header lines (if any)
-                    if line and not line.lower().startswith("aggregated metrics"):
+                    if line and not line.lower().startswith("aggregated metrics"): # Skip empty lines or header lines (if any)
                         if ":" in line:
                             key, value = line.split(":", 1)
                             aggregated_data[key.strip()] = value.strip()
@@ -666,8 +667,7 @@ def detailed_inference():
                     with open(agg_path, 'r') as f:
                         for line in f:
                             line = line.strip()
-                            # Skip empty lines or header lines
-                            if line and not line.lower().startswith("aggregated metrics"):
+                            if line and not line.lower().startswith("aggregated metrics"): # Skip empty lines or header lines
                                 if ":" in line:
                                     key, value = line.split(":", 1)
                                     aggregated_data[key.strip()] = value.strip()
@@ -701,7 +701,7 @@ def detailed_inference():
                   "ranking_loss", "one_error_macro", "one_error_micro", 
                   "hamming_loss_macro", "hamming_loss_micro"}
         
-        # Compute best_models: for each validation metric, choose the best experiment (minimize or maximize as needed)
+        # Compute best_models: for each validation metric, choose the best experiment 
         best_models = {}
         for metric, values in comparison_data.items():
             valid_values = {k: v for k, v in values.items() if v is not None}
@@ -767,7 +767,7 @@ def detailed_inference():
                 )
         
         # Create colour mapping for experiments
-        color_classes = [
+        colour_classes = [
             "bg-primary text-white",
             "bg-secondary text-white",
             "bg-success text-white",
@@ -777,9 +777,9 @@ def detailed_inference():
             "bg-light text-dark",
             "bg-dark text-white",
         ]
-        exp_color_map = {}
+        exp_colour_map = {}
         for i, exp in enumerate(selected_experiments):
-            exp_color_map[exp] = color_classes[i % len(color_classes)]
+            exp_colour_map[exp] = colour_classes[i % len(colour_classes)]
         
         return render_template(
             'detailed_inference.html',
@@ -788,7 +788,7 @@ def detailed_inference():
             testing_comparison_data=testing_comparison_data,  
             best_models=best_models,
             experiments_data=experiments_data,
-            exp_color_map=exp_color_map,
+            exp_colour_map=exp_colour_map,
             observations=observations,
             per_class_metrics=None,
             agg_keys=agg_keys
@@ -864,7 +864,7 @@ def detailed_inference():
 # -- Bubble Chart Page --
 @app.route("/bubble_chart")
 def bubble_chart():
-    include_models = request.args.getlist("models")  # Get the selected models from query parameters as a list (if any)
+    include_models = request.args.getlist("models")  # Get the selected models from query parameters as a list 
     if include_models:
         include_models = [m.strip().lower() for m in include_models]
     else:
@@ -880,10 +880,9 @@ def bubble_chart():
                 metrics_path = os.path.join(results_dir, "best_metrics.json")
                 aggregated_metrics_path = os.path.join(results_dir, "aggregated_metrics.txt")
 
-                # Initialize F2 score
-                f2_score = None
+                f2_score = None # Initialize F2 score
 
-                # Check for best_metrics.json first (since we need it for other metrics)
+                # Check for best_metrics.json first 
                 if os.path.exists(metrics_path):
                     try:
                         with open(metrics_path, "r") as f:
@@ -897,12 +896,11 @@ def bubble_chart():
                         "val_f2" in metrics["best_metrics"] and 
                         "training_time_sec" in metrics and 
                         "model_size_MB" in metrics):
-                        # Default to val_f2 from best_metrics.json
-                        f2_score = metrics["best_metrics"]["val_f2"]
+                        f2_score = metrics["best_metrics"]["val_f2"] # Default to val_f2 from best_metrics.json
                     else:
                         continue  # Skip if required keys are missing
 
-                    # Now override f2_score with f2_micro if aggregated_metrics.txt exists
+                    # Override f2_score with f2_micro if aggregated_metrics.txt exists
                     if os.path.exists(aggregated_metrics_path):
                         try:
                             with open(aggregated_metrics_path, "r") as f:
@@ -913,9 +911,8 @@ def bubble_chart():
                                     f2_score = float(line.split(":")[1].strip())
                                     break
                         except Exception as e:
-                            print(f"Error loading aggregated metrics for {d}: {e}")
-                            # If parsing fails, stick with val_f2 from best_metrics.json
-
+                            print(f"Error loading aggregated metrics for {d}: {e}") # If parsing fails, stick with val_f2 from best_metrics.json
+                            
                     # Process the experiment with the determined f2_score
                     training_time_min = metrics["training_time_sec"] / 60.0
                     exp_details = parse_experiment_folder(d)
@@ -1001,7 +998,7 @@ def data_exploration():
 @app.route("/map_page", methods=['GET', 'POST'])
 def map_page():
     print("Map page accessed")
-    experiments = get_experiments_list()  # Fetch the list of experiments (assumed to be defined elsewhere)
+    experiments = get_experiments_list()  # Fetch the list of experiments 
     return render_template('map_page.html', experiments=experiments)
 
 # -- Get Image from Map Page ---
@@ -1017,7 +1014,7 @@ def get_image():
     # Fetch Sentinel-2 patch and save as TIFF
     data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path)
 
-    # Scale reflectance values to [0, 1] (Sentinel-2 L2A data is scaled by 10,000)
+    # Scale reflectance values to [0, 1] 
     data = data / 10000.0
 
     # Extract RGB bands (B04, B03, B02)
@@ -1039,13 +1036,13 @@ def get_image():
     green = clip_band(green)
     blue = clip_band(blue)
 
-    # Normalize to [0, 1] after clipping, preserving relative color balance
+    # Normalize to [0, 1] after clipping, preserving relative colour balance
     rgb = np.dstack((red, green, blue))
     rgb_min, rgb_max = rgb.min(), rgb.max()
     if rgb_max > rgb_min:  # Avoid division by zero
         rgb = (rgb - rgb_min) / (rgb_max - rgb_min)
     else:
-        rgb = np.zeros_like(rgb)  # Fallback if image is uniform (e.g., all zeros)
+        rgb = np.zeros_like(rgb)  # Fallback if image is uniform 
 
     image_path = os.path.join('static', 'images', f'rgb_patch_{timestamp}.png') # Save RGB as PNG
     plt.imsave(image_path, rgb)
@@ -1099,7 +1096,7 @@ def predict_from_map():
 
         input_tensor = input_tensor.to(next(model_instance.parameters()).device)
 
-        # Get Predictions (unchanged predict_image_for_model)
+        # Get Predictions 
         preds = predict_image_for_model(model_instance, input_tensor)
         with torch.no_grad():
             output = model_instance(input_tensor)
@@ -1117,7 +1114,7 @@ def predict_from_map():
             in_channels=len(bands),
             predicted_indices=predicted_indices
         )
-        gradcam_colorcoded = generate_colorcoded_gradcam(
+        gradcam_colourcoded = generate_colourcoded_gradcam(
             model_instance, input_tensor,
             class_labels=DatasetConfig.class_labels,
             model_name=model_name,
@@ -1144,7 +1141,7 @@ def predict_from_map():
             'predictions': {selected_experiment: preds_list},
             'rgb_url': rgb_url,
             'gradcam': gradcam,
-            'gradcam_colorcoded_': gradcam_colorcoded,
+            'gradcam_colourcoded_': gradcam_colourcoded,
             'experiment_details': experiment_details,
             'selected_experiment': selected_experiment
         }

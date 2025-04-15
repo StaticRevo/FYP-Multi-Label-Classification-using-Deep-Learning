@@ -22,12 +22,12 @@ from utils.logging_utils import setup_logger
 from models.models import *
 from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback, OnChangeLrLoggerCallback, EarlyStoppingLoggerCallback
 
-# Training the model
+# Train the model
 def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
 
-    # Initalising the variables from the command line arguments
+    # Initialise the variables from the command line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
     selected_bands = sys.argv[3]
@@ -40,15 +40,15 @@ def main():
     else:
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
 
-    # Initialize the log directories
+    # Initialise the log directories
     log_dir = os.path.join(main_path, 'logs')
     training_log_path = os.path.join(log_dir, 'training_logs')
     tb_logger = TensorBoardLogger(save_dir=log_dir, name='lightning_logs', version='version_0')
     logger = setup_logger(log_dir=training_log_path, file_name='training.log')
 
-    resume_checkpoint = None
-    resumed_epoch = 0
-    if len(sys.argv) > 7 and os.path.exists(sys.argv[7]):
+    resume_checkpoint = None 
+    resumed_epoch = 0 
+    if len(sys.argv) > 7 and os.path.exists(sys.argv[7]): # Check if a resume checkpoint is provided
         resume_checkpoint = sys.argv[7]
         checkpoint = torch.load(resume_checkpoint, map_location=lambda storage, loc: storage)
         resumed_epoch = checkpoint.get("epoch", 0)
@@ -88,7 +88,7 @@ def main():
     model.visualize_model((in_channels, 120, 120), filename)
 
     logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
-    epoch_end_logger_callback = LogEpochEndCallback(logger)
+    epoch_end_logger_callback = LogEpochEndCallback(logger) # Custom callback to log metrics at the end of each epoch
 
     # Save hyperparameters
     file_path = save_hyperparameters(ModelConfig, main_path)
@@ -181,14 +181,8 @@ def main():
     logger.info(f"Model Size: {best_metrics.get('model_size_MB', 'N/A'):.2f} MB")
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
     logger.info("Training completed successfully")
-
-    # logger.info("Shutting down the computer in 10 seconds")
-    # import time
-    # time.sleep(10)
-
-    # os.system("shutdown /s /t 0")
     
-    if test_variable == 'True':
+    if test_variable == 'True': # If test_variable is True, run the tester script
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])
 
 if __name__ == "__main__":

@@ -1,11 +1,14 @@
+<!-- Extends the base layout -->
 {% extends "base.html" %}
 {% block title %}Interactive Map - Image Prediction{% endblock %}
 {% block content %}
 <div class="container mt-5">
+    <!-- Page Header -->
     <div class="text-center mb-5">
         <h1 class="display-5 fw-bold">Sentinel-2 RGB Viewer</h1>
         <p class="lead">Click the map to fetch a 120x120 Sentinel-2 patch and predict its land cover!</p>
     </div>
+
     <!-- Experiment Selection -->
     <div class="row justify-content-center mb-4">
         <div class="col-md-6">
@@ -19,49 +22,57 @@
             </div>
         </div>
     </div>
+
     <!-- Map Section -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white fw-bold">
             Interactive Map
         </div>
         <div class="card-body p-0">
+            <!-- Map Container -->
             <div id="map" style="height: 500px;" class="rounded"></div>
             <div class="text-muted p-2 small">
                 <i class="bi bi-info-circle"></i> Hover to preview area. Click to select a patch.
             </div>
         </div>
     </div>
-<!-- Results Section -->
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-primary text-white fw-bold">
-                <i class="bi bi-image"></i> Selected Patch & Predictions
+
+    <!-- Results Section -->
+    <div class="row">
+        <!-- Selected Patch & Predictions -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white fw-bold">
+                    <i class="bi bi-image"></i> Selected Patch & Predictions
+                </div>
+                <div class="card-body text-center">
+                    <div id="image-container">
+                        <div class="text-muted py-5">
+                            <i class="bi bi-cursor"></i> Click on the map to load an image patch
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body text-center">
-                <div id="image-container">
-                    <div class="text-muted py-5">
-                        <i class="bi bi-cursor"></i> Click on the map to load an image patch
+        </div>
+
+        <!-- Grad-CAM Visualizations -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white fw-bold">
+                    <i class="bi bi-graph-up"></i> Grad-CAM Visualizations
+                </div>
+                <div class="card-body text-center">
+                    <div id="prediction-container">
+                        <div class="text-muted py-5">
+                            <i class="bi bi-bar-chart"></i> Grad-CAM visualizations will appear here
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-success text-white fw-bold">
-                <i class="bi bi-graph-up"></i> Grad-CAM Visualizations
-            </div>
-            <div class="card-body text-center">
-                <div id="prediction-container">
-                    <div class="text-muted py-5">
-                        <i class="bi bi-bar-chart"></i> Grad-CAM visualizations will appear here
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
+    <!-- Navigation Button -->
     <div class="mt-4 text-center">
         <a href="{{ url_for('index') }}" class="btn btn-primary" aria-label="Return to home page">
           <i class="bi bi-house-door me-1"></i> Return Home
@@ -69,5 +80,6 @@
     </div>
 </div>
 
+<!-- JavaScript for Interactive Map -->
 <script src="{{ url_for('static', filename='js/interactive_map.js') }}"></script>
 {% endblock %}

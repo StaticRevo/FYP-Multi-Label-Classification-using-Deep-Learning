@@ -1,9 +1,14 @@
-import subprocess
-import tkinter as tk
-import os
-from tkinter import ttk, messagebox, Toplevel
-from threading import Thread  
 
+# Standard library imports
+import os
+import subprocess
+from threading import Thread
+
+# Third-party imports
+import tkinter as tk
+from tkinter import ttk, messagebox, Toplevel
+
+# Scrollable frame class to allow for scrolling in the GUI
 class ScrollableFrame(ttk.Frame):
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
@@ -19,6 +24,7 @@ class ScrollableFrame(ttk.Frame):
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
+# Main GUI class for model selection
 class ModelSelectionGUI:
     # Initialize the GUI
     def __init__(self, master): 
@@ -44,26 +50,18 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         self.models = {
-            '1': 'CustomModelV8',
-            '2': 'CustomModelV9',
-            '3': 'CustomWRNB4ECA',
-            '4': 'VGG16',            # 2014
-            '5': 'VGG19',            # 2014
-            '6': 'ResNet18',         # 2015
-            '7': 'ResNet50',         # 2015
-            '8': 'ResNet101',       # 2015
-            '9': 'DenseNet121',     # 2016
-            '10': 'EfficientNetB0',  # 2019
-            '11': 'EfficientNet_v2', # 2021
-            '12': 'Swin-Transformer',# 2021
-            '13': 'Vit-Transformer', # 2021
-            '14': 'CustomModelV1',
-            '15': 'CustomModelV2',
-            '16': 'CustomModelV3',
-            '17': 'CustomModelV4',
-            '18': 'CustomModelV5',
-            '19': 'CustomModelV6',
-            '20': 'CustomModelV7',
+            '1': 'CustomModelV9',
+            '2': 'CustomWRNB4ECA',
+            '3': 'VGG16',            # 2014
+            '4': 'VGG19',            # 2014
+            '5': 'ResNet18',         # 2015
+            '6': 'ResNet50',         # 2015
+            '7': 'ResNet101',       # 2015
+            '8': 'DenseNet121',     # 2016
+            '9': 'EfficientNetB0',  # 2019
+            '10': 'EfficientNet_v2', # 2021
+            '11': 'Swin-Transformer',# 2021
+            '12': 'Vit-Transformer', # 2021
         }
         self.band_selection = {
             '1': 'all_bands',
@@ -84,7 +82,6 @@ class ModelSelectionGUI:
 
     # Create the widgets for the GUI
     def create_widgets(self):
-        # All widgets are added to the scrollable frame instead of self.master
         container = self.scroll_frame.scrollable_frame
         self.create_model_selection_frame(container)
         self.create_weights_selection_frame(container)
@@ -272,7 +269,7 @@ class ModelSelectionGUI:
                 trainer_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'trainer.py')
                 tester_script = os.path.join(script_dir, 'FYPProjectMultiSpectral', 'tester_runner.py')
                 for dataset in selected_datasets:
-                    if train_test_choice == 'test':
+                    if train_test_choice == 'test': # Test only
                         for model_name in models_to_run:
                             for selected_bands in bands_to_run:
                                 if use_both_weights:
@@ -282,7 +279,7 @@ class ModelSelectionGUI:
                                 for weights in current_weights_options:
                                     print(f"Testing: model={model_name}, weights={weights}, bands={selected_bands}, dataset={dataset}")
                                     subprocess.run(['python', tester_script, model_name, weights, selected_bands, dataset])
-                    else:
+                    else: # Train or Train and Test
                         for model_name in models_to_run: 
                             if use_both_weights:
                                 current_weights_options = ['None', f'{model_name}_Weights.DEFAULT']

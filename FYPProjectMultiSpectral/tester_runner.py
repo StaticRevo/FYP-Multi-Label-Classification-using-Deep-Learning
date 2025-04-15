@@ -1,10 +1,13 @@
+# Standard library imports
 import json
 import subprocess
 import sys
+import os
+
+# Third-party imports
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import pandas as pd
-import os
 
 # Local application imports
 from utils.data_utils import extract_number
@@ -34,7 +37,7 @@ class CheckpointSelectorGUI:
         self.submit_button = tk.Button(master, text="Submit", command=self.submit)
         self.submit_button.grid(row=1, column=1, pady=20)
 
-        # Initialize the checkpoint path
+        # Initialise the checkpoint path
         self.checkpoint_path = ""
 
     # Open a file dialog to select a checkpoint file
@@ -100,7 +103,7 @@ def main():
 
     dataset_dir = DatasetConfig.dataset_paths[num]
 
-    # Initialize and run the GUI to select a single checkpoint file.
+    # Initialise and run the GUI to select a single checkpoint file.
     root = tk.Tk()
     gui = CheckpointSelectorGUI(root)
     root.mainloop()

@@ -248,3 +248,94 @@ footer {
     height: 20px;
     background: linear-gradient(to right bottom, transparent 49%, var(--body-bg) 50%);
 }
+.card {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--secondary-light) !important;
+  }
+
+  .card-header {
+    background-color: var(--primary) !important;
+    border-bottom: 1px solid var(--secondary-light) !important;
+  }
+
+  .card-body {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+  }
+
+  .notebook-content {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    padding: 1rem;
+    border-radius: 0.25rem;
+  }
+
+  .notebook-content * {
+    background-color: transparent !important;
+    color: inherit !important;
+  }
+
+  .notebook-content pre,
+  .notebook-content code,
+  .notebook-content .code_cell,
+  .notebook-content .input_area,
+  .notebook-content .output_area,
+  .notebook-content .output_subarea,
+  .notebook-content .rendered_html,
+  .notebook-content .text_cell_render {
+    background-color: var(--secondary) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--secondary-light) !important;
+  }
+
+  /* Headers in markdown cells */
+  .notebook-content h1,
+  .notebook-content h2,
+  .notebook-content h3,
+  .notebook-content h4,
+  .notebook-content h5,
+  .notebook-content h6 {
+    color: var(--text-color) !important;
+  }
+
+  /* Text elements */
+  .notebook-content p,
+  .notebook-content li,
+  .notebook-content span,
+  .notebook-content div {
+    color: var(--text-color) !important;
+  }
+
+  /* Tables */
+  .notebook-content table {
+    background-color: var(--card-bg) !important;
+    border-color: var(--secondary) !important;
+  }
+
+  .notebook-content th,
+  .notebook-content td {
+    background-color: var(--card-bg) !important;
+    border-color: var(--secondary) !important;
+    color: var(--text-color) !important;
+  }
+
+  /* Images and plots */
+  .notebook-content .output_png,
+  .notebook-content img {
+    background-color: transparent !important;
+  }
+
+  /* Override inline styles */
+  .notebook-content [style*="background"],
+  .notebook-content [style*="background-color"] {
+    background-color: transparent !important;
+  }
+
+  .notebook-content [style*="color"] {
+    color: var(--text-color) !important;
+  }
+  .notebook-content .output_area img,
+  .notebook-content .output_area svg {
+    background-color: transparent !important;
+  }

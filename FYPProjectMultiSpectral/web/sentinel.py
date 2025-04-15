@@ -1,9 +1,11 @@
-# sentinel.py
+# Standard library imports
+import random
+
+# Third-party imports
 from sentinelhub import SHConfig, SentinelHubRequest, MimeType, CRS, BBox, DataCollection
 import numpy as np
 import rasterio
 from rasterio.transform import from_bounds
-import random
 
 # Load configuration
 config = SHConfig()
@@ -61,7 +63,7 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
     )
 
     # Fetch data
-    data = request.get_data()[0]  # (120, 120, 12) in uint16, scaled to 0-10000
+    data = request.get_data()[0] # (120, 120, 12) in uint16, scaled to 0-10000
 
     if output_tiff:
         # Transpose data to (bands, height, width) for rasterio

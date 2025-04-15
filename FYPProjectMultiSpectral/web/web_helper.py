@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-# Set up directories
+# Directory set-up
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
@@ -40,7 +40,7 @@ CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)
 # --- Helper Functions ---
 # Load the model from the experiment folder
 def load_model_from_experiment(experiment_name):
-    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt")     # Construct the checkpoint path from the experiment folder.
+    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt") # Construct the checkpoint path from the experiment folder
     
     # Parse the experiment folder name to extract model details.
     parsed = parse_experiment_folder(experiment_name)
@@ -95,6 +95,7 @@ def load_experiment_metrics(experiment_name):
             metrics = {"error": f"Error loading metrics: {e}"}
     return metrics
 
+# Get the band indices based on the selected bands
 def get_band_indices_web(band_names, all_band_names):
     indices = []
     for band in band_names:
@@ -120,7 +121,7 @@ def preprocess_tiff_image(file_path, selected_bands=DatasetConfig.all_bands):
     
     try:
         with rasterio.open(file_path) as src:
-            image = src.read()  # Shape -> (channels, height, width)
+            image = src.read()  # Shape (channels, height, width)
             image = image[selected_band_indices, :, :]  # Select only the desired bands
     except Exception as e:
         print(f"Error reading {file_path}: {e}. Returning a zero tensor.")
@@ -196,7 +197,7 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
     else:
         raise ValueError(f"img_tensor must be 3D or 4D, got {img_tensor.dim()}D.")
 
-    # If predicted_indices are not provided, compute them with a 0.5 threshold.
+    # If predicted_indices are not provided, compute them with a 0.5 threshold
     if predicted_indices is None:
         output = model(input_tensor) 
         threshold = 0.5
@@ -240,35 +241,35 @@ def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_nam
 CATEGORY_GROUPS = {
     "Urban & Industrial": {
         "classes": [7, 18],
-        "color": (255, 0, 0)  # red
+        "colour": (255, 0, 0)  # red
     },
     "Agricultural & Managed Lands": {
         "classes": [0, 1, 5, 10, 15, 16],
-        "color": (255, 165, 0)  # orange
+        "colour": (255, 165, 0)  # orange
     },
     "Forest & Woodland": {
         "classes": [3, 6, 12, 17],
-        "color": (34, 139, 34)  # forest green
+        "colour": (34, 139, 34)  # forest green
     },
     "Natural Vegetation (Non-Forest)": {
         "classes": [13, 14],
-        "color": (128, 128, 0)  # olive
+        "colour": (128, 128, 0)  # olive
     },
     "Water Bodies": {
         "classes": [8, 11],
-        "color": (0, 0, 255)  # blue
+        "colour": (0, 0, 255)  # blue
     },
     "Wetlands": {
         "classes": [4, 9],
-        "color": (255, 0, 255)  # magenta
+        "colour": (255, 0, 255)  # magenta
     },
     "Coastal & Transitional": {
         "classes": [2],
-        "color": (255, 255, 0)  # yellow
+        "colour": (255, 255, 0)  # yellow
     }
 }
-# Generate a color-coded Grad-CAM visualization
-def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
+# Generate a colour-coded Grad-CAM visualization
+def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
     gradcam_results = {}
 
     target_layer = get_target_layer(model, model_name)
@@ -314,7 +315,6 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
         cat_name: np.zeros((target_height, target_width), dtype=np.float32)
         for cat_name in CATEGORY_GROUPS
     }
-
     # Generate and accumulate Grad-CAM for every predicted class 
     for idx in predicted_indices:
         class_name = class_labels[idx]
@@ -344,15 +344,15 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
 
     cat_names = list(CATEGORY_GROUPS.keys())
     stacked_maps = []
-    cat_colors = []
+    cat_colours = []
 
     for cat_name in cat_names:
         stacked_maps.append(category_cam_map[cat_name])
-        (r, g, b) = CATEGORY_GROUPS[cat_name]["color"]
-        cat_colors.append((r / 255.0, g / 255.0, b / 255.0))
+        (r, g, b) = CATEGORY_GROUPS[cat_name]["colour"]
+        cat_colours.append((r / 255.0, g / 255.0, b / 255.0))
 
     stacked_maps = np.stack(stacked_maps, axis=-1)  # shape: (H, W, #categories)
-    cat_colors = np.array(cat_colors)              # shape: (#categories, 3)
+    cat_colours = np.array(cat_colours)  # shape: (#categories, 3)
 
     # Hard max across categories per pixel
     argmax_map = np.argmax(stacked_maps, axis=-1)  # shape: (H, W)
@@ -369,7 +369,7 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
             best_cat_idx = argmax_map[i, j]
             activation = max_vals[i, j]
             if activation >= activation_threshold:
-                overlay_array[i, j] = cat_colors[best_cat_idx] * activation
+                overlay_array[i, j] = cat_colours[best_cat_idx] * activation
 
     # Alpha-blend with the base image
     overlay_alpha = 0.6  
@@ -382,14 +382,14 @@ def generate_colorcoded_gradcam(model, img_tensor, class_labels, model_name, in_
 
     # Save
     unique_hash = uuid.uuid4().hex
-    filename = f"gradcam_colorcoded_{model.__class__.__name__}_{unique_hash}.png"
+    filename = f"gradcam_colourcoded_{model.__class__.__name__}_{unique_hash}.png"
     out_path = os.path.join(STATIC_FOLDER, filename)
     final_img.save(out_path)
 
     # Build category legend
     category_legend = {}
     for cat_name, cat_info in CATEGORY_GROUPS.items():
-        r, g, b = cat_info["color"]
+        r, g, b = cat_info["colour"]
         category_legend[cat_name] = f"rgb({r},{g},{b})"
 
     gradcam_results["combined"] = {
@@ -558,8 +558,8 @@ def process_prediction(file_path, filename, bands, selected_experiment):
         in_channels=len(bands),
         predicted_indices=predicted_indices
     )
-    # Generate color-coded Grad-CAM visualization
-    gradcam_colorcoded = generate_colorcoded_gradcam(
+    # Generate colour-coded Grad-CAM visualization
+    gradcam_colourcoded = generate_colourcoded_gradcam(
         model_instance, input_tensor,
         class_labels=DatasetConfig.class_labels,
         model_name=model_name,
@@ -579,7 +579,7 @@ def process_prediction(file_path, filename, bands, selected_experiment):
                            actual_labels=actual_labels,
                            rgb_url=rgb_url,
                            gradcam=gradcam,
-                           gradcam_colorcoded=gradcam_colorcoded,
+                           gradcam_colourcoded=gradcam_colourcoded,
                            multiple_models=False,
                            experiment_details=experiment_details)
 

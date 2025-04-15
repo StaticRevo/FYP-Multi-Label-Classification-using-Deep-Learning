@@ -17,9 +17,8 @@ from .config_utils import *
 @dataclass
 class DatasetConfig:
     base_path = os.path.join(os.path.dirname(__file__), "metadata")
-    
-    #metadata_path = r'C:\Users\isaac\Desktop\BigEarthTests\100%_BigEarthNet\metadata_100_percent.csv'
-    metadata_path = os.path.join(base_path, "metadata_50_percent.csv")
+    metadata_path = r'C:\Users\isaac\Desktop\BigEarthTests\100%_BigEarthNet\metadata_100_percent.csv'
+    #metadata_path = os.path.join(base_path, "metadata_50_percent.csv")
     dataset_paths = {
         "0.5": r"C:\Users\isaac\Desktop\BigEarthTests\0.5%_BigEarthNet\CombinedImages",
         "1": r"C:\Users\isaac\Desktop\BigEarthTests\1%_BigEarthNet\CombinedImages",
@@ -38,8 +37,8 @@ class DatasetConfig:
     unwanted_metadata_file: str = os.path.join(base_path, "metadata_for_patches_with_snow_cloud_or_shadow.parquet")
     unwanted_metadata_csv = pd.read_parquet(unwanted_metadata_file)
 
-    #experiment_path = r'C:\Users\isaac\Desktop\experiments'
-    experiment_path = '/Volumes/KINGSTON128/ExperimentsWithTesting'
+    experiment_path = r'C:\Users\isaac\Desktop\experiments'
+    #experiment_path = '/Volumes/KINGSTON128/ExperimentsWithTesting'
     
     class_labels = calculate_class_labels(pd.read_csv(metadata_path))
     class_labels = class_labels

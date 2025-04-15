@@ -35,11 +35,14 @@
               </tr>
             </thead>
             <tbody>
+              <!-- Loop through predictions for each model -->
               {% for model_name, preds in predictions.items() %}
                 {% if multiple_models %}
+                  <!-- Model Name Header -->
                   <tr class="table-secondary">
                     <td colspan="2"><strong>{{ model_name }}</strong></td>
                   </tr>
+                  <!-- Predictions for the Model -->
                   {% for item in preds %}
                     <tr>
                       <td>{{ item.label }}</td>
@@ -47,6 +50,7 @@
                     </tr>
                   {% endfor %}
                 {% else %}
+                  <!-- Predictions for a Single Model -->
                   {% for item in preds %}
                     <tr>
                       <td>{{ item.label }}</td>
@@ -75,6 +79,7 @@
               </tr>
             </thead>
             <tbody>
+              <!-- Loop through actual labels -->
               {% for label in actual_labels %}
                 <tr>
                   <td>{{ label }}</td>
@@ -97,6 +102,7 @@
       {% if gradcam %}
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
           {% if multiple_models %}
+            <!-- Grad-CAM for Multiple Models -->
             {% for model_name, model_gradcam in gradcam.items() %}
               <div class="col">
                 <div class="card h-100 shadow-sm">
@@ -115,6 +121,7 @@
               </div>
             {% endfor %}
           {% else %}
+            <!-- Grad-CAM for a Single Model -->
             {% for class_label, gradcam_url in gradcam.items() %}
               <div class="col">
                 <div class="card h-100 shadow-sm">
@@ -141,17 +148,18 @@
       Combined Color-Coded Grad-CAM
     </div>
     <div class="card-body text-center">
-      {% if gradcam_colorcoded.combined %}
+      {% if gradcam_colourcoded.combined %}
         <div class="row justify-content-center">
           <div class="col-12">
             <img 
-              src="{{ gradcam_colorcoded.combined.url }}" 
+              src="{{ gradcam_colourcoded.combined.url }}" 
               alt="Color-Coded GradCAM" 
               class="img-fluid rounded mb-3"
               style="width: 300px;"
             >
           </div>
 
+          <!-- Grad-CAM Legend -->
           <div class="col-12 mt-3">
             <div class="legend-title">GRAD-CAM Multi-Label Classification</div>
             <div class="legend-container">
@@ -166,7 +174,7 @@
               ] %}
               {% for cat_name, rgb_str in ordered_categories %}
                 <div class="legend-item">
-                  <div class="legend-color-box" data-color="{{ rgb_str }}"></div>
+                  <div class="legend-colour-box" data-colour="{{ rgb_str }}"></div>
                   <span class="legend-text">{{ cat_name }}</span>
                 </div>
               {% endfor %}
@@ -174,11 +182,12 @@
           </div>
         </div>
       {% else %}
-        <p>No color-coded GradCAM visualization generated.</p>
+        <p>No colour-coded GradCAM visualization generated.</p>
       {% endif %}
     </div>
   </div>
-
+  
+  <!-- Navigation Buttons -->
   <div class="mt-4 text-center">
     <a href="{{ url_for('predict_page') }}" class="btn btn-primary" aria-label="Upload another image">
       <i class="bi bi-upload me-1"></i> Upload Another Image
@@ -189,12 +198,12 @@
   </div>
 </div>
 
-<!-- Script to Set Background Colors of the color boxes -->
+<!-- Script to Set Background Colors of the colour boxes -->
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('.legend-color-box').forEach(function(box) {
-      var color = box.getAttribute('data-color');
-      box.style.backgroundColor = color;
+    document.querySelectorAll('.legend-colour-box').forEach(function(box) {
+      var colour = box.getAttribute('data-colour');
+      box.style.backgroundColor = colour;
     });
   });
 </script>

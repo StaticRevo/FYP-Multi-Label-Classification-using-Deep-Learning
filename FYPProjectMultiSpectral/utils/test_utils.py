@@ -64,6 +64,7 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
     )
     scores = compute_aggregated_metrics(true_labels, predictions, probs, logger) # Compute and print aggregated metrics
     print(f"Aggregated Metrics:\n{scores}")
+
     # Save the aggregated metrics to a text file within save_dir
     aggregated_metrics_path = os.path.join(result_path, "aggregated_metrics.txt")
     with open(aggregated_metrics_path, "w") as f:
@@ -128,7 +129,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
     if target_layer is None:
         return
 
-    grad_cam = GradCAM(model, target_layer) # Initialize Grad-CAM
+    grad_cam = GradCAM(model, target_layer) # Initialise Grad-CAM
 
     test_dataset = data_module.test_dataloader().dataset
     num_images = len(test_dataset)
@@ -215,7 +216,7 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     if target_layer is None:
         return
 
-    grad_cam = GradCAM(model, target_layer) # Initialize Grad-CAM
+    grad_cam = GradCAM(model, target_layer) # Initialise Grad-CAM
 
     with rasterio.open(tiff_file_path) as src:
         image = src.read()
@@ -313,7 +314,6 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None
         color='deeppink', linestyle=':', linewidth=4,
         label=f'Micro-average (area = {roc_auc["micro"]:0.2f})'
     )
-
     plt.plot([0, 1], [0, 1], 'k--', lw=2)  
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
@@ -347,7 +347,7 @@ def predict_batch(model, dataloader, threshold=0.5, bands=DatasetConfig.all_band
     return np.array(all_preds), np.array(all_true_labels)
 
 # Save batch predictions
-def saving_batch_predictions(model, dataloader, in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=None, logger=None):
+def saving_batch_predictions(model, dataloader, in_channels, threshold=0.5, bands=DatasetConfig.all_bands, num_images=10, save_dir=None, logger=None):
     logger.info("Saving batch predictions...")
     all_preds, all_true_labels = predict_batch(model, dataloader, threshold, bands)
     
@@ -498,10 +498,10 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
     metrics_dict['subset_accuracy'] = accuracy_score(all_labels, all_preds)
 
     if all_probs is not None:
-        # Average Precision (micro-averaged to match test_avg_precision)
+        # Average Precision - micro-averaged
         metrics_dict['avg_precision'] = average_precision_score(all_labels, all_probs, average='micro', pos_label=1)
         
-        # One Error: fraction of samples where the top-ranked label is not in the true set
+        # One Error
         top_pred_labels = np.argmax(all_probs, axis=1)  # Index of highest probability per sample
         true_positives = np.any(all_labels > 0, axis=1)  # Samples with at least one true positive label
         top_correct = np.array([all_labels[i, top_pred_labels[i]] for i in range(len(top_pred_labels))])

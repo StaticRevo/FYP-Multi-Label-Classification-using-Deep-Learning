@@ -1,4 +1,3 @@
-// map.js
 var map = L.map('map').setView([35.9, 14.5], 11); // Default: Malta
 
 // Add Esri World Imagery (satellite view)
@@ -9,6 +8,7 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 
 var imageOverlay = null;
 
+// Function to fetch and display the image based on latitude and longitude
 function fetchImage(lat, lon) {
     var formData = new FormData();
     formData.append('lat', lat);

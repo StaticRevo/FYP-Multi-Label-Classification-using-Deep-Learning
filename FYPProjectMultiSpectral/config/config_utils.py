@@ -1,4 +1,7 @@
+# Standard library imports
 import ast
+
+# Third-party imports
 import numpy as np
 
 # Clean and parse labels from the metadata CSV

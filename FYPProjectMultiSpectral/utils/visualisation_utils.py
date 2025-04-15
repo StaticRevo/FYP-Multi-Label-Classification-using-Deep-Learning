@@ -11,7 +11,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 import rasterio
 
 activations = {}
-# Register the forward hook for the model
+# Register forward hook for the model
 def forward_hook(module, input, output):
     activations[module] = output
 
@@ -89,7 +89,7 @@ def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
         os.makedirs(save_path, exist_ok=True)
         save_file = os.path.join(save_path, "activations_image.png")
         plt.savefig(save_file, bbox_inches='tight')
-        plt.close()  # Close the figure to free memory
+        plt.close()  
         print(f"Saved RGB activation visualization to {save_file}")
 
 # Save the tensorboard graphs as images
@@ -100,7 +100,7 @@ def save_tensorboard_graphs(log_dir, output_dir):
     event_acc = EventAccumulator(log_dir)
     event_acc.Reload()
 
-    tags = event_acc.Tags().get('scalars', []) # Get the list of tags (metrics) in the logs
+    tags = event_acc.Tags().get('scalars', []) # Get the list of metrics in the logs
 
     # Filter tags: include tags with '_epoch' or starting with 'val_', exclude 'class' in name
     filtered_tags = [

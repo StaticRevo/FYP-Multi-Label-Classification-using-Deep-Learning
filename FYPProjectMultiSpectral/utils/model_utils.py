@@ -1,7 +1,10 @@
-from models.models import *
+# Standard library imports
 import os
 import sys
 import inspect
+
+# Local application imports
+from models.models import *
 
 # Get the model class
 def get_model_class(model_name):
@@ -33,6 +36,7 @@ def get_model_class(model_name):
     }
     return model_mapping.get(model_name, (None, None))
 
+# Get the model class name from the module
 def get_class_names(module):
     # Get all classes defined in the module
     classes = inspect.getmembers(module, inspect.isclass)

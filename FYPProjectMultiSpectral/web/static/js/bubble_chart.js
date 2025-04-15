@@ -1,3 +1,4 @@
+// Bubble Chart Function for F2 Score vs Training Time
 function renderBubbleChart(experimentsData) {
   // Extract arrays for the plot
   const xValues = experimentsData.map(d => d.training_time_min);
@@ -15,7 +16,7 @@ function renderBubbleChart(experimentsData) {
     return minSize + (maxSize - minSize) * Math.sqrt(normalized); // Square root scaling
   });
 
-  // Get unique models (not model types)
+  // Get unique models 
   const uniqueModels = [...new Set(experimentsData.map(d => d.model))];
 
   // Create a color scale for unique models
@@ -71,7 +72,7 @@ function renderBubbleChart(experimentsData) {
     dragmode: 'pan',
     scrollZoom: true,
     responsive: true,
-    showlegend: true, // Show legend
+    showlegend: true, 
     margin: { l: 50, r: 50, b: 50, t: 50 }, 
     grid: { rows: 1, columns: 1 }
   };

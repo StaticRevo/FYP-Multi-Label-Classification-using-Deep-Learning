@@ -1,6 +1,6 @@
-// interactive_map.js
+// Interactive map for displaying image patches and predictions
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the map
+    // Initialise the map
     var map = L.map('map').setView([35.9375, 14.3754], 11); // Malta
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles © Esri',
@@ -217,14 +217,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add mousemove event to show the preview rectangle
+    // Mousemove event to show the preview rectangle
     map.on('mousemove', function(e) {
         var lat = e.latlng.lat;
         var lon = e.latlng.lng;
         drawPreviewRectangle(lat, lon);
     });
 
-    // Add click event to fetch the patch
+    // Click event to fetch the patch
     map.on('click', function(e) {
         var lat = e.latlng.lat;
         var lon = e.latlng.lng;

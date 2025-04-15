@@ -1,4 +1,4 @@
-# -- Classes used for Band Normalisation and Unnormalisation --
+# -- Classes for Band Normalisation and Unnormalisation --
 
 # Normalisation 
 class BandNormalisation:

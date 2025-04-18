@@ -13,6 +13,7 @@ This project aims to address this issue by developing a CNN model capable of cla
 - Utilise State-Of-The-Art (SOTA) models to leverage existing knowledge and serve as benchmarks for comparison
 - Implement Data preprocessing and augmentation techniques to handle datasets such as BigEarthNet
 - Incorporate various visualisation techniques to further ensure transparency and trust in the model's prediction
+- Create a web-based interface to enable user-friendly interaction with the classification system, supporting training, testing, real-time predictions, and interactive visualisations of model outputs.
 
 ## Getting Started
 Follow these steps to set up and run the project locally.

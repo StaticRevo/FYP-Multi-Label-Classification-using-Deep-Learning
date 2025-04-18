@@ -10,7 +10,7 @@ This project aims to address this issue by developing a CNN model capable of cla
 
 ## Project Goals
 - Develop a Custom CNN that is capable of accurately classify multiple land types based on Sentinel-2 multispectral satellite imagery.
-- Utilise pre-trained models to leverage existing knowledge and serve as benchmarks for comparison
+- Utilise State-Of-The-Art (SOTA) models to leverage existing knowledge and serve as benchmarks for comparison
 - Implement Data preprocessing and augmentation techniques to handle datasets such as BigEarthNet
 - Incorporate various visualisation techniques to further ensure transparency and trust in the model's prediction
 

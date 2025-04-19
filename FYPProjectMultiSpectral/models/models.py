@@ -1347,7 +1347,7 @@ class CustomModelV9(BaseModel):
             nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)
         )
 
-        # -- Optimized Classifier with Balanced Information Flow --
+        # -- Classifier --
         self.classifier = nn.Sequential(
             ECA(in_channels=236),  
             nn.Conv2d(in_channels=236, out_channels=128, kernel_size=1, stride=1, padding=0, bias=False), 

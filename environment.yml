@@ -1,4 +1,4 @@
-name: Fyp311_Copy
+name: Fyp311
 channels:
   - pytorch
   - nvidia

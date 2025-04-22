@@ -23,7 +23,6 @@ import numpy as np
 
 # Local application imports
 from config.config import ModelConfig, DatasetConfig, ModuleConfig
-from models.modules import *
 from .Metrics.one_error import OneError
 from models.losses import *
 

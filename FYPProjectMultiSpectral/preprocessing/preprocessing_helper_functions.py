@@ -15,10 +15,12 @@ import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from pathlib import Path
 from torch.utils.data import WeightedRandomSampler
-from utils.label_utils import encode_label
-from config.config_utils import clean_and_parse_labels
 from sklearn.preprocessing import MultiLabelBinarizer
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
+
+# Local application imports
+from utils.label_utils import encode_label
+from config.config_utils import clean_and_parse_labels
 
 # Download and extract the BigEarthNet dataset
 def downloadAndExtractDataset(dataset_dir):

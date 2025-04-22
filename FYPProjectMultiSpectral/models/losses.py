@@ -2,8 +2,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from config.config import ModuleConfig
 import numpy as np
+
+# Local application imports
+from config.config import ModuleConfig
 
 # --Combined Focal Loss with Pos Weight--
 class CombinedFocalLossWithPosWeight(nn.Module):

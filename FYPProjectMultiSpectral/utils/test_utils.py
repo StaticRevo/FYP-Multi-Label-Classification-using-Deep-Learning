@@ -73,7 +73,7 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
              f.write(f"{metric}: {value}\n")
     print(f"Aggregated metrics saved to {aggregated_metrics_path}")
 
-    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=save_dir, logger=logger)
+    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=result_path, logger=logger)
 
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) # Plot co-occurrence matrix
 

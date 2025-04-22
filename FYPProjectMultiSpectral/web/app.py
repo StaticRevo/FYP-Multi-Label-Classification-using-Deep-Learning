@@ -489,7 +489,7 @@ def experiment_detail(experiment_name):
         for ed in expected_dirs:
             ed_path = os.path.join(results_path, ed)
             if os.path.exists(ed_path) and os.path.isdir(ed_path):
-                results[ed] = os.listdir(ed_path) # Get the file list—even if empty
+                results[ed] = os.listdir(ed_path)  # Get the file list—even if empty
             else:
                 results[ed] = []  # Ensure key exists even if folder is missing
 
@@ -519,6 +519,50 @@ def experiment_detail(experiment_name):
             except Exception as e:
                 metrics[mf] = {"error": str(e)}
 
+    # Check for per_category_metrics.txt and parse it
+    per_category_metrics = None
+    per_category_path = os.path.join(results_path, "per_category_metrics.txt")
+    if os.path.exists(per_category_path):
+        try:
+            per_category_metrics = {
+                "class_labels": [],
+                "precision": [],
+                "recall": [],
+                "f1": [],
+                "f2": [],
+                "accuracy": []
+            }
+            with open(per_category_path, 'r') as f:
+                lines = f.readlines()
+                i = 0
+                while i < len(lines):
+                    line = lines[i].strip()
+                    if line.startswith("Category:"):
+                        category = line.replace("Category:", "").strip()
+                        per_category_metrics["class_labels"].append(category)
+                        # Parse the next 5 lines for metrics
+                        metrics_lines = lines[i+1:i+6]
+                        metrics_dict = {}
+                        for ml in metrics_lines:
+                            if ":" in ml:
+                                key, value = ml.split(":", 1)
+                                metrics_dict[key.strip()] = float(value.strip())
+                        per_category_metrics["precision"].append(metrics_dict.get("precision", 0.0))
+                        per_category_metrics["recall"].append(metrics_dict.get("recall", 0.0))
+                        per_category_metrics["f1"].append(metrics_dict.get("f1", 0.0))
+                        per_category_metrics["f2"].append(metrics_dict.get("f2", 0.0))
+                        per_category_metrics["accuracy"].append(metrics_dict.get("accuracy", 0.0))
+                        i += 6
+                    else:
+                        i += 1
+            # Override per-class metrics with per_category_metrics
+            metrics["test_per_class_metrics.json"] = per_category_metrics
+            metrics["train_per_class_metrics.json"] = per_category_metrics
+            metrics["val_per_class_metrics.json"] = per_category_metrics
+        except Exception as e:
+            per_category_metrics = {"error": str(e)}
+            metrics["per_category_metrics.txt"] = per_category_metrics
+
     # Hyperparameters
     hyperparams_content = None
     hyperparams_path = os.path.join(experiment_path, "hyperparameters.txt")
@@ -529,7 +573,7 @@ def experiment_detail(experiment_name):
         except Exception as e:
             hyperparams_content = f"Error reading hyperparameters.txt: {e}"
 
-    # Load architecture file 
+    # Load architecture file
     architecture_content = None
     parsed = parse_experiment_folder(experiment_name)
     model_name_from_folder = parsed.get("model")
@@ -551,14 +595,13 @@ def experiment_detail(experiment_name):
             with open(aggregated_path, 'r') as f:
                 for line in f:
                     line = line.strip()
-                    if line and not line.lower().startswith("aggregated metrics"): # Skip empty lines or header lines (if any)
+                    if line and not line.lower().startswith("aggregated metrics"):
                         if ":" in line:
                             key, value = line.split(":", 1)
                             aggregated_data[key.strip()] = value.strip()
             aggregated_metrics = aggregated_data
         except Exception as e:
             aggregated_metrics = {"error": str(e)}
-    
 
     return render_template("experiment_detail.html",
                            experiment_name=experiment_name,

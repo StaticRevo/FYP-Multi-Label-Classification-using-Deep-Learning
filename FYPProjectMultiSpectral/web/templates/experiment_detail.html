@@ -2,10 +2,12 @@
 {% block title %}Experiment Detail - {{ experiment_name }}{% endblock %}
 
 {% macro safe_round(value, decimals=3) %}
-    {% if value is number %}
-        {{ value | round(decimals, 'common') }}
+    {% if value is string and value|float is number %}
+        {{ (value|float)|round(decimals, 'common') }}
+    {% elif value is number %}
+        {{ value|round(decimals, 'common') }}
     {% else %}
-        {{ value | default("N/A") }}
+        {{ value|default("N/A") }}
     {% endif %}
 {% endmacro %}
 
@@ -17,55 +19,64 @@
         <h1 class="mb-4 section-title" style="word-break: break-word; overflow-wrap: break-word;">Experiment: {{ experiment_name }}</h1>
       </div>
 
-      <!-- Performance Summary -->
-      {% if metrics["best_metrics.json"] is defined %}
+      <!-- Performance Summary Table -->
       <div class="card mb-4">
         <div class="card-header">
-          <strong>Performance Summary</strong>
+          <strong>Performance Summary Table</strong>
         </div>
         <div class="card-body">
-          <div class="row">
-            <!-- Column 1 -->
-            <div class="col-md-4">
-              <strong>Val Acc:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_acc) }}<br>
-              <strong>Val Recall:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_recall) }}<br>
-              <strong>Val Precision:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_precision) }}<br>
-              <strong>Val F1:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_f1) }}<br>
-            </div>
-
-            <!-- Column 2 -->
-            <div class="col-md-4">
-              <strong>Val F2:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_f2) }}<br>
-              <strong>Val Avg Precision:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_avg_precision) }}<br>
-              <strong>Val Hamming Loss:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_hamming_loss) }}<br>
-              <strong>Val One Error:</strong>
-              {{ safe_round(metrics["best_metrics.json"].best_metrics.val_one_error) }}<br>
-            </div>
-
-            <!-- Column 3 -->
-            <div class="col-md-4">
-              <strong>Inference Time (imgs/s):</strong>
-              {{ safe_round(metrics["best_metrics.json"].inference_rate_images_per_sec) }}<br>
-              <strong>Training Time (hr/min):</strong>
-              {{ metrics["best_metrics.json"].training_time_formatted | default("N/A") }}<br>
-              <strong>Model Size (MB):</strong>
-              {{ safe_round(metrics["best_metrics.json"].model_size_MB) }}<br>
-            </div>
-          </div>
+          <table class="table table-bordered table-sm">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Precision Micro</td>
+                <td>{{ safe_round(aggregated_metrics.precision_micro) }}</td>
+              </tr>
+              <tr>
+                <td>Recall Micro</td>
+                <td>{{ safe_round(aggregated_metrics.recall_micro) }}</td>
+              </tr>
+              <tr>
+                <td>F1 Micro</td>
+                <td>{{ safe_round(aggregated_metrics.f1_micro) }}</td>
+              </tr>
+              <tr>
+                <td>F2 Micro</td>
+                <td>{{ safe_round(aggregated_metrics.f2_micro) }}</td>
+              </tr>
+              <tr>
+                <td>Avg Precision</td>
+                <td>{{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_avg_precision) }}</td>
+              </tr>
+              <tr>
+                <td>Hamming Loss</td>
+                <td>{{ safe_round(aggregated_metrics.hamming_loss) }}</td>
+              </tr>
+              <tr>
+                <td>One Error</td>
+                <td>{{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_one_error) }}</td>
+              </tr>
+              <tr>
+                <td>Inference Time (imgs/s)</td>
+                <td>{{ safe_round(metrics["best_metrics.json"].inference_rate_images_per_sec) }}</td>
+              </tr>
+              <tr>
+                <td>Training Time (hr/min)</td>
+                <td>{{ metrics["best_metrics.json"].training_time_formatted|default("N/A") }}</td>
+              </tr>
+              <tr>
+                <td>Model Size (MB)</td>
+                <td>{{ safe_round(metrics["best_metrics.json"].model_size_MB) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      {% else %}
-        <div class="card p-4 mb-4">
-          <p>No performance summary available.</p>
-        </div>
-      {% endif %}
 
       <!-- Aggregated Metrics Section -->
       {% if aggregated_metrics %}
@@ -85,7 +96,7 @@
                 {% for key, val in aggregated_metrics.items() %}
                   <tr>
                     <td>{{ key }}</td>
-                    <td>{{ val }}</td>
+                    <td>{{ safe_round(val) }}</td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -94,100 +105,150 @@
         </div>
       {% endif %}
 
-      <!-- Test Performance Summary -->
-      {% if metrics["best_test_metrics.json"] is defined %}
-      <div class="card mb-4">
-        <div class="card-header">
-          <strong>Test Performance Summary</strong>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <!-- Column 1 -->
-            <div class="col-md-6">
-              <strong>Test Acc:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_acc) }}<br>
-              <strong>Test Recall:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_recall) }}<br>
-              <strong>Test Precision:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_precision) }}<br>
-              <strong>Test F1:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_f1) }}<br>
-            </div>
-
-            <!-- Column 2 -->
-            <div class="col-md-6">
-              <strong>Test F2:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_f2) }}<br>
-              <strong>Test One Error:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_one_error) }}<br>
-              <strong>Test Hamming Loss:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_hamming_loss) }}<br>
-              <strong>Test Avg Precision:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_avg_precision) }}<br>
-              <strong>Test Loss:</strong>
-              {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_loss) }}<br>
+      <!-- Validation Performance Summary -->
+      {% if metrics["best_metrics.json"] is defined %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <strong>Validation Performance Summary</strong>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Column 1 -->
+              <div class="col-md-4">
+                <strong>Val Acc:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_acc) }}<br>
+                <strong>Val Recall:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_recall) }}<br>
+                <strong>Val Precision:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_precision) }}<br>
+                <strong>Val F1:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_f1) }}<br>
+              </div>
+  
+              <!-- Column 2 -->
+              <div class="col-md-4">
+                <strong>Val F2:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_f2) }}<br>
+                <strong>Val Avg Precision:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_avg_precision) }}<br>
+                <strong>Val Hamming Loss:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_hamming_loss) }}<br>
+                <strong>Val One Error:</strong>
+                {{ safe_round(metrics["best_metrics.json"].best_metrics.val_one_error) }}<br>
+              </div>
+  
+              <!-- Column 3 -->
+              <div class="col-md-4">
+                <strong>Inference Time (imgs/s):</strong>
+                {{ safe_round(metrics["best_metrics.json"].inference_rate_images_per_sec) }}<br>
+                <strong>Training Time (hr/min):</strong>
+                {{ metrics["best_metrics.json"].training_time_formatted|default("N/A") }}<br>
+                <strong>Model Size (MB):</strong>
+                {{ safe_round(metrics["best_metrics.json"].model_size_MB) }}<br>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      {% else %}
+        <div class="card p-4 mb-4">
+          <p>No performance summary available.</p>
+        </div>
+      {% endif %}
+  
+      <!-- Test Performance Summary -->
+      {% if metrics["best_test_metrics.json"] is defined %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <strong>Test Performance Summary</strong>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Column 1 -->
+              <div class="col-md-6">
+                <strong>Test Acc:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_acc) }}<br>
+                <strong>Test Recall:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_recall) }}<br>
+                <strong>Test Precision:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_precision) }}<br>
+                <strong>Test F1:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_f1) }}<br>
+              </div>
+
+              <!-- Column 2 -->
+              <div class="col-md-6">
+                <strong>Test F2:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_f2) }}<br>
+                <strong>Test One Error:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_one_error) }}<br>
+                <strong>Test Hamming Loss:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_hamming_loss) }}<br>
+                <strong>Test Avg Precision:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_avg_precision) }}<br>
+                <strong>Test Loss:</strong>
+                {{ safe_round(metrics["best_test_metrics.json"].best_metrics.test_loss) }}<br>
+              </div>
+            </div>
+          </div>
+        </div>
       {% endif %}
 
       <!-- Per Class Validation Performance Summary -->
       {% if metrics["val_per_class_metrics.json"] is defined %}
-      <div class="card mb-4">
-        <div class="card-header">
-          <strong>Validation Per Class Metrics</strong>
-        </div>
-        <div class="card-body">
-          <table class="table table-bordered table-sm">
-            <thead>
-              <tr>
-                <th>Class</th>
-                <th>Precision</th>
-                <th>Recall</th>
-                <th>F1</th>
-                <th>F2</th>
-                <th>Accuracy</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for label in metrics["val_per_class_metrics.json"].class_labels %}
-                {% set i = loop.index0 %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <strong>Per Category Metrics{% if metrics["per_category_metrics.txt"] is defined %} (from per_category_metrics.txt){% endif %}</strong>
+          </div>
+          <div class="card-body">
+            <table class="table table-bordered table-sm">
+              <thead>
                 <tr>
-                  <td>{{ label | default("N/A") }}</td>
-                  <td>{{ safe_round(metrics["val_per_class_metrics.json"].precision[i]) }}</td>
-                  <td>{{ safe_round(metrics["val_per_class_metrics.json"].recall[i]) }}</td>
-                  <td>{{ safe_round(metrics["val_per_class_metrics.json"].f1[i]) }}</td>
-                  <td>{{ safe_round(metrics["val_per_class_metrics.json"].f2[i]) }}</td>
-                  <td>{{ safe_round(metrics["val_per_class_metrics.json"].accuracy[i]) }}</td>
+                  <th>Category</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1</th>
+                  <th>F2</th>
+                  <th>Accuracy</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          
-          <!-- Graph for Per Class Metrics -->
-          <div class="card mt-4">
-            <div class="card-header">
-              <strong>Per Class Metrics Graph</strong>
-            </div>
-            <div class="card-body">
-              <canvas id="valMetricsChart"></canvas>
+              </thead>
+              <tbody>
+                {% for label in metrics["val_per_class_metrics.json"].class_labels %}
+                  {% set i = loop.index0 %}
+                  <tr>
+                    <td>{{ label|default("N/A") }}</td>
+                    <td>{{ safe_round(metrics["val_per_class_metrics.json"].precision[i]) }}</td>
+                    <td>{{ safe_round(metrics["val_per_class_metrics.json"].recall[i]) }}</td>
+                    <td>{{ safe_round(metrics["val_per_class_metrics.json"].f1[i]) }}</td>
+                    <td>{{ safe_round(metrics["val_per_class_metrics.json"].f2[i]) }}</td>
+                    <td>{{ safe_round(metrics["val_per_class_metrics.json"].accuracy[i]) }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            
+            <!-- Graph for Per Class Metrics -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <strong>Per Category Metrics Graph{% if metrics["per_category_metrics.txt"] is defined %} (from per_category_metrics.txt){% endif %}</strong>
+              </div>
+              <div class="card-body">
+                <canvas id="valMetricsChart"></canvas>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       {% endif %}
 
       <!-- Hyperparameters Section -->
       {% if hyperparams_content %}
-      <div class="card mb-4">
-        <div class="card-header">
-          <strong>Hyperparameters</strong>
+        <div class="card mb-4">
+          <div class="card-header">
+            <strong>Hyperparameters</strong>
+          </div>
+          <div class="card-body">
+            <pre class="small" style_levels="line-height: 1.2em; white-space: pre-wrap; margin-bottom: 0; background-color: var(--secondary); border: 1px solid var(--secondary-light); color: var(--text-color);">{{ hyperparams_content }}</pre>
+          </div>
         </div>
-        <div class="card-body">
-          <pre class="small" style="line-height: 1.2em; white-space: pre-wrap; margin-bottom: 0; background-color: var(--secondary); border: 1px solid var(--secondary-light); color: var(--text-color);">{{ hyperparams_content }}</pre>
-        </div>
-      </div>
       {% endif %}
 
       <!-- TensorBoard Graphs Section -->
@@ -268,261 +329,261 @@
       {% if metrics %}
         <div class="accordion" id="metricsAccordion">
           {% if metrics["best_metrics.json"] is defined %}
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingBestMetrics">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBestMetrics" aria-expanded="false" aria-controls="collapseBestMetrics">
-                best_metrics.json
-              </button>
-            </h2>
-            <div id="collapseBestMetrics" class="accordion-collapse collapse" aria-labelledby="headingBestMetrics" data-bs-parent="#metricsAccordion">
-              <div class="accordion-body">
-                <h5>Best Epochs</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Metric</th>
-                      <th>Epoch</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for key, val in metrics["best_metrics.json"].best_epochs.items() %}
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingBestMetrics">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBestMetrics" aria-expanded="false" aria-controls="collapseBestMetrics">
+                  best_metrics.json
+                </button>
+              </h2>
+              <div id="collapseBestMetrics" class="accordion-collapse collapse" aria-labelledby="headingBestMetrics" data-bs-parent="#metricsAccordion">
+                <div class="accordion-body">
+                  <h5>Best Epochs</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ key | default("N/A") }}</td>
-                        <td>{{ val | default("N/A") }}</td>
+                        <th>Metric</th>
+                        <th>Epoch</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-                <h5>Best Metrics Values</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Metric</th>
-                      <th>Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for key, val in metrics["best_metrics.json"].best_metrics.items() %}
+                    </thead>
+                    <tbody>
+                      {% for key, val in metrics["best_metrics.json"].best_epochs.items() %}
+                        <tr>
+                          <td>{{ key|default("N/A") }}</td>
+                          <td>{{ val|default("N/A") }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  <h5>Best Metrics Values</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ key | default("N/A") }}</td>
-                        <td>{{ val | default("N/A") }}</td>
+                        <th>Metric</th>
+                        <th>Value</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-                <h5>Other Metrics</h5>
-                <table class="table table-bordered table-sm">
-                  <tbody>
-                    <tr>
-                      <th>Inference Rate (images/sec)</th>
-                      <td>{{ metrics["best_metrics.json"].inference_rate_images_per_sec | default("N/A") }}</td>
-                    </tr>
-                    <tr>
-                      <th>Model Size (MB)</th>
-                      <td>{{ metrics["best_metrics.json"].model_size_MB | default("N/A") }}</td>
-                    </tr>
-                    <tr>
-                      <th>Training Time (formatted)</th>
-                      <td>{{ metrics["best_metrics.json"].training_time_formatted | default("N/A") }}</td>
-                    </tr>
-                    <tr>
-                      <th>Training Time (sec)</th>
-                      <td>{{ metrics["best_metrics.json"].training_time_sec | default("N/A") }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for key, val in metrics["best_metrics.json"].best_metrics.items() %}
+                        <tr>
+                          <td>{{ key|default("N/A") }}</td>
+                          <td>{{ safe_round(val) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  <h5>Other Metrics</h5>
+                  <table class="table table-bordered table-sm">
+                    <tbody>
+                      <tr>
+                        <th>Inference Rate (images/sec)</th>
+                        <td>{{ safe_round(metrics["best_metrics.json"].inference_rate_images_per_sec) }}</td>
+                      </tr>
+                      <tr>
+                        <th>Model Size (MB)</th>
+                        <td>{{ safe_round(metrics["best_metrics.json"].model_size_MB) }}</td>
+                      </tr>
+                      <tr>
+                        <th>Training Time (formatted)</th>
+                        <td>{{ metrics["best_metrics.json"].training_time_formatted|default("N/A") }}</td>
+                      </tr>
+                      <tr>
+                        <th>Training Time (sec)</th>
+                        <td>{{ safe_round(metrics["best_metrics.json"].training_time_sec) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
           {% endif %}
 
           {% if metrics["best_test_metrics.json"] is defined %}
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingBestTestMetrics">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBestTestMetrics" aria-expanded="false" aria-controls="collapseBestTestMetrics">
-                best_test_metrics.json
-              </button>
-            </h2>
-            <div id="collapseBestTestMetrics" class="accordion-collapse collapse" aria-labelledby="headingBestTestMetrics" data-bs-parent="#metricsAccordion">
-              <div class="accordion-body">
-                <h5>Best Epochs</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Metric</th>
-                      <th>Epoch</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for key, val in metrics["best_test_metrics.json"].best_epochs.items() %}
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingBestTestMetrics">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBestTestMetrics" aria-expanded="false" aria-controls="collapseBestTestMetrics">
+                  best_test_metrics.json
+                </button>
+              </h2>
+              <div id="collapseBestTestMetrics" class="accordion-collapse collapse" aria-labelledby="headingBestTestMetrics" data-bs-parent="#metricsAccordion">
+                <div class="accordion-body">
+                  <h5>Best Epochs</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ key | default("N/A") }}</td>
-                        <td>{{ val | default("N/A") }}</td>
+                        <th>Metric</th>
+                        <th>Epoch</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-                <h5>Best Metrics Values</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Metric</th>
-                      <th>Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for key, val in metrics["best_test_metrics.json"].best_metrics.items() %}
+                    </thead>
+                    <tbody>
+                      {% for key, val in metrics["best_test_metrics.json"].best_epochs.items() %}
+                        <tr>
+                          <td>{{ key|default("N/A") }}</td>
+                          <td>{{ val|default("N/A") }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  <h5>Best Metrics Values</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ key | default("N/A") }}</td>
-                        <td>{{ val | default("N/A") }}</td>
+                        <th>Metric</th>
+                        <th>Value</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-                <h5>Other Metrics</h5>
-                <table class="table table-bordered table-sm">
-                  <tbody>
-                    <tr>
-                      <th>Inference Rate (images/sec)</th>
-                      <td>{{ metrics["best_test_metrics.json"].inference_rate_images_per_sec | default("N/A") }}</td>
-                    </tr>
-                    <tr>
-                      <th>Model Size (MB)</th>
-                      <td>{{ metrics["best_test_metrics.json"].model_size_MB | default("N/A") }}</td>
-                    </tr>
-                    <tr>
-                      <th>Training Time (formatted)</th>
-                      <td>{{ metrics["best_test_metrics.json"].training_time_formatted | default("N/A") }}</td>
-                    </tr>
-                    <tr>
-                      <th>Training Time (sec)</th>
-                      <td>{{ metrics["best_test_metrics.json"].training_time_sec | default("N/A") }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for key, val in metrics["best_test_metrics.json"].best_metrics.items() %}
+                        <tr>
+                          <td>{{ key|default("N/A") }}</td>
+                          <td>{{ safe_round(val) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  <h5>Other Metrics</h5>
+                  <table class="table table-bordered table-sm">
+                    <tbody>
+                      <tr>
+                        <th>Inference Rate (images/sec)</th>
+                        <td>{{ safe_round(metrics["best_test_metrics.json"].inference_rate_images_per_sec) }}</td>
+                      </tr>
+                      <tr>
+                        <th>Model Size (MB)</th>
+                        <td>{{ safe_round(metrics["best_test_metrics.json"].model_size_MB) }}</td>
+                      </tr>
+                      <tr>
+                        <th>Training Time (formatted)</th>
+                        <td>{{ metrics["best_test_metrics.json"].training_time_formatted|default("N/A") }}</td>
+                      </tr>
+                      <tr>
+                        <th>Training Time (sec)</th>
+                        <td>{{ safe_round(metrics["best_test_metrics.json"].training_time_sec) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
           {% endif %}
 
           {% if metrics["test_per_class_metrics.json"] is defined %}
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingTestPerClass">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTestPerClass" aria-expanded="false" aria-controls="collapseTestPerClass">
-                test_per_class_metrics.json
-              </button>
-            </h2>
-            <div id="collapseTestPerClass" class="accordion-collapse collapse" aria-labelledby="headingTestPerClass" data-bs-parent="#metricsAccordion">
-              <div class="accordion-body">
-                <h5>Per Class Metrics (Test)</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Class</th>
-                      <th>Precision</th>
-                      <th>Recall</th>
-                      <th>F1</th>
-                      <th>F2</th>
-                      <th>Accuracy</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for label in metrics["test_per_class_metrics.json"].class_labels %}
-                      {% set i = loop.index0 %}
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingTestPerClass">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTestPerClass" aria-expanded="false" aria-controls="collapseTestPerClass">
+                  test_per_class_metrics.json{% if metrics["per_category_metrics.txt"] is defined %} (from per_category_metrics.txt){% endif %}
+                </button>
+              </h2>
+              <div id="collapseTestPerClass" class="accordion-collapse collapse" aria-labelledby="headingTestPerClass" data-bs-parent="#metricsAccordion">
+                <div class="accordion-body">
+                  <h5>Per Category Metrics (Test)</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ label | default("N/A") }}</td>
-                        <td>{{ metrics["test_per_class_metrics.json"].precision[i] | default("N/A") }}</td>
-                        <td>{{ metrics["test_per_class_metrics.json"].recall[i] | default("N/A") }}</td>
-                        <td>{{ metrics["test_per_class_metrics.json"].f1[i] | default("N/A") }}</td>
-                        <td>{{ metrics["test_per_class_metrics.json"].f2[i] | default("N/A") }}</td>
-                        <td>{{ metrics["test_per_class_metrics.json"].accuracy[i] | default("N/A") }}</td>
+                        <th>Category</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1</th>
+                        <th>F2</th>
+                        <th>Accuracy</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for label in metrics["test_per_class_metrics.json"].class_labels %}
+                        {% set i = loop.index0 %}
+                        <tr>
+                          <td>{{ label|default("N/A") }}</td>
+                          <td>{{ safe_round(metrics["test_per_class_metrics.json"].precision[i]) }}</td>
+                          <td>{{ safe_round(metrics["test_per_class_metrics.json"].recall[i]) }}</td>
+                          <td>{{ safe_round(metrics["test_per_class_metrics.json"].f1[i]) }}</td>
+                          <td>{{ safe_round(metrics["test_per_class_metrics.json"].f2[i]) }}</td>
+                          <td>{{ safe_round(metrics["test_per_class_metrics.json"].accuracy[i]) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
           {% endif %}
 
           {% if metrics["train_per_class_metrics.json"] is defined %}
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingTrainPerClass">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrainPerClass" aria-expanded="false" aria-controls="collapseTrainPerClass">
-                train_per_class_metrics.json
-              </button>
-            </h2>
-            <div id="collapseTrainPerClass" class="accordion-collapse collapse" aria-labelledby="headingTrainPerClass" data-bs-parent="#metricsAccordion">
-              <div class="accordion-body">
-                <h5>Per Class Metrics (Train)</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Class</th>
-                      <th>Precision</th>
-                      <th>Recall</th>
-                      <th>F1</th>
-                      <th>F2</th>
-                      <th>Accuracy</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for label in metrics["train_per_class_metrics.json"].class_labels %}
-                      {% set i = loop.index0 %}
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingTrainPerClass">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrainPerClass" aria-expanded="false" aria-controls="collapseTrainPerClass">
+                  train_per_class_metrics.json{% if metrics["per_category_metrics.txt"] is defined %} (from per_category_metrics.txt){% endif %}
+                </button>
+              </h2>
+              <div id="collapseTrainPerClass" class="accordion-collapse collapse" aria-labelledby="headingTrainPerClass" data-bs-parent="#metricsAccordion">
+                <div class="accordion-body">
+                  <h5>Per Category Metrics (Train)</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ label | default("N/A") }}</td>
-                        <td>{{ metrics["train_per_class_metrics.json"].precision[i] | default("N/A") }}</td>
-                        <td>{{ metrics["train_per_class_metrics.json"].recall[i] | default("N/A") }}</td>
-                        <td>{{ metrics["train_per_class_metrics.json"].f1[i] | default("N/A") }}</td>
-                        <td>{{ metrics["train_per_class_metrics.json"].f2[i] | default("N/A") }}</td>
-                        <td>{{ metrics["train_per_class_metrics.json"].accuracy[i] | default("N/A") }}</td>
+                        <th>Category</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1</th>
+                        <th>F2</th>
+                        <th>Accuracy</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for label in metrics["train_per_class_metrics.json"].class_labels %}
+                        {% set i = loop.index0 %}
+                        <tr>
+                          <td>{{ label|default("N/A") }}</td>
+                          <td>{{ safe_round(metrics["train_per_class_metrics.json"].precision[i]) }}</td>
+                          <td>{{ safe_round(metrics["train_per_class_metrics.json"].recall[i]) }}</td>
+                          <td>{{ safe_round(metrics["train_per_class_metrics.json"].f1[i]) }}</td>
+                          <td>{{ safe_round(metrics["train_per_class_metrics.json"].f2[i]) }}</td>
+                          <td>{{ safe_round(metrics["train_per_class_metrics.json"].accuracy[i]) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
           {% endif %}
 
           {% if metrics["val_per_class_metrics.json"] is defined %}
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingValPerClass">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseValPerClass" aria-expanded="false" aria-controls="collapseValPerClass">
-                val_per_class_metrics.json
-              </button>
-            </h2>
-            <div id="collapseValPerClass" class="accordion-collapse collapse" aria-labelledby="headingValPerClass" data-bs-parent="#metricsAccordion">
-              <div class="accordion-body">
-                <h5>Per Class Metrics (Validation)</h5>
-                <table class="table table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Class</th>
-                      <th>Precision</th>
-                      <th>Recall</th>
-                      <th>F1</th>
-                      <th>F2</th>
-                      <th>Accuracy</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for label in metrics["val_per_class_metrics.json"].class_labels %}
-                      {% set i = loop.index0 %}
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingValPerClass">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseValPerClass" aria-expanded="false" aria-controls="collapseValPerClass">
+                  val_per_class_metrics.json{% if metrics["per_category_metrics.txt"] is defined %} (from per_category_metrics.txt){% endif %}
+                </button>
+              </h2>
+              <div id="collapseValPerClass" class="accordion-collapse collapse" aria-labelledby="headingValPerClass" data-bs-parent="#metricsAccordion">
+                <div class="accordion-body">
+                  <h5>Per Category Metrics (Validation)</h5>
+                  <table class="table table-bordered table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ label | default("N/A") }}</td>
-                        <td>{{ metrics["val_per_class_metrics.json"].precision[i] | default("N/A") }}</td>
-                        <td>{{ metrics["val_per_class_metrics.json"].recall[i] | default("N/A") }}</td>
-                        <td>{{ metrics["val_per_class_metrics.json"].f1[i] | default("N/A") }}</td>
-                        <td>{{ metrics["val_per_class_metrics.json"].f2[i] | default("N/A") }}</td>
-                        <td>{{ metrics["val_per_class_metrics.json"].accuracy[i] | default("N/A") }}</td>
+                        <th>Category</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1</th>
+                        <th>F2</th>
+                        <th>Accuracy</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for label in metrics["val_per_class_metrics.json"].class_labels %}
+                        {% set i = loop.index0 %}
+                        <tr>
+                          <td>{{ label|default("N/A") }}</td>
+                          <td>{{ safe_round(metrics["val_per_class_metrics.json"].precision[i]) }}</td>
+                          <td>{{ safe_round(metrics["val_per_class_metrics.json"].recall[i]) }}</td>
+                          <td>{{ safe_round(metrics["val_per_class_metrics.json"].f1[i]) }}</td>
+                          <td>{{ safe_round(metrics["val_per_class_metrics.json"].f2[i]) }}</td>
+                          <td>{{ safe_round(metrics["val_per_class_metrics.json"].accuracy[i]) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
           {% endif %}
         </div>
       {% else %}
@@ -532,27 +593,27 @@
       {% endif %}
 
       {% if architecture_content %}
-      <div class="mt-4">
-        <div class="card mb-4">
-          <div class="card-header">
-            <strong>Model Architecture</strong>
-          </div>
-          <div class="card-body">
-            <pre class="small" style="line-height: 1.2em; white-space: pre-wrap; margin-bottom: 0; background-color: var(--secondary); border: 1px solid var(--secondary-light); color: var(--text-color);">{{ architecture_content }}</pre>
+        <div class="mt-4">
+          <div class="card mb-4">
+            <div class="card-header">
+              <strong>Model Architecture</strong>
+            </div>
+            <div class="card-body">
+              <pre class="small" style="line-height: 1.2em; white-space: pre-wrap; margin-bottom: 0; background-color: var(--secondary); border: 1px solid var(--secondary-light); color: var(--text-color);">{{ architecture_content }}</pre>
+            </div>
           </div>
         </div>
-      </div>
       {% endif %}
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% if metrics["test_per_class_metrics.json"] is defined or metrics["val_per_class_metrics.json"] is defined %}
+{% if metrics["val_per_class_metrics.json"] is defined %}
   {# Set the per_class_metrics variable: use test metrics if available, otherwise use validation metrics #}
-  {% set per_class_metrics = metrics["test_per_class_metrics.json"] if metrics["test_per_class_metrics.json"] is defined else metrics["val_per_class_metrics.json"] %}
+  {% set per_class_metrics = metrics["val_per_class_metrics.json"] %}
   <script type="application/json" id="valMetricsData">
-    {{ per_class_metrics | tojson }}
+    {{ per_class_metrics|tojson }}
   </script>
   <script>
     // Parse the JSON data from the script tag

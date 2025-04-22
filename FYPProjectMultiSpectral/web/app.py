@@ -682,7 +682,7 @@ def detailed_inference():
             else:
                 tb_graphs = []
             
-            # Also load best_metrics.json contents into experiments_data
+            # Load best_metrics.json contents into experiments_data
             best_metrics = None
             bm_path = os.path.join(results_path, "best_metrics.json")
             if os.path.exists(bm_path):
@@ -692,14 +692,48 @@ def detailed_inference():
                 except Exception as e:
                     best_metrics = {"error": str(e)}
             
-            # Load per-class metrics (for each experiment individually)
+            # Load per-class metrics, preferring per_category_metrics.txt
             per_class = None
-            for json_file in ["test_per_class_metrics.json", "val_per_class_metrics.json"]:
-                json_path = os.path.join(EXPERIMENTS_DIR, exp, "results", json_file)
-                if os.path.exists(json_path):
-                    with open(json_path, 'r') as f:
-                        per_class = json.load(f)
-                    break  # Use test metrics if available otherwise fall back to validation
+            per_class_path = os.path.join(results_path, "per_category_metrics.txt")
+            if os.path.exists(per_class_path):
+                try:
+                    with open(per_class_path, 'r') as f:
+                        lines = f.readlines()
+                    per_class_data = {
+                        'class_labels': [],
+                        'precision': [],
+                        'recall': [],
+                        'f1': [],
+                        'f2': [],
+                        'accuracy': []
+                    }
+                    current_category = None
+                    for line in lines:
+                        line = line.strip()
+                        if line.startswith("Category:"):
+                            current_category = line.replace("Category:", "").strip()
+                            per_class_data['class_labels'].append(current_category)
+                        elif line.startswith("precision:"):
+                            per_class_data['precision'].append(float(line.split(":")[1].strip()))
+                        elif line.startswith("recall:"):
+                            per_class_data['recall'].append(float(line.split(":")[1].strip()))
+                        elif line.startswith("f1:"):
+                            per_class_data['f1'].append(float(line.split(":")[1].strip()))
+                        elif line.startswith("f2:"):
+                            per_class_data['f2'].append(float(line.split(":")[1].strip()))
+                        elif line.startswith("accuracy:"):
+                            per_class_data['accuracy'].append(float(line.split(":")[1].strip()))
+                    per_class = per_class_data
+                except Exception as e:
+                    per_class = {"error": str(e)}
+            else:
+                # Fallback to JSON files
+                for json_file in ["test_per_class_metrics.json", "val_per_class_metrics.json"]:
+                    json_path = os.path.join(EXPERIMENTS_DIR, exp, "results", json_file)
+                    if os.path.exists(json_path):
+                        with open(json_path, 'r') as f:
+                            per_class = json.load(f)
+                        break  # Use test metrics if available, otherwise fall back to validation
             
             # Load aggregated metrics
             aggregated_metrics = None
@@ -710,7 +744,7 @@ def detailed_inference():
                     with open(agg_path, 'r') as f:
                         for line in f:
                             line = line.strip()
-                            if line and not line.lower().startswith("aggregated metrics"): # Skip empty lines or header lines
+                            if line and not line.lower().startswith("aggregated metrics"):
                                 if ":" in line:
                                     key, value = line.split(":", 1)
                                     aggregated_data[key.strip()] = value.strip()

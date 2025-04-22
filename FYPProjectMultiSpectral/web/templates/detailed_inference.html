@@ -15,134 +15,131 @@
 <div class="container mt-4">
   <h1 class="mb-4">Detailed Model Comparison</h1>
 
-<!-- Performance Summary Comparison Table -->
-<div class="card mb-4">
-  <div class="card-header">
-    <h2>Performance Summary Comparison</h2>
-    <p>Comparing experiments:</p>
-    <ul class="list-inline">
-      {% for exp in selected_experiments %}
-        <li class="list-inline-item">
-          <span class="badge {{ exp_colour_map[exp] }} text-break" 
-                style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
-            {{ exp }}
-          </span>
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive mb-4">
-      <table class="table table-bordered table-sm">
-        <thead>
-          <tr>
-            <th>Metric</th>
-            {% for exp in selected_experiments %}
-              <th class="text-break" style="overflow-wrap: anywhere; white-space: normal;">
-                {{ exp }}
-              </th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {# Define metrics to display, matching experiment_detail.html with added Accuracy and Loss #}
-          {% set metrics_list = [
-            {'name': 'Accuracy', 'key': 'test_acc', 'source': 'testing_comparison_data', 'minimize': False},
-            {'name': 'Loss', 'key': 'test_loss', 'source': 'testing_comparison_data', 'minimize': True},
-            {'name': 'Precision', 'key': 'precision_micro', 'source': 'aggregated_metrics', 'minimize': False},
-            {'name': 'Recall', 'key': 'recall_micro', 'source': 'aggregated_metrics', 'minimize': False},
-            {'name': 'F1 Score', 'key': 'f1_micro', 'source': 'aggregated_metrics', 'minimize': False},
-            {'name': 'F2 Score', 'key': 'f2_micro', 'source': 'aggregated_metrics', 'minimize': False},
-            {'name': 'Avg Precision', 'key': 'test_avg_precision', 'source': 'testing_comparison_data', 'minimize': False},
-            {'name': 'Hamming Loss', 'key': 'hamming_loss', 'source': 'aggregated_metrics', 'minimize': True},
-            {'name': 'One Error', 'key': 'test_one_error', 'source': 'testing_comparison_data', 'minimize': True},
-            {'name': 'Inference Time (imgs/s)', 'key': 'inference_rate_images_per_sec', 'source': 'best_metrics', 'minimize': False},
-            {'name': 'Training Time (hr/min)', 'key': 'training_time_formatted', 'compare_key': 'training_time_sec', 'source': 'best_metrics', 'minimize': True, 'no_round': True},
-            {'name': 'Model Size (MB)', 'key': 'model_size_MB', 'source': 'best_metrics', 'minimize': True}
-          ] %}
-          {% for metric in metrics_list %}
-            {# Determine the best experiment for this metric #}
-            {% set ns = namespace(best_exp=None, best_value=None) %}
-            {% for exp in selected_experiments %}
-              {% set source = metric.source %}
-              {% set key = metric.key %}
-              {% set compare_key = metric.compare_key|default(key) %}
-              {% set value = 'N/A' %}
-              {% set compare_value = 'N/A' %}
-              {# Handle different sources #}
-              {% if source == 'aggregated_metrics' %}
-                {% set value = experiments_data[exp].aggregated_metrics.get(key, 'N/A') if experiments_data[exp].aggregated_metrics %}
-                {% set compare_value = value %}
-              {% elif source == 'best_metrics' %}
-                {% set value = experiments_data[exp].best_metrics.get(key, 'N/A') if experiments_data[exp].best_metrics %}
-                {% set compare_value = experiments_data[exp].best_metrics.get(compare_key, 'N/A') if experiments_data[exp].best_metrics %}
-              {% elif source == 'testing_comparison_data' %}
-                {% set value = testing_comparison_data.get(key, {}).get(exp, 'N/A') %}
-                {% set compare_value = value %}
-              {% endif %}
-              {% if compare_value != 'N/A' and compare_value is not none %}
-                {% set current = compare_value|float if compare_value is string and compare_value|float is number else compare_value %}
-                {% if ns.best_value is none %}
-                  {% set ns.best_value = current %}
-                  {% set ns.best_exp = exp %}
-                {% else %}
-                  {% if metric.minimize %}
-                    {% if current is number and current < ns.best_value %}
-                      {% set ns.best_value = current %}
-                      {% set ns.best_exp = exp %}
-                    {% endif %}
-                  {% else %}
-                    {% if current is number and current > ns.best_value %}
-                      {% set ns.best_value = current %}
-                      {% set ns.best_exp = exp %}
-                    {% endif %}
-                  {% endif %}
-                {% endif %}
-              {% endif %}
-            {% endfor %}
+  <!-- Performance Summary Comparison Table -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2>Performance Summary Comparison</h2>
+      <p>Comparing experiments:</p>
+      <ul class="list-inline">
+        {% for exp in selected_experiments %}
+          <li class="list-inline-item">
+            <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                  style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+              {{ exp }}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered table-sm">
+          <thead>
             <tr>
-              <td>{{ metric.name }}</td>
+              <th>Metric</th>
+              {% for exp in selected_experiments %}
+                <th class="text-break" style="overflow-wrap: anywhere; white-space: normal;">
+                  {{ exp }}
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% set metrics_list = [
+              {'name': 'Accuracy', 'key': 'test_acc', 'source': 'testing_comparison_data', 'minimize': False},
+              {'name': 'Loss', 'key': 'test_loss', 'source': 'testing_comparison_data', 'minimize': True},
+              {'name': 'Precision', 'key': 'precision_micro', 'source': 'aggregated_metrics', 'minimize': False},
+              {'name': 'Recall', 'key': 'recall_micro', 'source': 'aggregated_metrics', 'minimize': False},
+              {'name': 'F1 Score', 'key': 'f1_micro', 'source': 'aggregated_metrics', 'minimize': False},
+              {'name': 'F2 Score', 'key': 'f2_micro', 'source': 'aggregated_metrics', 'minimize': False},
+              {'name': 'Avg Precision', 'key': 'test_avg_precision', 'source': 'testing_comparison_data', 'minimize': False},
+              {'name': 'Hamming Loss', 'key': 'hamming_loss', 'source': 'aggregated_metrics', 'minimize': True},
+              {'name': 'One Error', 'key': 'test_one_error', 'source': 'testing_comparison_data', 'minimize': True},
+              {'name': 'Inference Time (imgs/s)', 'key': 'inference_rate_images_per_sec', 'source': 'best_metrics', 'minimize': False},
+              {'name': 'Training Time (hr/min)', 'key': 'training_time_formatted', 'compare_key': 'training_time_sec', 'source': 'best_metrics', 'minimize': True, 'no_round': True},
+              {'name': 'Model Size (MB)', 'key': 'model_size_MB', 'source': 'best_metrics', 'minimize': True}
+            ] %}
+            {% for metric in metrics_list %}
+              {% set ns = namespace(best_exp=None, best_value=None) %}
               {% for exp in selected_experiments %}
                 {% set source = metric.source %}
                 {% set key = metric.key %}
+                {% set compare_key = metric.compare_key|default(key) %}
                 {% set value = 'N/A' %}
+                {% set compare_value = 'N/A' %}
                 {% if source == 'aggregated_metrics' %}
                   {% set value = experiments_data[exp].aggregated_metrics.get(key, 'N/A') if experiments_data[exp].aggregated_metrics %}
+                  {% set compare_value = value %}
                 {% elif source == 'best_metrics' %}
                   {% set value = experiments_data[exp].best_metrics.get(key, 'N/A') if experiments_data[exp].best_metrics %}
+                  {% set compare_value = experiments_data[exp].best_metrics.get(compare_key, 'N/A') if experiments_data[exp].best_metrics %}
                 {% elif source == 'testing_comparison_data' %}
                   {% set value = testing_comparison_data.get(key, {}).get(exp, 'N/A') %}
+                  {% set compare_value = value %}
                 {% endif %}
-                <td>
-                  {% if value != 'N/A' and value is not none %}
-                    {% if exp == ns.best_exp %}
-                      <span class="badge {{ exp_colour_map[exp] }} text-break" 
-                            style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                {% if compare_value != 'N/A' and compare_value is not none %}
+                  {% set current = compare_value|float if compare_value is string and compare_value|float is number else compare_value %}
+                  {% if ns.best_value is none %}
+                    {% set ns.best_value = current %}
+                    {% set ns.best_exp = exp %}
+                  {% else %}
+                    {% if metric.minimize %}
+                      {% if current is number and current < ns.best_value %}
+                        {% set ns.best_value = current %}
+                        {% set ns.best_exp = exp %}
+                      {% endif %}
+                    {% else %}
+                      {% if current is number and current > ns.best_value %}
+                        {% set ns.best_value = current %}
+                        {% set ns.best_exp = exp %}
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+              <tr>
+                <td>{{ metric.name }}</td>
+                {% for exp in selected_experiments %}
+                  {% set source = metric.source %}
+                  {% set key = metric.key %}
+                  {% set value = 'N/A' %}
+                  {% if source == 'aggregated_metrics' %}
+                    {% set value = experiments_data[exp].aggregated_metrics.get(key, 'N/A') if experiments_data[exp].aggregated_metrics %}
+                  {% elif source == 'best_metrics' %}
+                    {% set value = experiments_data[exp].best_metrics.get(key, 'N/A') if experiments_data[exp].best_metrics %}
+                  {% elif source == 'testing_comparison_data' %}
+                    {% set value = testing_comparison_data.get(key, {}).get(exp, 'N/A') %}
+                  {% endif %}
+                  <td>
+                    {% if value != 'N/A' and value is not none %}
+                      {% if exp == ns.best_exp %}
+                        <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                              style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                          {% if metric.no_round|default(False) %}
+                            {{ value }}
+                          {% else %}
+                            {{ safe_round(value) }}
+                          {% endif %}
+                        </span>
+                      {% else %}
                         {% if metric.no_round|default(False) %}
                           {{ value }}
                         {% else %}
                           {{ safe_round(value) }}
                         {% endif %}
-                      </span>
-                    {% else %}
-                      {% if metric.no_round|default(False) %}
-                        {{ value }}
-                      {% else %}
-                        {{ safe_round(value) }}
                       {% endif %}
+                    {% else %}
+                      N/A
                     {% endif %}
-                  {% else %}
-                    N/A
-                  {% endif %}
-                </td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
   <!-- Per Class Metrics Comparison -->
   {% if experiments_data[selected_experiments[0]].per_class_metrics %}
@@ -151,33 +148,153 @@
       <strong>Per Class Metrics Comparison</strong>
     </div>
     <div class="card-body">
-      <table class="table table-bordered table-striped">
-        <thead>
-          <tr>
-            <th>Class</th>
-            {% for exp in selected_experiments %}
-              <th>{{ exp }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for i in range(experiments_data[selected_experiments[0]].per_class_metrics.class_labels|length) %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+          <thead>
             <tr>
-              <td>{{ experiments_data[selected_experiments[0]].per_class_metrics.class_labels[i] }}</td>
+              <th>Class</th>
               {% for exp in selected_experiments %}
-                {% set per_class = experiments_data[exp].per_class_metrics %}
-                <td>
-                  Precision: {{ per_class.precision[i] | float | round(3) }}<br>
-                  Recall: {{ per_class.recall[i] | float | round(3) }}<br>
-                  F1: {{ per_class.f1[i] | float | round(3) }}<br>
-                  F2: {{ per_class.f2[i] | float | round(3) }}<br>
-                  Accuracy: {{ per_class.accuracy[i] | float | round(3) }}
-                </td>
+                <th>{{ exp }}</th>
               {% endfor %}
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% set class_labels = experiments_data[selected_experiments[0]].per_class_metrics.class_labels %}
+            {% for i in range(class_labels|length) %}
+              {% set ns_precision = namespace(best_exp=None, best_value=None) %}
+              {% set ns_recall = namespace(best_exp=None, best_value=None) %}
+              {% set ns_f1 = namespace(best_exp=None, best_value=None) %}
+              {% set ns_f2 = namespace(best_exp=None, best_value=None) %}
+              {% set ns_accuracy = namespace(best_exp=None, best_value=None) %}
+              {% for exp in selected_experiments %}
+                {% set per_class = experiments_data[exp].per_class_metrics %}
+                {% set precision = per_class.precision[i] %}
+                {% set recall = per_class.recall[i] %}
+                {% set f1 = per_class.f1[i] %}
+                {% set f2 = per_class.f2[i] %}
+                {% set accuracy = per_class.accuracy[i] %}
+                {# Update best precision #}
+                {% if precision is not none and precision != 'N/A' %}
+                  {% set precision_float = precision|float %}
+                  {% if ns_precision.best_value is none or precision_float > ns_precision.best_value %}
+                    {% set ns_precision.best_value = precision_float %}
+                    {% set ns_precision.best_exp = exp %}
+                  {% endif %}
+                {% endif %}
+                {# Update best recall #}
+                {% if recall is not none and recall != 'N/A' %}
+                  {% set recall_float = recall|float %}
+                  {% if ns_recall.best_value is none or recall_float > ns_recall.best_value %}
+                    {% set ns_recall.best_value = recall_float %}
+                    {% set ns_recall.best_exp = exp %}
+                  {% endif %}
+                {% endif %}
+                {# Update best f1 #}
+                {% if f1 is not none and f1 != 'N/A' %}
+                  {% set f1_float = f1|float %}
+                  {% if ns_f1.best_value is none or f1_float > ns_f1.best_value %}
+                    {% set ns_f1.best_value = f1_float %}
+                    {% set ns_f1.best_exp = exp %}
+                  {% endif %}
+                {% endif %}
+                {# Update best f2 #}
+                {% if f2 is not none and f2 != 'N/A' %}
+                  {% set f2_float = f2|float %}
+                  {% if ns_f2.best_value is none or f2_float > ns_f2.best_value %}
+                    {% set ns_f2.best_value = f2_float %}
+                    {% set ns_f2.best_exp = exp %}
+                  {% endif %}
+                {% endif %}
+                {# Update best accuracy #}
+                {% if accuracy is not none and accuracy != 'N/A' %}
+                  {% set accuracy_float = accuracy|float %}
+                  {% if ns_accuracy.best_value is none or accuracy_float > ns_accuracy.best_value %}
+                    {% set ns_accuracy.best_value = accuracy_float %}
+                    {% set ns_accuracy.best_exp = exp %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+              <tr>
+                <td>{{ class_labels[i] }}</td>
+                {% for exp in selected_experiments %}
+                  {% set per_class = experiments_data[exp].per_class_metrics %}
+                  <td>
+                    Precision: 
+                    {% if per_class.precision[i] is not none and per_class.precision[i] != 'N/A' %}
+                      {% if exp == ns_precision.best_exp %}
+                        <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                              style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                          {{ safe_round(per_class.precision[i]) }}
+                        </span>
+                      {% else %}
+                        {{ safe_round(per_class.precision[i]) }}
+                      {% endif %}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                    <br>
+                    Recall: 
+                    {% if per_class.recall[i] is not none and per_class.recall[i] != 'N/A' %}
+                      {% if exp == ns_recall.best_exp %}
+                        <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                              style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                          {{ safe_round(per_class.recall[i]) }}
+                        </span>
+                      {% else %}
+                        {{ safe_round(per_class.recall[i]) }}
+                      {% endif %}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                    <br>
+                    F1: 
+                    {% if per_class.f1[i] is not none and per_class.f1[i] != 'N/A' %}
+                      {% if exp == ns_f1.best_exp %}
+                        <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                              style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                          {{ safe_round(per_class.f1[i]) }}
+                        </span>
+                      {% else %}
+                        {{ safe_round(per_class.f1[i]) }}
+                      {% endif %}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                    <br>
+                    F2: 
+                    {% if per_class.f2[i] is not none and per_class.f2[i] != 'N/A' %}
+                      {% if exp == ns_f2.best_exp %}
+                        <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                              style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                          {{ safe_round(per_class.f2[i]) }}
+                        </span>
+                      {% else %}
+                        {{ safe_round(per_class.f2[i]) }}
+                      {% endif %}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                    <br>
+                    Accuracy: 
+                    {% if per_class.accuracy[i] is not none and per_class.accuracy[i] != 'N/A' %}
+                      {% if exp == ns_accuracy.best_exp %}
+                        <span class="badge {{ exp_colour_map[exp] }} text-break" 
+                              style="font-size: 0.8rem; overflow-wrap: anywhere; white-space: normal;">
+                          {{ safe_round(per_class.accuracy[i]) }}
+                        </span>
+                      {% else %}
+                        {{ safe_round(per_class.accuracy[i]) }}
+                      {% endif %}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -204,7 +321,6 @@
       <h2>Detailed Experiment Information</h2>
     </div>
     <div class="card-body">
-      {# Wrap the experiment cards in a horizontally scrollable container #}
       <div style="overflow-x: auto;">
         <div class="d-flex">
           {% for exp in selected_experiments %}

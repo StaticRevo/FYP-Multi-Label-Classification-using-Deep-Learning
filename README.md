@@ -53,8 +53,6 @@ The Script will:
 - **Extract** All Necessary Files
 - **Clean and Organise** the Dataset
 
-<img src="https://github.com/user-attachments/assets/9c2a6e58-65b2-41df-9ab6-8fbd3b494d52" width="200" alt="Dataset Script">
-
 ## Configuration Setup
 Before running either the command-line interface (main.py) or the web application (app.py), you must update the configuration paths in FYPProjectMultiSpectral/config/config.py. This file contains critical settings such as:
 - **Experiment paths:** Where model outputs and logs will be stored.

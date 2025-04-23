@@ -193,11 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
             gradcamHtml += `
                     </div>
                     <h5 class="fw-bold">Color-Coded Grad-CAM</h5>
-                    <img src="${data.gradcam_colorcoded_.combined.url}" alt="Color-Coded Grad-CAM" class="img-fluid rounded mb-2" style="width: 300px;">
+                    <img src="${data.gradcam_colourcoded_.combined.url}" alt="Color-Coded Grad-CAM" class="img-fluid rounded mb-2" style="width: 300px;">
                     <div class="legend-title">Legend</div>
                     <div class="legend-container">`;
             
-            for (let [category, color] of Object.entries(data.gradcam_colorcoded_.combined.legend)) {
+            for (let [category, color] of Object.entries(data.gradcam_colourcoded_.combined.legend)) {
                 gradcamHtml += `
                     <div class="legend-item">
                         <div class="legend-color-box" style="background-color: ${color};"></div>

@@ -159,14 +159,14 @@ def test_page():
         # Set in_channels and bands based on the band combination string
         in_channels, bands = get_channels_and_bands(selected_bands)
 
-        # Get dataset-related parameters using the dataset percentage from the experiment name.
+        # Get dataset-related parameters using the dataset percentage from the experiment name
         num = str(extract_number(selected_dataset))
         dataset_dir = DatasetConfig.dataset_paths[num]
         metadata_path = DatasetConfig.metadata_paths[num]
         metadata_csv = pd.read_csv(metadata_path)
         class_weights = calculate_class_weights(metadata_csv)
 
-        # Build command for tester.py.
+        # Build command for tester.py
         tester_script = os.path.join(parent_dir, "tester.py")
         cmd = [
             "python", tester_script,
@@ -203,7 +203,7 @@ def test_page():
 @app.route('/logs_test')
 def logs_test():
     global _cached_testing_log, _last_testing_log_time
-    main_path = session.get('main_path')  # Retrieve the main experiment path from the session.
+    main_path = session.get('main_path')  # Retrieve the main experiment path from the session
     if not main_path:
         return "No testing run information found in session."
 
@@ -234,12 +234,12 @@ def predict_page():
             flash("No file selected.", "error")
             return redirect(request.url)
         
-        # Parse experiment details.
+        # Parse experiment details
         experiment_details = parse_experiment_folder(selected_experiment)
         model_name = experiment_details["model"]
         selected_bands_str = experiment_details["bands"]
         
-        # Determine in_channels and the default bands list based on the experiment.
+        # Determine in_channels and the default bands list based on the experiment
         in_channels, default_bands = get_channels_and_bands(selected_bands_str)
         
         # Single image prediction branch
@@ -1231,6 +1231,6 @@ def predict_from_map():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5001, debug=True)
+    app.run(host='127.0.0.1', port=5000, debug=True)
 
 

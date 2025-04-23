@@ -15,9 +15,7 @@ from config.config import DatasetConfig, calculate_class_weights
 def convert_onnx_to_tf(onnx_model_path, tf_model_path):
     # Load ONNX model
     onnx_model = onnx.load(onnx_model_path)
-
-    # Convert ONNX model to TensorFlow format
-    tf_rep = prepare(onnx_model)
+    tf_rep = prepare(onnx_model) # Convert ONNX model to TensorFlow forma
     tf_rep.export_graph(tf_model_path)
 
     print(f"Model successfully converted to TensorFlow format at: {tf_model_path}")
@@ -73,15 +71,11 @@ def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
 
     print(f"Model successfully converted to ONNX and saved at: {onnx_path}")
 
-
-# Example usage
 if __name__ == "__main__":
-    # Example for ONNX to TensorFlow conversion
     onnx_model_path = r"C:\Users\isaac\Desktop\Experiment Folders\converted_model.onnx"
     tf_model_path = r"C:\Users\isaac\Desktop\Experiment Folders\tf_model"
     convert_onnx_to_tf(onnx_model_path, tf_model_path)
 
-    # Example for PyTorch checkpoint to `.pth` and ONNX conversion
     checkpoint_path = r"C:\Users\isaac\Desktop\experiments\CustomWRNB0_None_all_bands_0.5%_BigEarthNet_100epochs\checkpoints\last.ckpt"
     save_dir = r"C:\Users\isaac\Desktop\Experiment Folders"
     convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir)

@@ -38,7 +38,7 @@ dot.node('Pool', 'AdaptiveAvgPool2d\n[B, 152, 1, 1]', fillcolor='#cce5ff')
 dot.node('Flatten', 'Flatten\n[B, 152]', fillcolor='#cce5ff')
 dot.node('FC', 'Fully Connected\n152 -> 19\n[B, 19]', fillcolor='#cce5ff')
 
-# Edges for main structure (straight lines)
+# Edges for main structure 
 dot.edges([
     ('Input', 'Conv1'),
     ('Conv1', 'Layer1'),
@@ -118,17 +118,16 @@ with dot.subgraph(name='cluster_ECA') as eca:
 # Render and save the diagram
 dot.render('Custom_WideResNetB4_ECA_Model', view=True)
 
-
-# Initialize the diagram with global settings
+# Initialize the diagram 
 dot = Digraph(
     comment='Custom WideResNetB0 Model',
     format='png',
     graph_attr={
         'rankdir': 'TB',
-        'splines': 'false',  # Straight lines globally
+        'splines': 'false', 
         'bgcolor': '#f0f0f0',
         'pad': '0.5',
-        'label': 'Custom WideResNetB0 Architecture',  # Updated title
+        'label': 'Custom WideResNetB0 Architecture', 
         'labelloc': 't',
         'fontsize': '18',
         'fontcolor': '#333333',
@@ -146,7 +145,7 @@ dot = Digraph(
     }
 )
 
-# Main model structure (updated for CustomWRNB0)
+# Main model structure 
 dot.node('Input', 'Input\n[B, 12, 120, 120]', fillcolor='#cce5ff')
 dot.node('Conv1', 'Conv1 (3x3, 32 filters)\nBatchNorm2d\nReLU\n[B, 32, 120, 120]', fillcolor='#cce5ff')
 dot.node('Layer1', 'Layer1\n1 WideBasicBlockECA\n32 filters, stride=1\n[B, 32, 120, 120]', fillcolor='#b3d9ff')  # 1 block
@@ -156,7 +155,7 @@ dot.node('Pool', 'AdaptiveAvgPool2d\n[B, 126, 1, 1]', fillcolor='#cce5ff')
 dot.node('Flatten', 'Flatten\n[B, 126]', fillcolor='#cce5ff')
 dot.node('FC', 'Fully Connected\n126 -> 19\n[B, 19]', fillcolor='#cce5ff')
 
-# Edges for main structure (straight lines)
+# Edges for main structure 
 dot.edges([
     ('Input', 'Conv1'),
     ('Conv1', 'Layer1'),
@@ -167,7 +166,7 @@ dot.edges([
     ('Flatten', 'FC')
 ])
 
-# WideBasicBlockECA subgraph (unchanged)
+# WideBasicBlockECA subgraph 
 with dot.subgraph(name='cluster_WideBlock') as wb:
     wb.attr(
         label='WideBasicBlockECA',
@@ -186,7 +185,7 @@ with dot.subgraph(name='cluster_WideBlock') as wb:
     wb.node('WB_Add', '+', shape='circle', fillcolor='#ffcccc', width='0.7')
     wb.node('WB_ReLU', 'ReLU\n[B, out_channels, H\', W\']', fillcolor='#ccffcc')
     
-    # Define edges (straight lines)
+    # Define edges 
     wb.edges([
         ('WB_Input', 'WB_Conv1'),
         ('WB_Conv1', 'WB_Conv2'),
@@ -199,7 +198,7 @@ with dot.subgraph(name='cluster_WideBlock') as wb:
     wb.edge('WB_Input', 'WB_Skip_Dummy', style='dashed', color='#ff3333', penwidth='2')
     wb.edge('WB_Skip_Dummy', 'WB_Skip', style='dashed', color='#ff3333', penwidth='2', label='Skip Connection')
 
-# ECA subgraph (unchanged)
+# ECA subgraph
 with dot.subgraph(name='cluster_ECA') as eca:
     eca.attr(
         label='ECA Module',
@@ -236,14 +235,13 @@ with dot.subgraph(name='cluster_ECA') as eca:
 # Render and save the diagram
 dot.render('CustomWRNB0_Diagram', view=True)
 
-
-# Initialize the diagram with global settings
+# Initialize the diagram
 dot = Digraph(
     comment='CustomModel Architecture',
     format='png',
     graph_attr={
         'rankdir': 'TB',
-        'splines': 'false',  # Straight lines globally
+        'splines': 'false',  
         'bgcolor': '#f0f0f0',
         'pad': '0.5',
         'label': 'CustomModel Architecture',
@@ -275,7 +273,7 @@ dot.node('Fusion', '+', shape='circle', fillcolor='#ffcccc', width='0.7')
 dot.node('Block4', 'Block 4\nMultiScaleBlock(176->176)\nBatchNorm2d\nWideBottleneck(176->240)\nCBAM\nDropout\n[B, 240, 15, 15]', fillcolor='#b3d9ff')
 dot.node('Classifier', 'Classifier\nConv2d(240->120, 1x1)\nGELU\nAdaptiveAvgPool2d(1)\nFlatten\nDropout\nLinear(120->19)\n[B, 19]', fillcolor='#cce5ff')
 
-# Edges for main structure (straight lines)
+# Edges for main structure 
 dot.edges([
     ('Input', 'SpectralMixer'),
     ('SpectralMixer', 'Block1'),
@@ -486,13 +484,13 @@ with dot.subgraph(name='cluster_CBAM') as cbam:
 # Render and save the diagram
 dot.render('CustomModel_Diagram', view=True)
 
-# Initialize the diagram with global settings
+# Initialize the diagram 
 dot = Digraph(
     comment='CustomModel Architecture',
     format='png',
     graph_attr={
         'rankdir': 'TB',
-        'splines': 'false',  # Straight lines globally
+        'splines': 'false', 
         'bgcolor': '#f0f0f0',
         'pad': '0.5',
         'label': 'CustomModel Architecture (~949K Parameters)',
@@ -527,12 +525,12 @@ dot.node('SkipAdapterDeep', 'Skip Adapter Deep\nConv2d(168->232, 1x1)\n[B, 232, 
 dot.node('Fusion2', 'Parameter-Free Fusion\nSigmoid Masks\nWeighted Sum\n[B, 232, 15, 15]', shape='box', fillcolor='#ffcccc')
 dot.node('Classifier', 'Classifier\nConv2d(232->128, 1x1)\nGELU\nAdaptiveAvgPool2d(1)\nFlatten\nDropout\nLinear(128->19)\n[B, 19]', fillcolor='#cce5ff')
 
-# Dummy nodes for skip connection paths (to create dashed lines)
+# Dummy nodes for skip connection paths 
 dot.node('Dummy1', '', shape='point', width='0.01', style='invisible')
 dot.node('Dummy2', '', shape='point', width='0.01', style='invisible')
 dot.node('Dummy3', '', shape='point', width='0.01', style='invisible')
 
-# Edges for main structure (straight lines for main path)
+# Edges for main structure 
 dot.edges([
     ('Input', 'SpectralMixer'),
     ('SpectralMixer', 'Block1'),
@@ -544,7 +542,7 @@ dot.edges([
     ('Fusion2', 'Classifier')
 ])
 
-# Skip connection edges (dashed lines)
+# Skip connection edges 
 dot.edge('Block1', 'Dummy1', style='dashed', color='#ff3333', penwidth='2')
 dot.edge('Dummy1', 'SkipAdapter', style='dashed', color='#ff3333', penwidth='2', label='Skip Connection (Block 1 to Fusion)')
 dot.edge('SkipAdapter', 'Fusion', style='dashed', color='#ff3333', penwidth='2')

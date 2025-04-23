@@ -1,5 +1,4 @@
 # Deep Learning-Based Land Use Classification Using Sentinel-2 Imagery
-![lcc_global_2048](https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery/assets/116385849/66458441-3032-439f-81a4-75b43a13d21e)
 ![Image](https://github.com/user-attachments/assets/6684f6aa-fbad-4860-a31d-10a0e79a8195)
 
 ## Overview
@@ -54,6 +53,7 @@ The Script will:
 - **Extract** All Necessary Files
 - **Clean and Organise** the Dataset
 
+![Image](https://github.com/user-attachments/assets/9c2a6e58-65b2-41df-9ab6-8fbd3b494d52)
 ## Configuration Setup
 Before running either the command-line interface (main.py) or the web application (app.py), you must update the configuration paths in FYPProjectMultiSpectral/config/config.py. This file contains critical settings such as:
 - **Experiment paths:** Where model outputs and logs will be stored.

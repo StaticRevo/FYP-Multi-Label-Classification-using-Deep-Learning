@@ -1,5 +1,6 @@
 # Deep Learning-Based Land Use Classification Using Sentinel-2 Imagery
 ![lcc_global_2048](https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery/assets/116385849/66458441-3032-439f-81a4-75b43a13d21e)
+![Image](https://github.com/user-attachments/assets/6684f6aa-fbad-4860-a31d-10a0e79a8195)
 
 ## Overview
 This project is my Final Year Project for the course of Software Development. It aims to classify land cover types from satellite imagery using Convolutional Neural Networks (CNNs). By making use of deep learning techniques, the goal is to accurately **identify and categorise** the various types of land cover such as forests, urban areas and pasture simultanously. This classification supports various application such as environmental monitoring, urban planning and disaster management.

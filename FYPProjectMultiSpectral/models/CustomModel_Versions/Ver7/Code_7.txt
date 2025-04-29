@@ -1,8 +1,8 @@
- # Custom Model
-class CustomModel(BaseModel):
+# Custom Model Version 7
+class CustomModelV7(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity()  # Dummy model for custom architecture to pass to the base model
-        super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        super(CustomModelV7, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
     
         # Spectral Mixing and Initial Feature Extraction
         self.spectral_mixer = nn.Sequential(

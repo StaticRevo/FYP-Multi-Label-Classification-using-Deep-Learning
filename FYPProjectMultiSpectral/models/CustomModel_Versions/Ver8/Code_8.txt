@@ -1,8 +1,8 @@
-# Custom Model
-class CustomModel(BaseModel):
+# Custom Model Version 8
+class CustomModelV8(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity()  # Dummy model for custom architecture to pass to the base model
-        super(CustomModel, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        super(CustomModelV8, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
     
         # -- Spectral Mixing and Initial Feature Extraction --
         self.spectral_mixer = nn.Sequential(
@@ -105,7 +105,9 @@ class CustomModel(BaseModel):
 
         # -- Block 5 -- 
         self.classifier = nn.Sequential(
+            ECA(in_channels=232),  # ECA Module (232->232) 
             nn.Conv2d(in_channels=232, out_channels=128, kernel_size=1, stride=1, padding=0, dilation=1, groups=1, bias=False, padding_mode='zeros'),  # Convolutional Layer (232->128)
+            nn.BatchNorm2d(128),
             nn.GELU(),
             nn.AdaptiveAvgPool2d(1),  # Adaptive Average Pooling Layer
             nn.Flatten(),  # Flatten Layer
@@ -142,3 +144,17 @@ class CustomModel(BaseModel):
 
         out = self.classifier(fused_features_high)  # Classifier (19)
         return out
+    
+    # Override optimizer configuration for CustomModel
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }

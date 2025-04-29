@@ -12,10 +12,8 @@ class OneError(Metric):
 
     # Update the metric
     def update(self, preds: torch.Tensor, target: torch.Tensor):
-        # Find the index of the top prediction for each sample
-        top_idx = preds.argmax(dim=1)
-        # Check if the top prediction is correct for each sample
-        correct = target[torch.arange(target.size(0)), top_idx] == 1
+        top_idx = preds.argmax(dim=1) # Find the index of the top prediction for each sample
+        correct = target[torch.arange(target.size(0)), top_idx] == 1 # Check if the top prediction is correct for each sample
         errors = (~correct).float()
         self.one_error_sum += errors.sum()
         self.total += preds.size(0)

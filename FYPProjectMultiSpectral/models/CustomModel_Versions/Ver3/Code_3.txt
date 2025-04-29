@@ -30,7 +30,7 @@ class CustomModelV3(BaseModel):
             MultiScaleBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, groups=1, 
                             bias=True, padding_mode='zeros'), # MultiScaleBlock (128->128)
             ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
-            ECA(in_channels=128, k_size=3), # ECA Module
+            ECA(in_channels=128), # ECA Module
         )
         # -- BLock 3 --
         self.block3 = nn.Sequential(
@@ -40,9 +40,9 @@ class CustomModelV3(BaseModel):
             nn.GELU(),
             MultiScaleBlock(in_channels=256, out_channels=256, kernel_size=3, stride=1, groups=1, bias=True, padding_mode='zeros'), # MultiScaleBlock (256->256)
             ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256) 
-            SE(in_channels=256, kernel_size=1, stride=1, padding=0), # Squeeze and Excitation Module
+            SE(in_channels=256, kernel_size=1), # Squeeze and Excitation Module
         )
-        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape", batch_first=True)
+        self.transformer_block = TransformerModule(d_model=256, nhead=8, num_layers=1, dropout=0.2, return_mode="reshape")
         self.skip_adapter = nn.Conv2d(64, 256, kernel_size=1, bias=False)
 
         # -- Block 4 -- 
@@ -63,10 +63,10 @@ class CustomModelV3(BaseModel):
         )
     # Override forward function for CustomModel
     def forward(self, x):
-        x = self.spectral_mixer(x)                      # Step 1: Spectral mixing
-        features_low = self.block1(x)                   # Step 2: Extract low-level features.
-        features_mid = self.block2(features_low)         # Step 3: Compute mid-level features.
-        features_deep = self.block3(features_mid)        # Step 4: Compute deep features.
+        x = self.spectral_mixer(x) # Step 1: Spectral mixing
+        features_low = self.block1(x) # Step 2: Extract low-level features.
+        features_mid = self.block2(features_low) # Step 3: Compute mid-level features.
+        features_deep = self.block3(features_mid) # Step 4: Compute deep features.
         features_deep = self.transformer_block(features_deep)  # Apply transformer block for global context
         adapted_features_low = self.skip_adapter(features_low) # Adjust low-level features
     

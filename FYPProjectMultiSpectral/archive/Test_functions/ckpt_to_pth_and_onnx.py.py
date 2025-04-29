@@ -13,8 +13,7 @@ from config.config import DatasetConfig, calculate_class_weights
 
 # Function to convert ONNX model to TensorFlow format
 def convert_onnx_to_tf(onnx_model_path, tf_model_path):
-    # Load ONNX model
-    onnx_model = onnx.load(onnx_model_path)
+    onnx_model = onnx.load(onnx_model_path) # Load ONNX model
     tf_rep = prepare(onnx_model) # Convert ONNX model to TensorFlow forma
     tf_rep.export_graph(tf_model_path)
 
@@ -24,11 +23,9 @@ def convert_onnx_to_tf(onnx_model_path, tf_model_path):
 def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
     os.makedirs(save_dir, exist_ok=True)
 
-    # Load checkpoint
-    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
-    # Check available keys in the checkpoint
-    print("Checkpoint keys:", checkpoint.keys())
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu")) # Load checkpoint
+    print("Checkpoint keys:", checkpoint.keys()) # Check available keys in the checkpoint
 
     # Load dataset metadata for class weights
     metadata_csv = pd.read_csv(DatasetConfig.metadata_paths['1'])
@@ -42,12 +39,8 @@ def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
         model_weights=None,
         main_path=os.path.dirname(checkpoint_path)
     )
-
-    # Load model weights, ignoring extra keys
-    model.load_state_dict(checkpoint["state_dict"], strict=False)
-
-    # Set to evaluation mode
-    model.eval()
+    model.load_state_dict(checkpoint["state_dict"], strict=False) # Load model weights, ignoring extra keys
+    model.eval() # Set to evaluation mode
 
     # Save a cleaned `.pth` model
     pth_path = os.path.join(save_dir, "B0.pth")
@@ -56,8 +49,6 @@ def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
 
     # Define ONNX file path
     onnx_path = os.path.join(save_dir, "B0_onnx.onnx")
-
-    # Define a dummy input for the model
     dummy_input = torch.randn(1, 12, 120, 120)
 
     # Convert to ONNX and save

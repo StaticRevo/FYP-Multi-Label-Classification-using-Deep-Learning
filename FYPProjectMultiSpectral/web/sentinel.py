@@ -58,7 +58,7 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
         )],
         responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
         bbox=bbox,
-        size=[120, 120],  # Enforce 120x120
+        size=[120, 120], 
         config=config
     )
 

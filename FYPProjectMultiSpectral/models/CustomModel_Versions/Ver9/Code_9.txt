@@ -1,0 +1,179 @@
+# Custom Model Version 9
+class CustomModelV9(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()
+        super(CustomModelV9, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        
+        # -- Spectral Mixing and Initial Feature Extraction --
+        self.spectral_mixer = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(num_features=64),
+            nn.GELU(),
+            nn.Conv2d(in_channels=64, out_channels=36, kernel_size=3, stride=1, padding=1, groups=4, bias=False),
+            nn.BatchNorm2d(num_features=36),
+            SpectralAttention(in_channels=36),  
+            nn.MaxPool2d(kernel_size=2, stride=2)  # (120x120 -> 60x60)
+        )
+
+        # -- Block 1: Enhanced Low-Level Feature Extraction --
+        block1_downsample = nn.Sequential(
+            nn.Conv2d(36, 52, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(num_features=52)
+        )
+        self.block1 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=36, out_channels=36, kernel_size=3, stride=1, padding=1, bias=False, dilation=1, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=36),
+            nn.GELU(),
+            WideBottleneck(in_channels=36, out_channels=26, stride=1, downsample=block1_downsample, widen_factor=2),
+            SpectralAttention(in_channels=52),  
+            nn.Dropout(p=ModuleConfig.dropout_rt),
+            CoordinateAttention(in_channels=52, reduction=16),  
+            nn.Dropout(p=ModuleConfig.dropout_rt)
+        )
+
+        # -- Block 2: Improved Mid-Level Features with Spatial Reduction --
+        block2_downsample = nn.Sequential(
+            nn.Conv2d(52, 104, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(num_features=104)
+        )
+        self.block2 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=52, out_channels=52, kernel_size=3, stride=2, padding=1, bias=False, dilation=1, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=52),
+            nn.GELU(),
+            WideBottleneck(in_channels=52, out_channels=52, stride=1, downsample=block2_downsample, widen_factor=2),
+            ECA(in_channels=104),  
+            nn.Dropout(p=ModuleConfig.dropout_rt)
+        )
+
+        # -- Block 3: Enhanced Deep Feature Extraction --
+        block3_downsample = nn.Sequential(
+            nn.Conv2d(104, 172, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(num_features=172)
+        )
+        self.block3 = nn.Sequential(
+            DepthwiseSeparableConv(in_channels=104, out_channels=104, kernel_size=3, stride=2, padding=1, bias=False, dilation=1, padding_mode='zeros'),
+            nn.BatchNorm2d(num_features=104),
+            nn.GELU(),
+            WideBottleneck(in_channels=104, out_channels=86, stride=1, downsample=block3_downsample, widen_factor=2),
+            SE(in_channels=172, kernel_size=1),  
+            nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)
+        )
+
+        # -- Improved Skip Connection Adapters --
+        # Skip from Block 1 to Fusion 1
+        self.skip_adapter = nn.Sequential( 
+            nn.Conv2d(in_channels=52, out_channels=172, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(172),  
+            nn.AvgPool2d(kernel_size=4, stride=4)  # (60x60 -> 15x15)
+        )
+        # Skip from Spectral Mixer to Fusion 2
+        self.skip_adapter_spectral = nn.Sequential(
+            nn.Conv2d(in_channels=36, out_channels=236, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(236), 
+            nn.AvgPool2d(kernel_size=4, stride=4)  # (60x60 -> 15x15)
+        )
+        # Skip from Block 2 to Fusion 2
+        self.skip_adapter_mid = nn.Sequential(
+            nn.Conv2d(in_channels=104, out_channels=236, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(236),  
+            nn.AvgPool2d(kernel_size=2, stride=2)  # (30x30 -> 15x15)
+        )
+        # Skip from Block 3 to Fusion 2
+        self.skip_adapter_deep = nn.Sequential(
+            nn.Conv2d(in_channels=172, out_channels=236, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(236)  
+        )
+        self.fusion_conv = nn.Sequential(  # Fusion 1: Dynamic weighted sum of deep and low features
+            nn.Conv2d(344, 2, kernel_size=1, bias=False),  # 344 = 172 + 172
+            nn.BatchNorm2d(2),
+            nn.Sigmoid()
+        )
+        self.fusion_conv2 = nn.Sequential( # Fusion 2: Combines all feature streams with dynamic weights
+            nn.Conv2d(944, 4, kernel_size=1, bias=False),  # 944 = 236*4
+            nn.BatchNorm2d(4),
+            nn.Sigmoid()
+        )
+
+        # -- Block 4: Advanced High-Level Feature Refinement -- 
+        block4_downsample = nn.Sequential(
+            nn.Conv2d(172, 236, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(num_features=236)
+        )
+        self.block4 = nn.Sequential(
+            MultiScaleBlock(in_channels=172, out_channels=172, kernel_size=3, stride=1, groups=4, bias=False),  
+            nn.BatchNorm2d(num_features=172),
+            nn.GELU(),  
+            WideBottleneck(in_channels=172, out_channels=118, stride=1, downsample=block4_downsample, widen_factor=2),
+            CBAM(in_channels=236),  
+            nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)
+        )
+
+        # -- Classifier --
+        self.classifier = nn.Sequential(
+            ECA(in_channels=236),  
+            nn.Conv2d(in_channels=236, out_channels=128, kernel_size=1, stride=1, padding=0, bias=False), 
+            nn.BatchNorm2d(128),
+            nn.GELU(),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Dropout(p=ModuleConfig.dropout_rt * 2),  
+            nn.Linear(in_features=128, out_features=num_classes)
+        )
+    
+    # Improved forward pass with enhanced integration strategy
+    def forward(self, x):
+        x = self.spectral_mixer(x)  # (36, 60, 60)
+        features_low = self.block1(x)  # (52, 60, 60)
+        features_mid = self.block2(features_low)  # (104, 30, 30)
+        features_deep = self.block3(features_mid)  # (172, 15, 15)
+
+        # Skip Connection Adapters with normalized features
+        adapted_features_low = self.skip_adapter(features_low)  # (172, 15, 15)
+        adapted_features_mid = self.skip_adapter_mid(features_mid)  # (236, 15, 15)
+        adapted_features_deep = self.skip_adapter_deep(features_deep)  # (236, 15, 15)
+        adapted_features_spectral = self.skip_adapter_spectral(x)  # (236, 15, 15)
+
+        # Fusion 1: Deep + Low features with learned weights
+        fused_input = torch.cat([features_deep, adapted_features_low], dim=1)  # (344, 15, 15)
+        weights = self.fusion_conv(fused_input)  # (2, 15, 15)
+        w_deep, w_low = weights[:, 0:1, :, :], weights[:, 1:2, :, :]
+        
+        fused_features = (w_deep * features_deep) + (w_low * adapted_features_low)  # (172, 15, 15)
+
+        # Block 4: High-level processing
+        features_high = self.block4(fused_features)  # (236, 15, 15)
+
+        # Fusion 2: All feature streams with improved weighting
+        fusion_input2 = torch.cat([features_high, adapted_features_mid, adapted_features_deep, adapted_features_spectral], dim=1)  # (944, 15, 15)
+        weights2 = self.fusion_conv2(fusion_input2)  # (4, 15, 15)
+        w_high, w_mid, w_deep, w_early = weights2[:, 0:1, :, :], weights2[:, 1:2, :, :], weights2[:, 2:3, :, :], weights2[:, 3:4, :, :]
+        
+        # Dynamic weighted fusion with rescaling to maintain signal strength
+        fusion_weights_sum = w_high + w_mid + w_deep + w_early + 1e-5  # Avoid division by zero
+        normalized_w_high = w_high / fusion_weights_sum
+        normalized_w_mid = w_mid / fusion_weights_sum
+        normalized_w_deep = w_deep / fusion_weights_sum
+        normalized_w_early = w_early / fusion_weights_sum
+        
+        # Final feature fusion with normalized weights 
+        fused_features_high = (normalized_w_high * features_high) + \
+                            (normalized_w_mid * adapted_features_mid) + \
+                            (normalized_w_deep * adapted_features_deep) + \
+                            (normalized_w_early * adapted_features_spectral)  # (236, 15, 15)
+
+        # Classification
+        out = self.classifier(fused_features_high)  # (num_classes)
+        return out
+    
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay, eps=1e-8)    
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience, min_lr=1e-7)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }

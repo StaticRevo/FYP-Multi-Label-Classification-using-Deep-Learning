@@ -15,7 +15,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score, fbeta_score
 from tqdm import tqdm
 
 # Local application imports
-from models.ensemble import EnsembleModel
+from FYPProjectMultiSpectral.archive.Ensemble.ensemble import EnsembleModel
 from dataloader import BigEarthNetDataLoader
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 

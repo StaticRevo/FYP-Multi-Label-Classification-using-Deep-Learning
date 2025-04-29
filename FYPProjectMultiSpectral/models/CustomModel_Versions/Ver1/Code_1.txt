@@ -1,3 +1,4 @@
+# Custom Model Version 1
 class CustomModelV1(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         custom_model_1 = nn.Sequential(

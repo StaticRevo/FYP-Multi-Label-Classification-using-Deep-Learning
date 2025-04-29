@@ -19,7 +19,7 @@ from utils.test_utils import calculate_metrics_and_save_results, visualize_predi
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from utils.logging_utils import setup_logger
 from models.models import *
-from models.ensemble import EnsembleLightningModule
+from FYPProjectMultiSpectral.archive.Ensemble.ensemble import EnsembleLightningModule
 
 # Test ensemble model
 def main():

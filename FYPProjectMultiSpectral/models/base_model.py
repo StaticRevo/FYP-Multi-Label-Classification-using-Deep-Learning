@@ -133,7 +133,7 @@ class BaseModel(pl.LightningModule):
             }
         }
 
-    def cross_entropy_loss(self, logits, labels):
+    def loss_function(self, logits, labels):
         return self.criterion(logits, labels)
 
     def training_step(self, batch, batch_idx):
@@ -150,7 +150,7 @@ class BaseModel(pl.LightningModule):
         x = x.to(device)
         y = y.to(device)
         logits = self.forward(x)
-        loss = self.cross_entropy_loss(logits, y)
+        loss = self.loss_function(logits, y)
 
         # Convert logits to binary predictions
         probs = torch.sigmoid(logits)
@@ -218,7 +218,7 @@ class BaseModel(pl.LightningModule):
             self.per_class_metrics[phase]['f2'].append(per_class_f2)
             self.per_class_metrics[phase]['accuracy'].append(per_class_acc)
 
-            # Log per-class metrics to the logger (e.g., TensorBoard)
+            # Log per-class metrics to the logger
             for i in range(self.num_classes):
                 class_name = self.class_labels[i] if i < len(self.class_labels) else f"Class {i}"
                 self.log(f'{phase}_precision_class_{i}', per_class_precision[i], on_epoch=True, prog_bar=False, batch_size=len(x))

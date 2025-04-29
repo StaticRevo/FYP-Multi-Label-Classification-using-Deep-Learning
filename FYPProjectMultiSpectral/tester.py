@@ -97,7 +97,7 @@ def main():
     logger.info("Metrics and results saved.")
 
     print("Computing continuous probability outputs for ROC AUC...")
-    # all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands)
+    all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands)
 
     # Visualize predictions and results
     logger.info("Visualizing predictions and heatmaps...")

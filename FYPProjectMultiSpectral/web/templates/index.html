@@ -7,7 +7,7 @@
   <div class="hero-section py-5 mb-5" style="background: linear-gradient(135deg, #375a7f, #1e3c5a);">
     <div class="container text-center py-4">
       <h1 class="display-4 fw-bold mb-3">Welcome to the RS Imagery Prediction Platform</h1>
-      <p class="lead mb-4">Analyze remote sensing imagery with advanced machine learning models.</p>
+      <p class="lead mb-4">Analyze remote sensing imagery with advanced machine learning models</p>
       <a href="{{ url_for('predict_page') }}" class="btn btn-lg px-4 py-2" style="background-color: #00bc8c; color: white;">
         <i class="bi bi-image me-2"></i>Get Started
       </a>
@@ -21,40 +21,46 @@
       <div class="row g-4">
         <!-- Predict Images Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-image display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Predict Images</h4>
-              <p class="card-text mb-4">Upload and analyse remote sensing imagery using our trained models.</p>
-              <a href="{{ url_for('predict_page') }}" class="btn btn-primary w-100">
-                <i class="bi bi-image me-2"></i>Predict Images
-              </a>
+              <p class="card-text mb-4">Upload and analyse remote sensing imagery using our trained models</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('predict_page') }}" class="btn btn-primary w-100">
+                  <i class="bi bi-image me-2"></i>Predict Images
+                </a>
+              </div>
             </div>
           </div>
         </div>
         <!-- Experiments Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-folder display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Experiments</h4>
-              <p class="card-text mb-4">View and compare your experiment results and track performance.</p>
-              <a href="{{ url_for('experiments_overview') }}" class="btn btn-primary w-100">
-                <i class="bi bi-folder me-2"></i>View Experiments
-              </a>
+              <p class="card-text mb-4">View and compare your experiment results and track performance</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('experiments_overview') }}" class="btn btn-primary w-100">
+                  <i class="bi bi-folder me-2"></i>View Experiments
+                </a>
+              </div>
             </div>
           </div>
         </div>
         <!-- Interactive Map Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-map display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Interactive Map</h4>
-              <p class="card-text mb-4">Explore geographic data with our interactive map interface.</p>
-              <a href="{{ url_for('map_page') }}" class="btn btn-primary w-100">
-                <i class="bi bi-map me-2"></i>Open Map
-              </a>
+              <p class="card-text mb-4">Explore geographic data with our interactive map interface</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('map_page') }}" class="btn btn-primary w-100">
+                  <i class="bi bi-map me-2"></i>Open Map
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -64,43 +70,49 @@
     <!-- Visualization Section -->
     <section class="mb-5">
       <h2 class="section-title text-center">Visualizations</h2>
-      <!-- Data Exploration Feature -->
       <div class="row g-4">
+        <!-- Data Exploration Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-bar-chart display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Data Exploration</h4>
-              <p class="card-text mb-4">Visualize and explore BigEarthNet with interactive charts.</p>
-              <a href="{{ url_for('data_exploration') }}" class="btn btn-success w-100">
-                <i class="bi bi-bar-chart me-2"></i>Explore Data
-              </a>
+              <p class="card-text mb-4">Visualize and explore BigEarthNet with interactive charts</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('data_exploration') }}" class="btn btn-success w-100">
+                  <i class="bi bi-bar-chart me-2"></i>Explore Data
+                </a>
+              </div>
             </div>
           </div>
         </div>
         <!-- Bubble Chart Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-diagram-3 display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Bubble Chart</h4>
-              <p class="card-text mb-4">Analyse multi-dimensional data relationships visually.</p>
-              <a href="{{ url_for('bubble_chart') }}" class="btn btn-success w-100">
-                <i class="bi bi-diagram-3 me-2"></i>View Charts
-              </a>
+              <p class="card-text mb-4">Analyse multi-dimensional data relationships visually</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('bubble_chart') }}" class="btn btn-success w-100">
+                  <i class="bi bi-diagram-3 me-2"></i>View Charts
+                </a>
+              </div>
             </div>
           </div>
         </div>
         <!-- Inference Comparison Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-graph-up display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Inference Comparison</h4>
-              <p class="card-text mb-4">Compare different model outputs and evaluate metrics.</p>
-              <a href="{{ url_for('detailed_inference') }}" class="btn btn-success w-100">
-                <i class="bi bi-graph-up me-2"></i>Compare Models
-              </a>
+              <p class="card-text mb-4">Compare different model outputs and evaluate metrics</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('detailed_inference') }}" class="btn btn-success w-100">
+                  <i class="bi bi-graph-up me-2"></i>Compare Models
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -113,40 +125,46 @@
       <div class="row g-4">
         <!-- Train Network Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-gear display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Train Network</h4>
-              <p class="card-text mb-4">Configure and train new models with custom parameters.</p>
-              <a href="{{ url_for('train_page') }}" class="btn btn-secondary w-100">
-                <i class="bi bi-gear me-2"></i>Train Network
-              </a>
+              <p class="card-text mb-4">Configure and train new models with custom parameters</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('train_page') }}" class="btn btn-secondary w-100">
+                  <i class="bi bi-gear me-2"></i>Train Network
+                </a>
+              </div>
             </div>
           </div>
         </div>
         <!-- Test Network Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-check-circle display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">Test Network</h4>
-              <p class="card-text mb-4">Evaluate model performance on test datasets with metrics.</p>
-              <a href="{{ url_for('test_page') }}" class="btn btn-secondary w-100">
-                <i class="bi bi-check-circle me-2"></i>Test Network
-              </a>
+              <p class="card-text mb-4">Evaluate model performance on test datasets with metrics</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('test_page') }}" class="btn btn-secondary w-100">
+                  <i class="bi bi-check-circle me-2"></i>Test Network
+                </a>
+              </div>
             </div>
           </div>
         </div>
         <!-- View Architectures Feature -->
         <div class="col-md-4">
-          <div class="card h-100">
-            <div class="card-body text-center">
+          <div class="card h-100 d-flex flex-column">
+            <div class="card-body text-center d-flex flex-column">
               <i class="bi bi-diagram-2 display-4 mb-3" style="color: #00bc8c;"></i>
               <h4 class="card-title mb-3">View Architectures</h4>
-              <p class="card-text mb-4">Explore and compare different model architectures.</p>
-              <a href="{{ url_for('architectures') }}" class="btn btn-secondary w-100">
-                <i class="bi bi-diagram-2 me-2"></i>View Architectures
-              </a>
+              <p class="card-text mb-4">Explore and compare different model architectures</p>
+              <div class="mt-auto">
+                <a href="{{ url_for('architectures') }}" class="btn btn-secondary w-100">
+                  <i class="bi bi-diagram-2 me-2"></i>View Architectures
+                </a>
+              </div>
             </div>
           </div>
         </div>

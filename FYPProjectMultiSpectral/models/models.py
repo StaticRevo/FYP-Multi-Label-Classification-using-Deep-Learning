@@ -16,230 +16,6 @@ from config.config import ModelConfig, ModuleConfig
 from models.base_model import BaseModel
 from models.modules import *
 
-
-# Custom ResNet50 Model
-class CustomResNet50(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
-        dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
-        super(CustomResNet50, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
-        self.in_channels = 64
-
-        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=7, stride=2, padding=3, bias=False) # Conv Layer (120,120) -> (64,60,60)
-        self.bn1 = nn.BatchNorm2d(self.in_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # MaxPool Layer (64,60,60) -> (64,30,30)
-
-        # Residual Blocks
-        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30)  ## 3=ResNet50,ResNet101,ResNet152
-        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15) ## 4=ResNet50,ResNet101, 8=ResNet152
-        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)  ## 6=ResNet50, 23=ResNet101, 36=ResNet152
-        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4) ## 3=ResNet50,ResNet101,ResNet152
-
-        # Classifier
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1)) # AdaptiveAvgPool Layer (2048,4,4) -> (2048,1,1)
-        self.fc = nn.Linear(512 * ModuleConfig.expansion, num_classes) # Fully Connected Layer (2048,1,1) -> (19)
-
-        # Weight Initialization
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        
-        if model_weights is not None or "None":
-            print("Pretrained weights not supported in the custom ResNet50 model")
-
-    def _make_layer(self, out_channels, blocks, stride=1):
-        downsample = None
-        if stride != 1 or self.in_channels != out_channels * ModuleConfig.expansion:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels * ModuleConfig.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels * ModuleConfig.expansion),
-            )
-        layers = []
-        layers.append(WideBottleneck(self.in_channels, out_channels, stride, downsample))
-        self.in_channels = out_channels * ModuleConfig.expansion
-        for _ in range(1, blocks):
-            layers.append(WideBottleneck(self.in_channels, out_channels))
-        
-        return nn.Sequential(*layers)
-
-    # Override forward function for Custom ResNet50 Model
-    def forward(self, x):
-        x = self.conv1(x) # (19, 120, 120) -> (64, 60, 60)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x) # (64, 60, 60) -> (64, 30, 30)
-
-        x = self.layer1(x) # (64, 30, 30) -> (256, 30, 30)
-        x = self.layer2(x) # (256, 30, 30) -> (512, 15, 15)
-        x = self.layer3(x)  # (512, 15, 15) -> (1024, 8, 8)
-        x = self.layer4(x) # (1024, 8, 8) -> (2048, 4, 4)
-
-        x = self.avgpool(x) # (2048, 4, 4) -> (2048, 1, 1)
-        x = torch.flatten(x, 1) # Flatten (2048, 1, 1) -> (2048)
-        x = self.fc(x) # (2048) -> (19)
-
-        return x
-
-    # Override optimizer configuration for Custom ResNet50 Model
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'monitor': 'val_loss',
-                'interval': 'epoch',
-                'frequency': 1
-            }
-        }
-
-# Custom WideResNetB4-ECA Model
-class CustomWRNB4ECA(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
-        dummy_model = nn.Identity()
-        super(CustomWRNB4ECA, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
-
-        self.w = 2.0736 # Width scaling factor
-        self.K = 1.15 # Widening factor adjustement 
-
-        # Apply width scaling factor and adjustement
-        self.in_channels = int(16 * self.K * self.w)  # 16 * 2.0736  * 1.15 = 38
-        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(self.in_channels)
-        self.relu = nn.ReLU(inplace=True)
-        
-        # Define layers with WideBottleneckECA blocks
-        self.layer1 = self._make_layer(int(16 * self.K * self.w), 2, stride=1)  # (38, 176, 176) -> (38, 176, 176)
-        self.layer2 = self._make_layer(int(32 * self.K * self.w), 2, stride=2)  # (38, 176, 176) -> (76, 88, 88)
-        self.layer3 = self._make_layer(int(64 * self.K * self.w), 2, stride=2)  # (76, 88, 88) -> (153, 44, 44)
-
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (153, 44, 44) -> (153, 1, 1)
-        self.fc = nn.Linear(int(64 * self.K * self.w), num_classes)  # (153) -> (19)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        if model_weights is not None and model_weights != "None":
-            print("Pretrained weights not supported in the custom WideResNetB4-ECA model")
-
-    def _make_layer(self, out_channels, blocks, stride=1):
-        downsample = None
-        if stride != 1 or self.in_channels != out_channels:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels),
-            )
-
-        layers = [WideBasicBlockECA(self.in_channels, out_channels, stride, downsample)]
-        self.in_channels = out_channels
-        for _ in range(1, blocks):
-            layers.append(WideBasicBlockECA(self.in_channels, out_channels))
-        return nn.Sequential(*layers)
-    
-    def forward(self, x):
-        x = self.conv1(x)  # [12, 176, 176] -> [38, 176, 176]
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.layer1(x)  # [38, 176, 176] -> [38, 176, 176]
-        x = self.layer2(x)  # [38, 176, 176] -> [76, 88, 88]
-        x = self.layer3(x)  # [76, 88, 88] -> [153, 44, 44]
-        x = self.avgpool(x)  # [153, 44, 44] -> [153, 1, 1]
-        x = torch.flatten(x, 1)  # [153]
-        x = self.fc(x)  # [153] -> [19]
-        return x
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'monitor': 'val_loss',
-                'interval': 'epoch',
-                'frequency': 1
-            }
-        }
-    
-# Custom WideResNetB0 Model
-class CustomWRNB0(BaseModel):
-    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
-        dummy_model = nn.Identity()
-        super(CustomWRNB0, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
-
-        self.w = 1.0  # Width scaling factor for B0 (beta^phi = 1.2^0)
-        self.K = 1.97  # Widening factor to match parameters from report
-
-        # Apply width scaling factor and adjustment
-        self.in_channels = int(16 * self.K * self.w)  # 16 * 1.97 * 1.0 ≈ 32
-        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(self.in_channels)
-        self.relu = nn.ReLU(inplace=True)
-        
-        # Define layers with WideBasicBlockECA blocks
-        self.layer1 = self._make_layer(int(16 * self.K * self.w), 1, stride=1)  # (32, 120, 120) -> (32, 120, 120)
-        self.layer2 = self._make_layer(int(32 * self.K * self.w), 1, stride=2)  # (32, 120, 120) -> (63, 60, 60)
-        self.layer3 = self._make_layer(int(64 * self.K * self.w), 1, stride=2)  # (63, 60, 60) -> (126, 30, 30)
-
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (126, 30, 30) -> (126, 1, 1)
-        self.fc = nn.Linear(int(64 * self.K * self.w), num_classes)  # (126) -> (19)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        if model_weights is not None and model_weights != "None":
-            print("Pretrained weights not supported in the custom WideResNetB0-ECA model")
-
-    def _make_layer(self, out_channels, blocks, stride=1):
-        downsample = None
-        if stride != 1 or self.in_channels != out_channels:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels),
-            )
-
-        layers = [WideBasicBlockECA(self.in_channels, out_channels, stride, downsample)]
-        self.in_channels = out_channels
-        for _ in range(1, blocks):
-            layers.append(WideBasicBlockECA(self.in_channels, out_channels))
-        return nn.Sequential(*layers)
-    
-    def forward(self, x):
-        x = self.conv1(x)  # [12, 120, 120] -> [32, 120, 120]
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.layer1(x)  # [32, 120, 120] -> [32, 120, 120]
-        x = self.layer2(x)  # [32, 120, 120] -> [63, 60, 60]
-        x = self.layer3(x)  # [63, 60, 60] -> [126, 30, 30]
-        x = self.avgpool(x)  # [126, 30, 30] -> [126, 1, 1]
-        x = torch.flatten(x, 1)  # [126]
-        x = self.fc(x)  # [126] -> [19]
-        return x
-    
-    # Override optimizer configuration for Custom WRN B0 Model
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'monitor': 'val_loss',
-                'interval': 'epoch',
-                'frequency': 1
-            }
-        }
-    
 # -- Custom Model Versions --
 # Custom Model Version 6
 class CustomModelV6(BaseModel):
@@ -524,6 +300,157 @@ class CustomModelV9(BaseModel):
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay, eps=1e-8)    
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience, min_lr=1e-7)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+    
+# Custom ResNet50 Model
+class CustomResNet50(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
+        super(CustomResNet50, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+        self.in_channels = 64
+
+        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=7, stride=2, padding=3, bias=False) # Conv Layer (120,120) -> (64,60,60)
+        self.bn1 = nn.BatchNorm2d(self.in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # MaxPool Layer (64,60,60) -> (64,30,30)
+
+        # Residual Blocks
+        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30)  ## 3=ResNet50,ResNet101,ResNet152
+        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15) ## 4=ResNet50,ResNet101, 8=ResNet152
+        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)  ## 6=ResNet50, 23=ResNet101, 36=ResNet152
+        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4) ## 3=ResNet50,ResNet101,ResNet152
+
+        # Classifier
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1)) # AdaptiveAvgPool Layer (2048,4,4) -> (2048,1,1)
+        self.fc = nn.Linear(512 * ModuleConfig.expansion, num_classes) # Fully Connected Layer (2048,1,1) -> (19)
+
+        # Weight Initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        
+        if model_weights is not None or "None":
+            print("Pretrained weights not supported in the custom ResNet50 model")
+
+    def _make_layer(self, out_channels, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.in_channels != out_channels * ModuleConfig.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.in_channels, out_channels * ModuleConfig.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels * ModuleConfig.expansion),
+            )
+        layers = []
+        layers.append(WideBottleneck(self.in_channels, out_channels, stride, downsample))
+        self.in_channels = out_channels * ModuleConfig.expansion
+        for _ in range(1, blocks):
+            layers.append(WideBottleneck(self.in_channels, out_channels))
+        
+        return nn.Sequential(*layers)
+
+    # Override forward function for Custom ResNet50 Model
+    def forward(self, x):
+        x = self.conv1(x) # (19, 120, 120) -> (64, 60, 60)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x) # (64, 60, 60) -> (64, 30, 30)
+
+        x = self.layer1(x) # (64, 30, 30) -> (256, 30, 30)
+        x = self.layer2(x) # (256, 30, 30) -> (512, 15, 15)
+        x = self.layer3(x)  # (512, 15, 15) -> (1024, 8, 8)
+        x = self.layer4(x) # (1024, 8, 8) -> (2048, 4, 4)
+
+        x = self.avgpool(x) # (2048, 4, 4) -> (2048, 1, 1)
+        x = torch.flatten(x, 1) # Flatten (2048, 1, 1) -> (2048)
+        x = self.fc(x) # (2048) -> (19)
+
+        return x
+
+    # Override optimizer configuration for Custom ResNet50 Model
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',
+                'interval': 'epoch',
+                'frequency': 1
+            }
+        }
+
+# Custom WideResNetB4-ECA Model
+class CustomWRNB4ECA(BaseModel):
+    def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
+        dummy_model = nn.Identity()
+        super(CustomWRNB4ECA, self).__init__(dummy_model, num_classes, class_weights, in_channels, main_path)
+
+        self.w = 2.0736 # Width scaling factor
+        self.K = 1.15 # Widening factor adjustement 
+
+        # Apply width scaling factor and adjustement
+        self.in_channels = int(16 * self.K * self.w)  # 16 * 2.0736  * 1.15 = 38
+        self.conv1 = nn.Conv2d(in_channels, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        
+        # Define layers with WideBottleneckECA blocks
+        self.layer1 = self._make_layer(int(16 * self.K * self.w), 2, stride=1)  # (38, 176, 176) -> (38, 176, 176)
+        self.layer2 = self._make_layer(int(32 * self.K * self.w), 2, stride=2)  # (38, 176, 176) -> (76, 88, 88)
+        self.layer3 = self._make_layer(int(64 * self.K * self.w), 2, stride=2)  # (76, 88, 88) -> (153, 44, 44)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # (153, 44, 44) -> (153, 1, 1)
+        self.fc = nn.Linear(int(64 * self.K * self.w), num_classes)  # (153) -> (19)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        if model_weights is not None and model_weights != "None":
+            print("Pretrained weights not supported in the custom WideResNetB4-ECA model")
+
+    def _make_layer(self, out_channels, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.in_channels != out_channels:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels),
+            )
+
+        layers = [WideBasicBlockECA(self.in_channels, out_channels, stride, downsample)]
+        self.in_channels = out_channels
+        for _ in range(1, blocks):
+            layers.append(WideBasicBlockECA(self.in_channels, out_channels))
+        return nn.Sequential(*layers)
+    
+    def forward(self, x):
+        x = self.conv1(x)  # [12, 176, 176] -> [38, 176, 176]
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.layer1(x)  # [38, 176, 176] -> [38, 176, 176]
+        x = self.layer2(x)  # [38, 176, 176] -> [76, 88, 88]
+        x = self.layer3(x)  # [76, 88, 88] -> [153, 44, 44]
+        x = self.avgpool(x)  # [153, 44, 44] -> [153, 1, 1]
+        x = torch.flatten(x, 1)  # [153]
+        x = self.fc(x)  # [153] -> [19]
+        return x
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {

@@ -10,7 +10,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import rasterio
 
-activations = {}
+activations = {} # Dictionary to store activations from the model
+
 # Register forward hook for the model
 def forward_hook(module, input, output):
     activations[module] = output

@@ -104,6 +104,7 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
     # Save metadata for the subset
     metadata_subset.to_csv(os.path.join(subset_dir, f'metadata_{percentage}_percent.csv'), index=False)
 
+# Create a stratified subset of the dataset based on labels
 def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
     metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels) # Ensure labels are parsed 
     
@@ -121,7 +122,6 @@ def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
     
     return subset_df
 
-
 # Function to extract labels from the original string format for processing
 def extract_labels(label_input):
     if isinstance(label_input, str):
@@ -135,6 +135,7 @@ def extract_labels(label_input):
     else:
         raise TypeError(f"Expected label_input to be a string or list, got {type(label_input)}")
 
+# Function to rebalance the dataset split
 def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_path=None):
     metadata = metadata.copy()
     
@@ -273,7 +274,7 @@ def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_pat
         print(f"  Validation: {val_count/total_count:.2%} ({val_count} images)")
         print(f"  Test: {test_count/total_count:.2%} ({test_count} images)")
     
-    # Debugging: Check the final state of the labels column
+    # Check the final state of the labels column
     print("\nFinal labels column (first 5 rows) before saving:")
     print(metadata['labels'].head().to_list())
     print("Final type of labels column entries:")

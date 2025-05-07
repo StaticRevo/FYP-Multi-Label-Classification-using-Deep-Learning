@@ -8,7 +8,7 @@ from threading import Thread
 import tkinter as tk
 from tkinter import ttk, messagebox, Toplevel
 
-# Scrollable frame class to allow for scrolling in the GUI
+# Scrollable frame class to allow scrolling in the GUI
 class ScrollableFrame(ttk.Frame):
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
@@ -214,7 +214,7 @@ class ModelSelectionGUI:
         self.reset_button = ttk.Button(container, text="Reset", command=self.reset_selections)
         self.reset_button.grid(row=5, column=0, columnspan=2, pady=10)
 
-    # Gather selections, show a loading dialog and run the model(s) in a separate thread
+    # Gather selections, show a loading dialog and run the models in a separate thread
     def run_model(self):
         # Determine which models to run
         if self.all_models_var.get():

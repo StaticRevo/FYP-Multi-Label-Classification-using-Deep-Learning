@@ -37,7 +37,7 @@ class BestMetricsCallback(pl.Callback):
         os.makedirs(os.path.dirname(temp_save_path), exist_ok=True)
         with open(temp_save_path, 'w') as f:
             json.dump(data_to_save, f, indent=4)
-
+    
     def on_fit_start(self, trainer, pl_module):
         self.train_start_time = time.time()
         self.model_size = self.compute_model_size(pl_module) # Compute model size
@@ -60,6 +60,7 @@ class BestMetricsCallback(pl.Callback):
 
         self.save_temp_metrics()
 
+    # Callback to save the best metrics at the end of the test phase
     def on_test_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         current_epoch = trainer.current_epoch
@@ -79,6 +80,7 @@ class BestMetricsCallback(pl.Callback):
                 self.best_metrics[metric] = current
                 self.best_epochs[metric] = current_epoch
 
+    # Callback to save the best metrics at the end of the train phase
     def on_train_end(self, trainer, pl_module):
         self.train_end_time = time.time()
         self.training_time = self.train_end_time - self.train_start_time  
@@ -192,8 +194,7 @@ class BestMetricsCallback(pl.Callback):
 
         pl_module.eval()
         with torch.no_grad():
-            # Warm-up iterations
-            for _ in range(5):
+            for _ in range(5): # Warm-up iterations
                 pl_module(x)
             if 'cuda' in device.type:
                 torch.cuda.synchronize()

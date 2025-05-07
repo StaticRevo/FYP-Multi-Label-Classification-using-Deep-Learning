@@ -33,4 +33,5 @@ def create_weighted_sampler(dataset, num_classes):
         num_samples=len(sample_weights),
         replacement=True
     )
-    return sampler
+
+    return sampler # return the sampler for use in DataLoader

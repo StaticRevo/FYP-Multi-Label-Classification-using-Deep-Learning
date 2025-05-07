@@ -27,7 +27,7 @@ from utils.logging_utils import setup_logger
 
 # Calculate metrics and save results
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path, logger=None):
-    all_preds, all_labels = [], []
+    all_preds, all_labels = [], [] # Initialize lists to store predictions and labels
     test_loader = data_module.test_dataloader()
 
     logger.info("Starting batch processing for metrics calculation.")
@@ -39,7 +39,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
             logits = model(inputs)
             preds = torch.sigmoid(logits) > 0.5
 
-        all_preds.extend(preds.cpu().numpy().astype(int))
+        all_preds.extend(preds.cpu().numpy().astype(int)) #
         all_labels.extend(labels.cpu().numpy().astype(int))
 
     all_preds, all_labels = np.array(all_preds), np.array(all_labels) # Convert lists to numpy arrays
@@ -49,7 +49,8 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
 
     logger.info(f"Predictions and labels saved to {save_path}")
-    return all_preds, all_labels
+
+    return all_preds, all_labels # Save the predictions and labels to a .npz file
 
 # Visualize predictions and heatmaps
 def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None, logger=None):
@@ -73,10 +74,11 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
              f.write(f"{metric}: {value}\n")
     print(f"Aggregated metrics saved to {aggregated_metrics_path}")
 
-    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=result_path, logger=logger)
+    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=result_path, logger=logger) # Compute per-category metrics
 
     plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) # Plot co-occurrence matrix
 
+    # Plot ROC-AUC curve if continuous probability outputs are provided
     if probs is not None:
         plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir, logger=logger) # Plot ROC-AUC curve
     else:
@@ -357,9 +359,9 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.5, band
     # Randomly select unique indices
     random_indices = random.sample(range(dataset_size), num_images)
     
-    if in_channels == 12:
+    if in_channels == 12: # RGB bands are B04, B03, B02
         rgb_channels = [3, 2, 1]
-    else:
+    else: # RGB bands are B03, B02, B01
         rgb_channels  = [2, 1, 0]
 
     for i in random_indices:
@@ -515,6 +517,7 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
 
     return metrics_dict
 
+# Compute per-category metrics
 def compute_per_category_metrics(all_labels, all_preds, save_dir=None, logger=None):
     class_labels = DatasetConfig.class_labels
     reversed_class_labels_dict = DatasetConfig.reversed_class_labels_dict

@@ -23,15 +23,7 @@ def get_model_class(model_name):
         'Swin-Transformer': (SwinTransformer, 'swin_transformer'),
         'CustomWRNB0': (CustomWRNB0, 'custom_wrn_b0'),
         'CustomWRNB4ECA': (CustomWRNB4ECA, 'custom_wrn_b4_eca'),
-        'CustomModel': (CustomModel, 'custom_model'),
-        'CustomModelV1': (CustomModelV1, 'custom_model_v1'),
-        'CustomModelV2': (CustomModelV2, 'custom_model_v2'),
-        'CustomModelV3': (CustomModelV3, 'custom_model_v3'),
-        'CustomModelV4': (CustomModelV4, 'custom_model_v4'),
-        'CustomModelV5': (CustomModelV5, 'custom_model_v5'),
         'CustomModelV6': (CustomModelV6, 'custom_model_v6'),
-        'CustomModelV7': (CustomModelV7, 'custom_model_v7'),
-        'CustomModelV8': (CustomModelV8, 'custom_model_v8'),
         'CustomModelV9': (CustomModelV9, 'custom_model_v9'),
     }
     return model_mapping.get(model_name, (None, None))

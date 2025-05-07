@@ -24,8 +24,8 @@ from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingC
 
 # Train the model
 def main():
-    set_random_seeds()
-    torch.set_float32_matmul_precision('high')
+    set_random_seeds() # Set random seeds for reproducibility
+    torch.set_float32_matmul_precision('high') 
 
     # Initialise the variables from the command line arguments
     model_name = sys.argv[1]
@@ -35,7 +35,7 @@ def main():
     test_variable = sys.argv[5]
 
     # Create main path for experiment
-    if len(sys.argv) > 6:
+    if len(sys.argv) > 6: # Check if a main path is provided
         main_path = sys.argv[6]
     else:
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
@@ -128,7 +128,7 @@ def main():
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1 if torch.cuda.is_available() else None,
         precision='32',
-        gradient_clip_val=100.0,
+        gradient_clip_val=10.0,
         log_every_n_steps=1,
         accumulate_grad_batches=1,
         callbacks=[
@@ -136,13 +136,13 @@ def main():
                     final_checkpoint, 
                     early_stopping,
                     epoch_end_logger_callback,
-                    #GradientLoggingCallback(),
+                    GradientLoggingCallback(),
                     OnChangeLrLoggerCallback(logger),
                     EarlyStoppingLoggerCallback(logger)
                 ],
     )
 
-    if resume_checkpoint:
+    if resume_checkpoint: # If a checkpoint is provided, resume training from that checkpoint
         logger.info(f"Resuming training from checkpoint: {resume_checkpoint}")
     else:
         logger.info("No checkpoint provided, starting training from scratch.")

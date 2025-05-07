@@ -17,7 +17,7 @@ def encode_label(label: list, num_classes=DatasetConfig.num_classes):
 def decode_target(
     target: list,
     text_labels: bool = False,
-    threshold: float = 0.4,
+    threshold: float = 0.5,
     cls_labels: dict = None,
 ):
     result = []

@@ -22,7 +22,7 @@ from models.models import *
 
 # Test the model
 def main():
-    set_random_seeds()
+    set_random_seeds() # Set random seeds for reproducibility
     torch.set_float32_matmul_precision('high')
 
     # Parse command-line arguments
@@ -43,8 +43,8 @@ def main():
     result_path = os.path.join(main_path, "results")
     print(f"Result Path: {result_path}")
     
-    dataset_num = extract_number(selected_dataset)
-    cache_file = f"{dataset_num}%_sample_weights.npy"
+    dataset_num = extract_number(selected_dataset) # Extract the dataset number from the dataset name
+    cache_file = f"{dataset_num}%_sample_weights.npy" 
     cache_path = os.path.join(main_path, cache_file)
 
     # Initialize the log directories
@@ -55,10 +55,11 @@ def main():
     model_class, _ = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
     model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
-    model.eval()
+    model.eval() # Set the model to evaluation mode
+
     register_hooks(model) # Register hooks for visualization of activations
 
-    # Initialize the data module
+    # Initialize the test data module 
     data_module = BigEarthNetDataLoader(bands=bands, dataset_dir=dataset_dir, metadata_csv=metadata_csv)
     data_module.setup(stage='test')
     class_labels = DatasetConfig.class_labels
@@ -80,12 +81,12 @@ def main():
 
     # Run the testing phase
     logger.info("Testing the model...")
-    trainer.test(model, datamodule=data_module)
+    trainer.test(model, datamodule=data_module) # Test the model using the test data module
     logger.info("Testing complete.")
     
     # Calculate metrics and save results
     logger.info("Calculating metrics and saving results...")
-    all_preds, all_labels = calculate_metrics_and_save_results( # This saves the results as a npz file
+    all_preds, all_labels = calculate_metrics_and_save_results( # Save the results as a npz file
         model=model,
         data_module=data_module,
         model_name=model_name,
@@ -97,11 +98,11 @@ def main():
     logger.info("Metrics and results saved.")
 
     print("Computing continuous probability outputs for ROC AUC...")
-    all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands)
+    all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands) ## Get the continuous probability outputs for ROC AUC
 
-    # Visualize predictions and results
+    # Visualize confusion matrices, batch predictions and Compute aggregated/per-class metrics
     logger.info("Visualizing predictions and heatmaps...")
-    visualize_predictions_and_heatmaps(
+    visualize_predictions_and_heatmaps( 
         model=model,
         data_module=data_module,
         in_channels=in_channels,
@@ -115,17 +116,17 @@ def main():
     )
     logger.info("Predictions and heatmaps saved.")
 
-    # Visualize activations
+    # Visualize intermediate activations
     logger.info("Visualizing activations...")
     test_loader = data_module.test_dataloader()
     example_batch = next(iter(test_loader))
     example_imgs, example_lbls = example_batch
-    show_rgb_from_batch(example_imgs[0], in_channels)
+    show_rgb_from_batch(example_imgs[0], in_channels) 
     example_imgs = example_imgs.to(model.device)
     clear_activations()
-    with torch.no_grad():
+    with torch.no_grad(): # Get activations for the example batch
         _ = model(example_imgs[0].unsqueeze(0))
-    visualize_activations(result_path=result_path, num_filters=16)  
+    visualize_activations(result_path=result_path, num_filters=16) 
     logger.info("Activations saved")
     
     # Generate Grad-CAM visualizations

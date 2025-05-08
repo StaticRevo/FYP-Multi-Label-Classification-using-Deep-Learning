@@ -1,0 +1,65 @@
+// CBAM Module
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="Convolutional Block Attention Module (CBAM)" labelloc=t nodesep=0.5 pad=0.5 rankdir=TB splines=true]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555"]
+	CBAM_Input [label="Input
+[B, C, H, W]" fillcolor="#ccffdd"]
+	CBAM_CA_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ccffdd"]
+	CBAM_CA_Conv1 [label="Conv2d
+C -> max(16, C//8)
+kernel_size=1, bias=False" fillcolor="#ccffdd"]
+	CBAM_CA_ReLU [label="ReLU
+inplace=True" fillcolor="#ccffdd"]
+	CBAM_CA_Conv2 [label="Conv2d
+max(16, C//8) -> C
+kernel_size=1, bias=False" fillcolor="#ccffdd"]
+	CBAM_CA_Sigmoid [label="Sigmoid
+[B, C, 1, 1]" fillcolor="#ccffdd"]
+	CBAM_CA_Skip_Dummy [label="" shape=point style=invisible width=0.01]
+	CBAM_CA_Mul [label="×
+Channel Attention
+[B, C, H, W]" fillcolor="#ffcccc" shape=circle width=0.5]
+	CBAM_SA_Avg [label="AvgPool
+mean over channels
+[B, 1, H, W]" fillcolor="#ccffdd"]
+	CBAM_SA_Max [label="MaxPool
+max over channels
+[B, 1, H, W]" fillcolor="#ccffdd"]
+	CBAM_SA_Concat [label="Concat
+[B, 2, H, W]" fillcolor="#ccffdd"]
+	CBAM_SA_Conv [label="Conv2d
+in_channels=2, out_channels=1
+kernel_size=7, padding=3, bias=False
+BatchNorm2d
+Sigmoid
+[B, 1, H, W]" fillcolor="#ccffdd"]
+	CBAM_SA_Skip_Dummy [label="" shape=point style=invisible width=0.01]
+	CBAM_SA_Mul [label="×
+Spatial Attention
+[B, C, H, W]" fillcolor="#ffcccc" shape=circle width=0.5]
+	CBAM_Res_Skip_Dummy [label="" shape=point style=invisible width=0.01]
+	CBAM_Add [label="+
+Attention
+[B, C, H, W]" fillcolor="#ffcccc" shape=circle width=0.5]
+	CBAM_Input -> CBAM_CA_Pool
+	CBAM_CA_Pool -> CBAM_CA_Conv1
+	CBAM_CA_Conv1 -> CBAM_CA_ReLU
+	CBAM_CA_ReLU -> CBAM_CA_Conv2
+	CBAM_CA_Conv2 -> CBAM_CA_Sigmoid
+	CBAM_CA_Sigmoid -> CBAM_CA_Mul
+	CBAM_Input -> CBAM_CA_Skip_Dummy [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	CBAM_CA_Skip_Dummy -> CBAM_CA_Mul [label="Channel Attention" color="#ff3333" penwidth=2 style=dashed]
+	CBAM_CA_Mul -> CBAM_SA_Avg
+	CBAM_CA_Mul -> CBAM_SA_Max
+	CBAM_SA_Avg -> CBAM_SA_Concat
+	CBAM_SA_Max -> CBAM_SA_Concat
+	CBAM_SA_Concat -> CBAM_SA_Conv
+	CBAM_SA_Conv -> CBAM_SA_Mul
+	CBAM_CA_Mul -> CBAM_SA_Skip_Dummy [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	CBAM_SA_Skip_Dummy -> CBAM_SA_Mul [label="Spatial Attention" color="#ff3333" penwidth=2 style=dashed]
+	CBAM_Input -> CBAM_Res_Skip_Dummy [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	CBAM_Res_Skip_Dummy -> CBAM_Add [label="Residual Connection" color="#ff3333" penwidth=2 style=dashed]
+	CBAM_SA_Mul -> CBAM_Add
+}

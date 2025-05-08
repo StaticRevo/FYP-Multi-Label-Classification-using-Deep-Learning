@@ -1,0 +1,33 @@
+// ECA Module
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="Efficient Channel Attention (ECA) Module" labelloc=t nodesep=0.5 pad=0.5 rankdir=TB splines=true]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555"]
+	ECA_Input [label="Input
+[B, C, H, W]" fillcolor="#ffe6cc"]
+	ECA_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+	ECA_Reshape1 [label="Reshape
+[B, 1, C]" fillcolor="#ffe6cc"]
+	ECA_Conv [label="Conv1d
+in_channels=1, out_channels=1
+kernel_size=k_size, bias=False
+padding=(k_size-1)//2
+[B, 1, C]" fillcolor="#ffe6cc"]
+	ECA_Reshape2 [label="Reshape
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+	ECA_Sigmoid [label="Sigmoid
+[B, C, 1, 1]" fillcolor="#ffe6cc"]
+	ECA_Skip_Dummy [label="" shape=point style=invisible width=0.01]
+	ECA_Mul [label="×
+Attention
+[B, C, H, W]" fillcolor="#ffcccc" shape=circle width=0.5]
+	ECA_Input -> ECA_Pool
+	ECA_Pool -> ECA_Reshape1
+	ECA_Reshape1 -> ECA_Conv
+	ECA_Conv -> ECA_Reshape2
+	ECA_Reshape2 -> ECA_Sigmoid
+	ECA_Sigmoid -> ECA_Mul
+	ECA_Input -> ECA_Skip_Dummy [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	ECA_Skip_Dummy -> ECA_Mul [label="Channel-wise Attention" color="#ff3333" penwidth=2 style=dashed]
+}

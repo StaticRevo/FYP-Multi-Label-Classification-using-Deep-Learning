@@ -1,0 +1,52 @@
+// CoordinateAttention Module
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="CoordinateAttention Module" labelloc=t nodesep=0.5 pad=0.5 rankdir=TB splines=true]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555"]
+	CA_Input [label="Input
+[B, C, H, W]" fillcolor="#cce6ff"]
+	CA_PoolH [label="Pool Height
+AdaptiveAvgPool2d
+[B, C, H, 1]" fillcolor="#cce6ff"]
+	CA_PoolW [label="Pool Width
+AdaptiveAvgPool2d
+Permute
+[B, C, W, 1]" fillcolor="#cce6ff"]
+	CA_Concat [label="Concat
+[B, C, H+W, 1]" fillcolor="#cce6ff"]
+	CA_Conv1 [label="Conv2d
+C -> mid_channels
+kernel_size=1, bias=False
+BatchNorm2d
+ReLU (inplace=True)" fillcolor="#cce6ff"]
+	CA_Split [label="Split
+H: [B, mid_channels, H, 1]
+W: [B, mid_channels, W, 1]" fillcolor="#cce6ff"]
+	CA_ConvH [label="Conv2d
+mid_channels -> C
+kernel_size=1, bias=False
+Sigmoid
+[B, C, H, 1]" fillcolor="#cce6ff"]
+	CA_ConvW [label="Conv2d
+mid_channels -> C
+kernel_size=1, bias=False
+Sigmoid
+Permute
+[B, C, 1, W]" fillcolor="#cce6ff"]
+	CA_Skip_Dummy [label="" shape=point style=invisible width=0.01]
+	CA_Mul [label="×
+Attention
+[B, C, H, W]" fillcolor="#ffcccc" shape=circle width=0.5]
+	CA_Input -> CA_PoolH
+	CA_Input -> CA_PoolW
+	CA_PoolH -> CA_Concat
+	CA_PoolW -> CA_Concat
+	CA_Concat -> CA_Conv1
+	CA_Conv1 -> CA_Split
+	CA_Split -> CA_ConvH
+	CA_Split -> CA_ConvW
+	CA_ConvH -> CA_Mul
+	CA_ConvW -> CA_Mul
+	CA_Input -> CA_Skip_Dummy [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	CA_Skip_Dummy -> CA_Mul [label="Spatial Attention" color="#ff3333" penwidth=2 style=dashed]
+}

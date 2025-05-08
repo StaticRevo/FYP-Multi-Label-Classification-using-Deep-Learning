@@ -1,0 +1,33 @@
+// SE Module
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="Squeeze and Excitation (SE) Module" labelloc=t nodesep=0.5 pad=0.5 rankdir=TB splines=true]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555"]
+	SE_Input [label="Input
+[B, C, H, W]" fillcolor="#ffccdd"]
+	SE_Pool [label="AdaptiveAvgPool2d
+[B, C, 1, 1]" fillcolor="#ffccdd"]
+	SE_FC1 [label="Conv2d
+C -> C//r
+kernel_size=1" fillcolor="#ffccdd"]
+	SE_Act [label="Activation
+(typically ReLU)" fillcolor="#ffccdd"]
+	SE_Dropout [label="Dropout
+(optional)" fillcolor="#ffccdd" style="filled,dashed"]
+	SE_FC2 [label="Conv2d
+C//r -> C
+kernel_size=1" fillcolor="#ffccdd"]
+	SE_Sigmoid [label=Sigmoid fillcolor="#ffccdd"]
+	SE_Skip_Dummy [label="" shape=point style=invisible width=0.01]
+	SE_Mul [label="×
+[B, C, H, W]" fillcolor="#ffffff" shape=circle width=0.5]
+	SE_Input -> SE_Pool
+	SE_Pool -> SE_FC1
+	SE_FC1 -> SE_Act
+	SE_Act -> SE_Dropout
+	SE_Dropout -> SE_FC2
+	SE_FC2 -> SE_Sigmoid
+	SE_Sigmoid -> SE_Mul
+	SE_Input -> SE_Skip_Dummy [color="#ff3333" constraint=false penwidth=2 style=dashed]
+	SE_Skip_Dummy -> SE_Mul [label="Input Scaling" color="#ff3333" penwidth=2 style=dashed]
+}

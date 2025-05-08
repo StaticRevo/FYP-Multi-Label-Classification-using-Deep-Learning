@@ -1,0 +1,116 @@
+// CustomModelV9 Main Architecture
+digraph {
+	graph [bgcolor="#f0f0f0" fontcolor="#333333" fontsize=18 label="CustomModelV9 Main Architecture (~939k Parameters)" labelloc=t pad=0.5 rankdir=TB splines=false]
+	node [fontcolor="#333333" fontname=Arial fontsize=12 shape=box style="filled,rounded"]
+	edge [arrowsize=0.8 color="#555555"]
+	Input [label="Input
+[B, 12, 120, 120]" fillcolor="#cce5ff"]
+	SpectralMixer [label="Spectral Mixer
+Conv2d(12->64, 1x1)
+BatchNorm2d
+GELU
+Conv2d(64->36, 3x3, groups=4)
+BatchNorm2d
+SpectralAttention
+MaxPool2d(2x2)
+[B, 36, 60, 60]" fillcolor="#cce5ff"]
+	Block1 [label="Block 1
+DepthwiseSeparableConv(36->36)
+BatchNorm2d
+GELU
+WideBottleneck(36->52)
+SpectralAttention
+Dropout
+CoordinateAttention
+Dropout
+[B, 52, 60, 60]" fillcolor="#b3d9ff"]
+	Block2 [label="Block 2
+DepthwiseSeparableConv(52->52, stride=2)
+BatchNorm2d
+GELU
+WideBottleneck(52->104)
+ECA
+Dropout
+[B, 104, 30, 30]" fillcolor="#b3d9ff"]
+	Block3 [label="Block 3
+DepthwiseSeparableConv(104->104, stride=2)
+BatchNorm2d
+GELU
+WideBottleneck(104->172)
+SE
+Dropout
+[B, 172, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapter [label="Skip Adapter
+Conv2d(52->172, 1x1)
+BatchNorm2d
+AvgPool2d(4x4)
+[B, 172, 15, 15]" fillcolor="#b3d9ff"]
+	Fusion [label="Fusion 1
+Conv2d(344->2, 1x1)
+BatchNorm2d
+Sigmoid
+Weighted Sum
+[B, 172, 15, 15]" fillcolor="#ffcccc" shape=box]
+	Block4 [label="Block 4
+MultiScaleBlock(172->172)
+BatchNorm2d
+GELU
+WideBottleneck(172->236)
+CBAM
+Dropout
+[B, 236, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapterSpectral [label="Skip Adapter Spectral
+Conv2d(36->236, 1x1)
+BatchNorm2d
+AvgPool2d(4x4)
+[B, 236, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapterMid [label="Skip Adapter Mid
+Conv2d(104->236, 1x1)
+BatchNorm2d
+AvgPool2d(2x2)
+[B, 236, 15, 15]" fillcolor="#b3d9ff"]
+	SkipAdapterDeep [label="Skip Adapter Deep
+Conv2d(172->236, 1x1)
+BatchNorm2d
+[B, 236, 15, 15]" fillcolor="#b3d9ff"]
+	Fusion2 [label="Fusion 2
+Conv2d(944->4, 1x1)
+BatchNorm2d
+Sigmoid
+Weighted Sum
+[B, 236, 15, 15]" fillcolor="#ffcccc" shape=box]
+	Classifier [label="Classifier
+ECA
+Conv2d(236->128, 1x1)
+BatchNorm2d
+GELU
+AdaptiveAvgPool2d(1)
+Flatten
+Dropout
+Linear(128->num_classes)
+[B, num_classes]" fillcolor="#cce5ff"]
+	Dummy1 [label="" shape=point style=invisible width=0.01]
+	Dummy2 [label="" shape=point style=invisible width=0.01]
+	Dummy3 [label="" shape=point style=invisible width=0.01]
+	Dummy4 [label="" shape=point style=invisible width=0.01]
+	Input -> SpectralMixer
+	SpectralMixer -> Block1
+	Block1 -> Block2
+	Block2 -> Block3
+	Block3 -> Fusion
+	Fusion -> Block4
+	Block4 -> Fusion2
+	Fusion2 -> Classifier
+	Block1 -> Dummy1 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy1 -> SkipAdapter [label="Skip Connection (Block 1 to Fusion)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapter -> Fusion [color="#ff3333" penwidth=2 style=dashed]
+	SpectralMixer -> Dummy2 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy2 -> SkipAdapterSpectral [label="Skip Connection (Spectral to Fusion2)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapterSpectral -> Fusion2 [color="#ff3333" penwidth=2 style=dashed]
+	Block2 -> Dummy3 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy3 -> SkipAdapterMid [label="Skip Connection (Block 2 to Fusion2)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapterMid -> Fusion2 [color="#ff3333" penwidth=2 style=dashed]
+	Block3 -> Dummy4 [color="#ff3333" penwidth=2 style=dashed]
+	Dummy4 -> SkipAdapterDeep [label="Skip Connection (Block 3 to Fusion2)" color="#ff3333" penwidth=2 style=dashed]
+	SkipAdapterDeep -> Fusion2 [color="#ff3333" penwidth=2 style=dashed]
+}

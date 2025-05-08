@@ -191,7 +191,7 @@ class CustomModelV9(BaseModel):
             nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)
         )
 
-        # -- Improved Skip Connection Adapters --
+        # -- Skip Connection Adapters --
         # Skip from Block 1 to Fusion 1
         self.skip_adapter = nn.Sequential( 
             nn.Conv2d(in_channels=52, out_channels=172, kernel_size=1, stride=1, padding=0, bias=False),
@@ -252,7 +252,7 @@ class CustomModelV9(BaseModel):
             nn.Linear(in_features=128, out_features=num_classes)
         )
     
-    # Improved forward pass with enhanced integration strategy
+    # Forward pass with enhanced integration strategy
     def forward(self, x):
         x = self.spectral_mixer(x)  # (36, 60, 60)
         features_low = self.block1(x)  # (52, 60, 60)

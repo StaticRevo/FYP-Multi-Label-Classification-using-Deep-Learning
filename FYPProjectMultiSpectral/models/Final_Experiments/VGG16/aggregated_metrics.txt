@@ -1,0 +1,14 @@
+Performance Summary
+===================
+Metric                          Value
+------------------------------  ----------------
+Precision Micro                : 0.377
+Recall Micro                   : 0.379
+F1 Micro                       : 0.378
+F2 Micro                       : 0.379
+Average Precision              : 0.512
+Hamming Loss                   : 0.196
+One Error                      : 0.575
+Inference Time (imgs/s)        : 4418.091
+Training Time (hr/min)         : 0h 54m
+Model Size (MB)                : 512.480

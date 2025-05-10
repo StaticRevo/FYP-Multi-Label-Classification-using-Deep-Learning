@@ -136,3 +136,5 @@ Beyond the above standard metrics, the project also makes use of additional Eval
 - **Label Co-occurrence Analysis**
 - **Grad-CAM and Activation Maps**
 The results are stored within experiment/results folder.
+
+Note: While torchmetrics was used during training for internal monitoring, only sklearn was used for final evaluation and is reflected in the metrics shared and reported.

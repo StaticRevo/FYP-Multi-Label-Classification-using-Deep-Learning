@@ -2,7 +2,7 @@
 ![Image](https://github.com/user-attachments/assets/6684f6aa-fbad-4860-a31d-10a0e79a8195)
 
 ## Overview
-This project is my Final Year Project for the course of Software Development. It aims to classify land cover types from satellite imagery using Convolutional Neural Networks (CNNs). By making use of deep learning techniques, the goal is to accurately **identify and categorise** the various types of land cover such as forests, urban areas and pasture simultanously. This classification supports various application such as environmental monitoring, urban planning and disaster management.
+This project is my Final Year Project for the course of Software Development. It aims to classify land cover types from satellite imagery using Convolutional Neural Networks (CNNs). By making use of deep learning techniques, the goal is to accurately **identify and categorise** the various types of land cover such as forests, urban areas and pasture simultaneously. This classification supports various application such as environmental monitoring, urban planning and disaster management.
 
 Satellite imagery can help us find solutions to the growing number of environmental problems that humans face today. It allows us to not only get a bird’s eye view of what’s around us, but also uncovers parts of the world that are rarely seen. Tapping into the potential of categorizing land cover and land use around the world means that humans can more efficiently make use of natural resources, hopefully lowering cases of waste and deprivation. However, despite its potential to be incredibly useful, satellite data is massive and complex, requiring sophisticated analysis to make sense of it.
 
@@ -74,7 +74,7 @@ After running the script users can:
 - Specify **Weights**: Pre-trained or Not
 - Select **Training Option**: Train Only, Train and Test, Test Only
 
-Users are also encouraged to experiment with different hyperparamters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file. - It is important to note that the experiment paths, dataset and metadata paths need to be updated through 'config/config.py'
+Users are also encouraged to experiment with different hyperparameters through the [config.py](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/FYPProjectMultiSpectral/config/config.py) file. - It is important to note that the experiment paths, dataset and metadata paths need to be updated through 'config/config.py'
 
 ## Running the Web Application
 For a more interactive experience with additional features such as prediction and inference, you can run the web application by navigating to the web folder and executing:
@@ -87,12 +87,12 @@ This will start a Flask-based web server (by default at http://127.0.0.1:5000) t
 - **Prediction:** Upload Sentinel-2 imagery or fetch patches from an interactive map to classify land cover types using trained models.
 - **Inference and Comparison:** Compare model performance across experiments with detailed metrics and visualisations.
 - **Data Exploration:** Interactive charts and visualizations of the BigEarthNet dataset.
-- **Experiment Management**: View, filter, and analyze past experiments with detailed logs, metrics, and visualszations.
+- **Experiment Management**: View, filter, and analyze past experiments with detailed logs, metrics, and visualizations.
 - **Model Visualization:** Explore model architectures and Grad-CAM heatmaps for interpretability.
 
 The web application extends the functionality of main.py by providing a user-friendly interface and additional capabilities for real-time inference and visualization.
 
-## Experiment Tracking and Reporoducability
+## Experiment Tracking and Reproducibility
 The project follows automated experiment logging in a structured directory format:
 
       experiments/
@@ -104,7 +104,7 @@ The project follows automated experiment logging in a structured directory forma
       │   ├── test_per_class_metrics.json  # Stores the per-class metrics for testing
       │   ├── tensorboard_graphs/          # TensorBoard visualizations saved as images
       │   ├── predictions.npz              # Model predictions for analysis
-      │   ├── visualizations/              # Confusion matrices and Label Co-occurance images
+      │   ├── visualizations/              # Confusion matrices and Label Co-occurrence images
       │   ├── gradcam_visualizations/      # Grad-CAM heatmaps
       │   ├── activations.pdf/             # Activations of the model
       ├── checkpoints/                     # Stores trained models
@@ -113,7 +113,7 @@ The project follows automated experiment logging in a structured directory forma
       │   ├── final.pth                    # Final model after all epochs
       ├── logs/                            # Lightning Logs 
 
-Such a structured format ensures that evaluation can be performed efficiently. Besides that to ensure conistent results the project implementes **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
+Such a structured format ensures that evaluation can be performed efficiently. Besides that to ensure conistent results the project implements **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
 
 To reproduce an experiment run:
 
@@ -138,3 +138,40 @@ Beyond the above standard metrics, the project also makes use of additional Eval
 The results are stored within experiment/results folder.
 
 Note: While torchmetrics was used during training for internal monitoring, only sklearn was used for final evaluation and is reflected in the metrics shared and reported.
+
+## Final Experiment Results (10% BigEarthNet Subset)
+
+The directory `FYPProjectMultiSpectral/models/final_experiment_results/` contains the results of experiments conducted on the **10% subset** of the BigEarthNet dataset. Each model (e.g., `ResNet50`, `CustomModelV6`, etc.) has its own folder with the following structure:
+
+      model_name/
+      ├── checkpoints/           # Contains the final trained model (`last.ckpt`)
+      ├── results/               # Includes aggregated and per-class evaluation metrics (JSON, PNG, NPZ)
+      ├── architecture.txt       # Describes the model's architecture and configuration
+
+
+This layout supports consistent tracking of model performance and interpretability.
+
+> **Note:**  
+> Due to GitHub's [file size restrictions](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github) and issues encountered with Git LFS, the following model result folders have **not been included** in this repository:
+
+- **ResNet18**
+- **ResNet50**
+- **ResNet101**
+- **EfficientNet_V2**
+- **Vision Transformer (ViT)**
+- **Swin Transformer**
+- **VGG16**
+- **VGG19**
+
+These models exceeded GitHub’s 100MB file size limit or caused LFS bandwidth issues. Their results can be provided externally upon request.
+
+## Contact
+
+For questions, feedback, or access to full experiment results and model checkpoints not included in this repository due to GitHub size limitations, feel free to reach out:
+
+**Name:** Isaac Attard  
+**Email:** isaacattard@hotmail.com
+**GitHub:** [StaticRevo](https://github.com/StaticRevo)
+
+Alternatively, open an issue on the repository if it's project-related.
+

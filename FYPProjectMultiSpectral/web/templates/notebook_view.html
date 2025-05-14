@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+
 {% block title %}Data Exploration{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
   <div class="row justify-content-center">
@@ -14,6 +16,7 @@
             <a href="{{ url_for('index') }}" class="btn btn-primary">Return Home</a>
             <button class="btn btn-secondary" onclick="location.reload();">Refresh Notebook</button>
           </div>
+          
           <!-- Notebook Content -->
           <div class="notebook-content">
             {{ notebook_content|safe }}

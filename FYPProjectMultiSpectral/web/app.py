@@ -273,7 +273,7 @@ def predict_page():
             bands = default_bands
             return process_prediction(file_path, filename, bands, selected_experiment)
             
-        else:
+        else: # Batch prediction branch
             results_list = []
             model_instance = load_model_from_experiment(selected_experiment)
             
@@ -334,7 +334,7 @@ def select_bands():
     _, expected_bands = get_channels_and_bands(experiment_details["bands"])
     expected_count = len(expected_bands)
     
-    if len(selected_bands) != expected_count:
+    if len(selected_bands) != expected_count: # Check if the number of selected bands matches the expected count
         flash(f"Please select exactly {expected_count} band(s).", "error")
         try:
             with rasterio.open(file_path) as src:
@@ -371,7 +371,7 @@ def batch_gradcam():
     input_tensor = preprocess_tiff_image(file_path)
     input_tensor = input_tensor.to(next(model_instance.parameters()).device)
 
-    with torch.no_grad():
+    with torch.no_grad(): # Perform inference
         output = model_instance(input_tensor)
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
@@ -381,6 +381,8 @@ def batch_gradcam():
     experiment_details = parse_experiment_folder(experiment)
     model_name = experiment_details["model"]  
     in_channels, bands = get_channels_and_bands(experiment_details["bands"])
+
+    # Generate Grad-CAM visualization
     gradcam_results = generate_gradcam_for_single_image(
         model=model_instance,
         img_tensor=input_tensor,
@@ -389,6 +391,7 @@ def batch_gradcam():
         in_channels=in_channels,
         predicted_indices=predicted_indices
     )
+
     # Generate colour-coded Grad-CAM visualization
     gradcam_colourcoded = generate_colourcoded_gradcam(
         model_instance, input_tensor,
@@ -1147,7 +1150,7 @@ def predict_from_map():
     file_path = latest_tiff
     filename = os.path.basename(latest_tiff)
 
-    try:
+    try: 
         experiment_details = parse_experiment_folder(selected_experiment)
         model_name = experiment_details["model"]
         selected_bands_str = experiment_details["bands"]
@@ -1157,11 +1160,11 @@ def predict_from_map():
         if ext not in [".tif", ".tiff"]:
             raise ValueError("Latest file is not a TIFF.")
 
-        actual_channels = validate_image_channels(file_path, in_channels)
+        actual_channels = validate_image_channels(file_path, in_channels) # Validate the number of channels in the image
 
-        if actual_channels < in_channels:
+        if actual_channels < in_channels: # Check if the image has fewer channels than expected
             raise ValueError(f"Image has only {actual_channels} bands, but model requires {in_channels}.")
-        elif actual_channels > in_channels:
+        elif actual_channels > in_channels: # Check if the image has more channels than expected
             print(f"Warning: Image has {actual_channels} bands, model expects {in_channels}. Using first {in_channels} bands from default list: {default_bands[:in_channels]}")
             bands = default_bands[:in_channels]
         else:
@@ -1184,6 +1187,7 @@ def predict_from_map():
 
         print(f"preds type: {type(preds)}, value: {preds}")
 
+        # Generate Grad-CAM visualizations
         gradcam = generate_gradcam_for_single_image(
             model_instance, input_tensor,
             class_labels=DatasetConfig.class_labels,
@@ -1191,6 +1195,8 @@ def predict_from_map():
             in_channels=len(bands),
             predicted_indices=predicted_indices
         )
+        
+        # Generate Colour-coded Grad-CAM visualizations
         gradcam_colourcoded = generate_colourcoded_gradcam(
             model_instance, input_tensor,
             class_labels=DatasetConfig.class_labels,
@@ -1227,6 +1233,7 @@ def predict_from_map():
         serializable_response = convert_to_serializable(response_data)
 
         return jsonify(serializable_response)
+    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

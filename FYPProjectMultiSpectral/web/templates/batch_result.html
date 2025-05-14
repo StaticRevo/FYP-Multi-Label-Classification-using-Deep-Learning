@@ -29,6 +29,7 @@
           {% for result in results %}
             <tr>
               <td>{{ result.filename }}</td>
+              <!-- Predicted labels with probabilities and highlight if matches actual -->
               <td>
                 <ul class="mb-0">
                   {% for pred in result.predictions %}
@@ -40,6 +41,7 @@
                   {% endfor %}
                 </ul>
               </td>
+              <!-- Actual labels column -->
               <td>
                 {% if result.actual_labels and result.actual_labels|length > 0 %}
                   <ul class="mb-0">
@@ -51,11 +53,13 @@
                   <p class="mb-0 text-muted">No actual labels available.</p>
                 {% endif %}
               </td>
+              <!-- RGB composite image column -->
               <td>
                 <div class="d-flex justify-content-center">
                   <img src="{{ result.rgb_url }}" alt="RGB Composite" class="img-fluid rounded" style="width: 150px; max-width: 150px;">
                 </div>
               </td>
+              <!-- GradCAM link column -->
               <td>
                 <a href="{{ url_for('batch_gradcam', filename=result.filename, experiment=selected_experiment) }}" 
                    class="btn btn-info btn-sm">
@@ -69,6 +73,7 @@
     </div>
   </div>
 
+  <!-- Navigation buttons -->
   <div class="mt-4 text-center">
     <a href="{{ url_for('predict_page') }}" class="btn btn-primary me-2" aria-label="Upload more images">
       <i class="bi bi-upload me-1"></i> Upload More Images

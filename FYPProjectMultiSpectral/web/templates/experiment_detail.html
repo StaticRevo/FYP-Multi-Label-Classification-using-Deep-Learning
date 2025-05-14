@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Experiment Detail - {{ experiment_name }}{% endblock %}
 
+<!-- Macro for safely rounding values, handling missing or string data -->
 {% macro safe_round(value, decimals=3) %}
     {% if value is string and value|float is number %}
         {{ (value|float)|round(decimals, 'common') }}
@@ -19,7 +20,7 @@
         <h1 class="mb-4 section-title" style="word-break: break-word; overflow-wrap: break-word;">Experiment: {{ experiment_name }}</h1>
       </div>
 
-      <!-- Performance Summary Table -->
+      <!-- Performance Summary Table: Shows key metrics for the experiment -->
       <div class="card mb-4">
         <div class="card-header">
           <strong>Performance Summary Table</strong>
@@ -33,6 +34,7 @@
               </tr>
             </thead>
             <tbody>
+              <!-- Display main metrics using the safe_round macro -->
               <tr>
                 <td>Precision Micro</td>
                 <td>{{ safe_round(aggregated_metrics.precision_micro) }}</td>
@@ -213,6 +215,7 @@
       <h2 class="section-title">Detailed Metrics</h2>
       {% if metrics %}
         <div class="accordion" id="metricsAccordion">
+          <!-- best_metrics.json metrics -->
           {% if metrics["best_metrics.json"] is defined %}
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingBestMetrics">
@@ -281,7 +284,7 @@
               </div>
             </div>
           {% endif %}
-
+          
           {% if metrics["best_test_metrics.json"] is defined %}
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingBestTestMetrics">
@@ -350,7 +353,8 @@
               </div>
             </div>
           {% endif %}
-
+          
+          <!-- train_per_class_metrics.json metrics -->
           {% if metrics["test_per_class_metrics.json"] is defined %}
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingTestPerClass">
@@ -493,6 +497,7 @@
   </div>
 </div>
 
+<!-- Chart.js for per-class metrics bar chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% if metrics["val_per_class_metrics.json"] is defined %}
   {# Set the per_class_metrics variable: use test metrics if available, otherwise use validation metrics #}
@@ -567,7 +572,7 @@
       }
     };
 
-    // Create the chart
+    // Create the per-class metrics chart
     const valMetricsChart = new Chart(ctx, config);
   </script>
 {% endif %}

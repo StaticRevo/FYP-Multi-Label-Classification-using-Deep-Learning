@@ -50,18 +50,18 @@ class ModelSelectionGUI:
     # Define Options for the model, band, and dataset selection
     def setup_options(self):
         self.models = {
-            '1': 'CustomModelV9',
-            '2': 'CustomWRNB4ECA',
-            '3': 'VGG16',            # 2014
-            '4': 'VGG19',            # 2014
-            '5': 'ResNet18',         # 2015
-            '6': 'ResNet50',         # 2015
-            '7': 'ResNet101',       # 2015
-            '8': 'DenseNet121',     # 2016
-            '9': 'EfficientNetB0',  # 2019
-            '10': 'EfficientNet_v2', # 2021
-            '11': 'Swin-Transformer',# 2021
-            '12': 'Vit-Transformer', # 2021
+            '1': 'VGG16',            # 2014
+            '2': 'VGG19',            # 2014
+            '3': 'ResNet18',         # 2015
+            '4': 'ResNet50',         # 2015
+            '5': 'ResNet101',        # 2015
+            '6': 'DenseNet121',      # 2016
+            '7': 'EfficientNetB0',   # 2019
+            '8': 'EfficientNet_v2',  # 2021
+            '9': 'Swin-Transformer', # 2021
+            '10': 'Vit-Transformer', # 2021
+            '11': 'CustomWRNB4ECA',  # 2021
+            '12': 'CustomModelV9',   # 2025
         }
         self.band_selection = {
             '1': 'all_bands',

@@ -16,7 +16,7 @@ config.save()
 if not config.sh_client_id or not config.sh_client_secret:
     raise ValueError("Sentinel Hub credentials not set!")
 
-# Evalscript for 12 bands with UINT16 output and proper scaling
+# Evalscript for 12 bands with UIN`T16 output and proper scaling
 evalscript = """
 //VERSION=3
 function setup() {

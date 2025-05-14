@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+
 {% block title %}Upload Image(s) for Prediction{% endblock %}
+
 {% block content %}
 <!-- Upload Page for TIFF Image(s) -->
 <div class="container mt-5"> 
@@ -21,11 +23,13 @@
       <!-- File Upload Form -->
       <div class="card p-4"> 
         <form method="post" enctype="multipart/form-data">
+          <!-- File input for selecting one or more images -->
           <div class="mb-3">
-            <label for="formFiles" class="form一句话翻译成英文form-label">Select Image File(s)</label>
+            <label for="formFiles" class="form-label">Select Image File(s)</label>
             <input class="form-control" type="file" name="file" accept=".tif,.tiff,.png,.jpeg,.jpg" id="formFiles" multiple required>
           </div>
           <div class="mb-3">
+            <!-- Dropdown to select which experiment/model to use for prediction -->
             <label for="experimentSelect" class="form-label">Select Experiment</label>
             <select class="form-select" name="experiment" id="experimentSelect" required>
               {% for option in experiments %}
@@ -33,6 +37,7 @@
               {% endfor %}
             </select>
           </div>
+          <!-- Submit button -->
           <button type="submit" class="btn btn-primary w-100">Upload and Predict</button> 
         </form>
       </div>

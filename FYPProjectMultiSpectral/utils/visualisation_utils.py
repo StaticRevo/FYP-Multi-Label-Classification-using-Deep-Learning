@@ -40,8 +40,7 @@ def visualize_activations(result_path, num_filters=8):
                 figsize=(grid_size * 3, grid_size * 3)
             )
             
-            # Ensure axes is always iterable
-            if grid_size == 1:
+            if grid_size == 1: # Ensure axes is always iterable
                 axes = np.array([axes])
             else:
                 axes = axes.flatten()
@@ -95,7 +94,7 @@ def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
 
 # Save the tensorboard graphs as images
 def save_tensorboard_graphs(log_dir, output_dir):
-    os.makedirs(output_dir, exist_ok=True) # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True) 
 
     # Load the TensorBoard logs
     event_acc = EventAccumulator(log_dir)

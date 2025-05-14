@@ -599,7 +599,7 @@ def convert_image_to_tiff(file_path):
             raise ValueError(f"Error converting image to TIFF: {e}")
     return file_path
 
-# --- Helper function to crop the image ---
+# Crop an image based on geographical coordinates
 def crop_image_from_coords(app, image_path, top_left_lat, top_left_lng, bottom_right_lat, bottom_right_lng, out_width=120, out_height=120):
     with rasterio.open(image_path) as src:
         transform = src.transform

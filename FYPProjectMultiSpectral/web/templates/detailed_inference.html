@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Detailed Model Comparison{% endblock %}
 
+<!-- Macro for safely rounding values, handling missing or string data -->
 {% macro safe_round(value, decimals=3) %}
     {% if value is string and value|float is number %}
         {{ (value|float)|round(decimals, 'common') }}
@@ -45,6 +46,7 @@
             </tr>
           </thead>
           <tbody>
+            <!-- Loop through each metric and determine the best experiment for each -->
             {% set metrics_list = [
               {'name': 'Accuracy', 'key': 'test_acc', 'source': 'testing_comparison_data', 'minimize': False},
               {'name': 'Loss', 'key': 'test_loss', 'source': 'testing_comparison_data', 'minimize': True},
@@ -159,6 +161,7 @@
             </tr>
           </thead>
           <tbody>
+            <!-- Loop through each class and display metrics, highlighting the best for each metric -->
             {% set class_labels = experiments_data[selected_experiments[0]].per_class_metrics.class_labels %}
             {% for i in range(class_labels|length) %}
               {% set ns_precision = namespace(best_exp=None, best_value=None) %}
@@ -398,6 +401,7 @@
     </div>
   </div>
 
+  <!-- Navigation button to return home -->
   <div class="text-end">
     <a href="{{ url_for('index') }}" class="btn btn-secondary">Return Home</a>
   </div>

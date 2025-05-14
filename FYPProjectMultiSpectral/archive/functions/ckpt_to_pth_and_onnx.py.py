@@ -23,7 +23,6 @@ def convert_onnx_to_tf(onnx_model_path, tf_model_path):
 def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
     os.makedirs(save_dir, exist_ok=True)
 
-
     checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu")) # Load checkpoint
     print("Checkpoint keys:", checkpoint.keys()) # Check available keys in the checkpoint
 

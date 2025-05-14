@@ -15,7 +15,7 @@ class ResidualBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_channels)
         
         self.downsample = None
-        if in_channels != out_channels or stride != 1:       # Trigger downsample if channels or spatial dims change (stride > 1)
+        if in_channels != out_channels or stride != 1: # Trigger downsample if channels or spatial dims change (stride > 1)
             self.downsample = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(out_channels)
@@ -104,6 +104,7 @@ class ASPPModule(nn.Module):
 
         x = torch.cat([x1, x2, x3, x4], dim=1) # Concatenate the feature maps
         out = self.conv5(x) # Apply 1x1 convolution to fuse the features together
+        
         if x.shape == out.shape: # If input and output shapes match, add a residual connection
             return x + out
         
@@ -123,7 +124,7 @@ class MixedDepthwiseConv(nn.Module):
         out = torch.cat([conv(x) for conv in self.convs], dim=1) # Apply depthwise separable convolutions in parallel and concatenate
         out = self.pointwise(out) # Apply pointwise convolution
 
-        if x.shape == out.shape: # If input and output shapes match, add a residual connection
+        if x.shape == out.shape: 
             return x + out
         
         return out

@@ -103,20 +103,22 @@ class CustomModelV6(BaseModel):
             nn.Linear(in_features=256, out_features=num_classes) # Fully Connected Layer (256->19)
         )
     
-    # Override forward function for CustomModel
+    # Override forward function 
     def forward(self, x):
         x = self.spectral_mixer(x) # Spectral mixing (32, 60, 60)
         features_low = self.block1(x) # Block 1: Low-level features (64, 60, 60)
         features_mid = self.block2(features_low) # Block 2: Mid-level features (128, 30, 30)
         features_deep = self.block3(features_mid) # Block 3: Deep features (256, 15, 15)
+
         adapted_features_low = self.skip_adapter(features_low) # Adapt low-level features to match deep features (256, 15, 15)
         fused_features = features_deep + adapted_features_low  # Fuse low level and deep features (256, 15, 15)
         features_high = self.block4(fused_features) # Refine high-level representations (512, 15, 15)
+
         out = self.classifier(features_high) # Final classification (19)
         
         return out
 
-    # Override optimizer configuration for CustomModel
+    # Override optimizer configuration
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  
@@ -252,7 +254,7 @@ class CustomModelV9(BaseModel):
             nn.Linear(in_features=128, out_features=num_classes)
         )
     
-    # Forward pass with enhanced integration strategy
+    # Override forward function 
     def forward(self, x):
         x = self.spectral_mixer(x)  # (36, 60, 60)
         features_low = self.block1(x)  # (52, 60, 60)
@@ -297,6 +299,7 @@ class CustomModelV9(BaseModel):
         out = self.classifier(fused_features_high)  # (num_classes)
         return out
     
+    # Override optimizer configuration
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay, eps=1e-8)    
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience, min_lr=1e-7)
@@ -310,7 +313,7 @@ class CustomModelV9(BaseModel):
             }
         }
     
-# Custom ResNet50 Model
+# Custom ResNet50 Model ( for testing purposes )
 class CustomResNet50(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity() # Dummy model for custom architecture to pass to the base model
@@ -323,10 +326,10 @@ class CustomResNet50(BaseModel):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # MaxPool Layer (64,60,60) -> (64,30,30)
 
         # Residual Blocks
-        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30)  ## 3=ResNet50,ResNet101,ResNet152
-        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15) ## 4=ResNet50,ResNet101, 8=ResNet152
-        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)  ## 6=ResNet50, 23=ResNet101, 36=ResNet152
-        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4) ## 3=ResNet50,ResNet101,ResNet152
+        self.layer1 = self._make_layer(64, 3, stride=1) # (64,30,30) -> (256,30,30) (3=ResNet50,ResNet101,ResNet152)
+        self.layer2 = self._make_layer(128, 4, stride=2) # (256,30,30) -> (512,15,15) (4=ResNet50,ResNet101, 8=ResNet152)
+        self.layer3 = self._make_layer(256, 6, stride=2) # (512,15,15) -> (1024,8,8)  (6=ResNet50, 23=ResNet101, 36=ResNet152)
+        self.layer4 = self._make_layer(512, 3, stride=2) # (1024,8,8) -> (2048,4,4) (3=ResNet50,ResNet101,ResNet152)
 
         # Classifier
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1)) # AdaptiveAvgPool Layer (2048,4,4) -> (2048,1,1)
@@ -358,7 +361,7 @@ class CustomResNet50(BaseModel):
         
         return nn.Sequential(*layers)
 
-    # Override forward function for Custom ResNet50 Model
+    # Override forward function 
     def forward(self, x):
         x = self.conv1(x) # (19, 120, 120) -> (64, 60, 60)
         x = self.bn1(x)
@@ -376,7 +379,7 @@ class CustomResNet50(BaseModel):
 
         return x
 
-    # Override optimizer configuration for Custom ResNet50 Model
+    # Override optimizer configuration 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor,  patience=ModelConfig.lr_patience)                                                  
@@ -390,7 +393,7 @@ class CustomResNet50(BaseModel):
             }
         }
 
-# Custom WideResNetB4-ECA Model
+# Custom WideResNetB4-ECA Model (adapted from Papoutsis et al. 2021)
 class CustomWRNB4ECA(BaseModel):
     def __init__(self, class_weights, num_classes, in_channels, model_weights, main_path):
         dummy_model = nn.Identity()
@@ -436,6 +439,7 @@ class CustomWRNB4ECA(BaseModel):
             layers.append(WideBasicBlockECA(self.in_channels, out_channels))
         return nn.Sequential(*layers)
     
+    # Override forward function
     def forward(self, x):
         x = self.conv1(x)  # [12, 176, 176] -> [38, 176, 176]
         x = self.bn1(x)
@@ -446,8 +450,10 @@ class CustomWRNB4ECA(BaseModel):
         x = self.avgpool(x)  # [153, 44, 44] -> [153, 1, 1]
         x = torch.flatten(x, 1)  # [153]
         x = self.fc(x)  # [153] -> [19]
+
         return x
 
+    # Override optimizer configuration
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)
@@ -644,7 +650,7 @@ class EfficientNetB0(BaseModel):
             # Modify the first convolutional layer
             original_conv1 = efficientnet_model.features[0][0] 
             efficientnet_model.features[0][0] = nn.Conv2d(
-                in_channels=in_channels,  # Adjust for custom input channels
+                in_channels=in_channels,  
                 out_channels=original_conv1.out_channels,
                 kernel_size=original_conv1.kernel_size,
                 stride=original_conv1.stride,
@@ -699,7 +705,7 @@ class DenseNet121(BaseModel):
         if in_channels == 3:
             pass
         else:
-            # Modify the first convolutional layer to accept custom number of input channels
+            # Modify the first convolutional layer
             original_conv1 = densenet_model.features[0] 
             densenet_model.features[0] = nn.Conv2d(
                 in_channels=in_channels,  

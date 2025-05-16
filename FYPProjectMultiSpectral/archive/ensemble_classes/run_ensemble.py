@@ -15,13 +15,13 @@ from sklearn.metrics import precision_score, recall_score, f1_score, fbeta_score
 from tqdm import tqdm
 
 # Local application imports
-from FYPProjectMultiSpectral.archive.Ensemble.ensemble import EnsembleModel
+from archive.ensemble_classes.ensemble import EnsembleModel
 from dataloader import BigEarthNetDataLoader
 from config.config import DatasetConfig, ModelConfig, calculate_class_weights
 
 logging.basicConfig(level=logging.INFO) # Set up logging with suppression of rasterio GDAL errors
 logger = logging.getLogger()
-logging.getLogger("rasterio._env").setLevel(logging.WARNING)
+logging.getLogger("rasterio._env").setLevel(logging.WARNING) 
 
 # Compute aggregated metrics with sklearn
 def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=None):
@@ -84,7 +84,7 @@ def run_ensemble_inference():
         }
 
     ]
-    ensemble_weights = [0.82, 0.85]
+    ensemble_weights = [0.82, 0.85] # Example weights for the models in the ensemble depending on their performance
 
     # Build the ensemble with weights
     ensemble = EnsembleModel(model_configs, weights=ensemble_weights, device=device)

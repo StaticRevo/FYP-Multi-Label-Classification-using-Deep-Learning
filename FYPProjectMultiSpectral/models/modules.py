@@ -252,7 +252,7 @@ class DropPath(nn.Module):
         self.drop_prob = drop_prob
 
     def forward(self, x):
-        if self.drop_prob == 0. or not self.training: # If dropout probability is 0 or not in training mode return input
+        if self.drop_prob == 0. or not self.training: 
             return x
         
         keep_prob = 1 - self.drop_prob # Calculate the probability of keeping a path

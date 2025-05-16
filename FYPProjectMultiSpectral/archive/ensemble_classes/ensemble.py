@@ -50,9 +50,7 @@ class EnsembleModel(nn.Module):
             self.models.append(model)
 
     def _create_model(self, arch, class_weights, num_classes, in_channels, model_weights, main_path):
-        if arch == 'custom_model':
-            return CustomModel(class_weights, num_classes, in_channels, model_weights, main_path)
-        elif arch == 'resnet18':
+        if arch == 'resnet18':
             return ResNet18(class_weights, num_classes, in_channels, model_weights, main_path)
         elif arch == 'resnet50':
             return ResNet50(class_weights, num_classes, in_channels, model_weights, main_path)
@@ -74,8 +72,6 @@ class EnsembleModel(nn.Module):
             return CustomModelV9(class_weights, num_classes, in_channels, model_weights, main_path)
         elif arch == 'custom_model6':
             return CustomModelV6(class_weights, num_classes, in_channels, model_weights, main_path)
-        elif arch == 'custom_model7':
-            return CustomModelV7(class_weights, num_classes, in_channels, model_weights, main_path)
         else:
             raise ValueError(f"Unsupported architecture '{arch}'")
 

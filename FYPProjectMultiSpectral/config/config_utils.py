@@ -27,12 +27,12 @@ def calculate_class_weights(metadata_csv):
     class_weights = {label: total_counts / count for label, count in label_counts.items()}
     class_weights_array = np.array([class_weights[label] for label in class_labels])
 
-    #normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights (currently not used)
+    # normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights 
     log_weights = np.log1p(class_weights_array)
 
     boost_factor = 3.0
-    log_weights[2] *= boost_factor 
-    log_weights[4] *= boost_factor
+    log_weights[2] *= boost_factor # Boost the weight of class 3 - Beaches, dunes, sands
+    log_weights[4] *= boost_factor # Boost the weight of class 5 - Coastal Wetlands
 
     return log_weights
 

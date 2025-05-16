@@ -44,6 +44,7 @@ class AsymmetricLoss(nn.Module):
         loss_pos = (1 - probas) ** self.gamma_pos * F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
         loss_neg = probas ** self.gamma_neg * F.binary_cross_entropy_with_logits(inputs, 1 - targets, reduction='none')
         loss = loss_pos * targets + loss_neg * (1 - targets)
+        
         return loss.mean()
 
 # --Soft F1 Loss--

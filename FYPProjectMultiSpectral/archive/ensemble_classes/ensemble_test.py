@@ -19,7 +19,7 @@ from utils.test_utils import calculate_metrics_and_save_results, visualize_predi
 from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear_activations, visualize_activations
 from utils.logging_utils import setup_logger
 from models.models import *
-from FYPProjectMultiSpectral.archive.Ensemble.ensemble import EnsembleLightningModule
+from archive.ensemble_classes.ensemble import EnsembleLightningModule
 
 # Test ensemble model
 def main():
@@ -92,9 +92,6 @@ def main():
         logger = logger
     )
     logger.info("Metrics and results saved.")
-
-    print("Computing continuous probability outputs for ROC AUC...")
-    # all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands)
 
     # Visualize predictions and results
     logger.info("Visualizing predictions and heatmaps...")

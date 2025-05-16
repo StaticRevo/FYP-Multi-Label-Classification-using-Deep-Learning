@@ -1,7 +1,11 @@
+# Standard library imports
+import math
+
+# Third-party imports
 import torch 
 import torch.nn as nn
-import math
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+import torch.nn.functional as F
 
 # -- Old Custom Model version Modules --
 # Residual Block Module (ResidualBlock)
@@ -15,7 +19,7 @@ class ResidualBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_channels)
         
         self.downsample = None
-        if in_channels != out_channels or stride != 1: # Trigger downsample if channels or spatial dims change (stride > 1)
+        if in_channels != out_channels or stride != 1: # Trigger downsample if channels or spatial dims change
             self.downsample = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(out_channels)
@@ -30,32 +34,42 @@ class ResidualBlock(nn.Module):
         out = self.bn2(out)
         if self.downsample is not None:
             residual = self.downsample(x)
+
         if out.shape != residual.shape:  # Ensure shapes match before addition
             raise RuntimeError(f"Shape mismatch: out {out.shape} vs residual {residual.shape}")
+        
+        # Residual connection
         out += residual
         out = self.relu(out)
+        
         return out
 
-# Positional Encoding Module (PositionalEncoding)
+# Positional Encoding Module (PositionalEncoding) - adds positional information to the input tokens
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=5000):
         super(PositionalEncoding, self).__init__()
-        pe = torch.zeros(max_len, d_model)
+        pe = torch.zeros(max_len, d_model) # positional encoding tensor
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+
+        # Compute sine and cosine for even and odd indices
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
+
+        # Add batch dimension
         pe = pe.unsqueeze(0)  # Shape: (1, max_len, d_model)
         self.register_buffer('pe', pe)
  
     def forward(self, x):   
         seq_len = x.size(1) # x: (B, seq_len, d_model)
-        return x + self.pe[:, :seq_len, :]
+
+        return x + self.pe[:, :seq_len, :] # Add positional encoding
      
-# Transformer Module (TransformerModule)
+# Transformer Module (TransformerModule) - applies a transformer encoder to 2D feature maps
 class TransformerModule(nn.Module):
     def __init__(self, d_model, nhead=8, num_layers=1, dropout=0.1, return_mode="reshape"):
         super(TransformerModule, self).__init__()
+        # Single transformer encoder layer
         encoder_layer = TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout)
         self.transformer_encoder = TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.positional_encoding = PositionalEncoding(d_model)
@@ -75,7 +89,7 @@ class TransformerModule(nn.Module):
             raise ValueError("Unsupported return_mode. Choose 'reshape' or 'pool'.")
         return tokens
     
-# ASPP Module (ASPP)
+# Atrous Spatial Pyramid Pooling (ASPP) - computes features at multiple scales using parallel dilated convolutions
 class ASPPModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes, strides, dilations, bias, padding_mode):
         super(ASPPModule, self).__init__()
@@ -110,7 +124,7 @@ class ASPPModule(nn.Module):
         
         return out
     
-# Mixed Depthwise Convolution Module
+# Mixed Depthwise Convolution Module - applies multiple depthwise separable convolutions with different kernel sizes in parallel
 class MixedDepthwiseConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5], stride=1):
         super(MixedDepthwiseConv, self).__init__()

@@ -73,9 +73,9 @@ def bigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_df, snow_clou
 
 ############################################################################################################
 if __name__ == '__main__':
-    dataset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\OnePBigEarthNetCopySubsets2\50_percent' # Full path of the dataset
-    subset_dir = r'C:\Users\isaac\Desktop\BigEarthTests\Subsets' # Full path of the subset directory
-    metadata_file = r'C:\Users\isaac\Downloads\metadata.parquet' # Full path of the metadata file
-    unwanted_metadata_file = r'C:\Users\isaac\Downloads\metadata_for_patches_with_snow_cloud_or_shadow.parquet' # Full path of the unwanted metadata
+    dataset_dir = DatasetConfig.dataset_paths['100'] # Full path of the dataset
+    subset_dir = DatasetConfig.subset_dir # Full path of the subset directory
+    metadata_file = DatasetConfig.original_metdata_file # Full path of the metadata file
+    unwanted_metadata_file = DatasetConfig.unwanted_metadata_csv # Full path of the unwanted metadata
     
     bigEarthNetDataPreprocessing(dataset_dir, subset_dir, metadata_file, unwanted_metadata_file)

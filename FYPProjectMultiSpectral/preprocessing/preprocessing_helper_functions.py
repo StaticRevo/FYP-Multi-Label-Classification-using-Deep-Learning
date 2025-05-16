@@ -26,6 +26,8 @@ from config.config_utils import clean_and_parse_labels
 def downloadAndExtractDataset(dataset_dir):
     download_url = 'https://zenodo.org/records/10891137/files/BigEarthNet-S2.tar.zst?download=1'
     chunk_size = 1024
+
+    # Download the dataset in streaming mode with progress bar
     try:
         response = requests.get(download_url, stream=True)
         response.raise_for_status() 
@@ -41,6 +43,7 @@ def downloadAndExtractDataset(dataset_dir):
         print(f"Error during dataset download: {e}")
         raise
     
+    # Decompress the .zst file to .tar
     try:
         with open(dataset_dir, 'rb') as file_in:
             dctx = zstd.ZstdDecompressor()
@@ -106,7 +109,7 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
 
 # Create a stratified subset of the dataset based on labels
 def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
-    metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels) # Ensure labels are parsed 
+    metadata_df['labels'] = metadata_df['labels'].apply(clean_and_parse_labels)
     
     # Convert the list of labels into a binary matrix using MultiLabelBinarizer
     mlb = MultiLabelBinarizer()
@@ -284,8 +287,7 @@ def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_pat
     if output_path:
         with open(output_path, 'w', newline='') as f:
             writer = csv.writer(f)
-            # Write header
-            writer.writerow(metadata.columns)
+            writer.writerow(metadata.columns) # Write header
             # Write rows, formatting the labels column appropriately
             for _, row in metadata.iterrows():
                 if isinstance(row['labels'], list):
@@ -334,7 +336,7 @@ def copy_subset_images(original_images_dir, original_metadata_path, subset_metad
 
 # Count the number of .tif images in a folder
 def count_tif_images(folder_path):
-    total_images = 0  # Initialize total image counter
+    total_images = 0  
 
     # Iterate through all files in the folder
     for file in tqdm(os.listdir(folder_path), desc="Counting .tif images"):
@@ -403,10 +405,12 @@ def generatePaths(base_path):
 # Combine multiple .tif files into a single multi-band .tif file
 def combineTiffs(base_path, output_path):
     band_paths = generatePaths(base_path)
+
     # Read the first image to get metadata
     with rasterio.open(band_paths[0]) as src:
         meta = src.meta.copy()
         meta.update(count=len(band_paths))  # Update the count to the number of bands
+
     # Create a new multi-band TIFF file
     with rasterio.open(output_path, 'w', **meta) as dst:
         for idx, path in enumerate(band_paths, start=1):
@@ -451,16 +455,16 @@ def move_images_to_single_folder(source_root_dir, target_dir):
 # Move all subfolders to the main directory
 def move_all_subfolders_to_main_directory(source_root_dir, target_dir):
     if not os.path.exists(target_dir):
-        os.makedirs(target_dir)  # Create destination directory if it doesn't exist
+        os.makedirs(target_dir)  
     
     for root_folder in os.listdir(source_root_dir):
         root_folder_path = os.path.join(source_root_dir, root_folder)
         
-        if os.path.isdir(root_folder_path):  # Ensure it's a directory
+        if os.path.isdir(root_folder_path): 
             for subfolder in os.listdir(root_folder_path):
                 subfolder_path = os.path.join(root_folder_path, subfolder)
                 
-                if os.path.isdir(subfolder_path):  # Ensure it's a directory
+                if os.path.isdir(subfolder_path):  
                     # Define the new destination path for the subfolder
                     dest_path = os.path.join(target_dir, subfolder)
                     
@@ -497,7 +501,6 @@ def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
 
 # Precompute sample weights for a dataset based on label frequencies
 def precompute_sample_weights(metadata_csv, num_classes, label_column="labels", cache_path="subset_sample_weights.npy"):
-    # Check if cached weights exist; if so, load and print a message.
     if os.path.exists(cache_path):
         cached_weights = np.load(cache_path)
         return cached_weights
@@ -512,9 +515,9 @@ def precompute_sample_weights(metadata_csv, num_classes, label_column="labels", 
     # Count occurrences of each class across all samples.
     for idx, row in metadata_csv.iterrows():
         label_list = row[label_column]
-        encoded_labels = encode_label(label_list)  # Convert label names to multi-hot encoding
-        label_counts += np.array(encoded_labels, dtype=np.float32)  # Count occurrences of each class
-
+        encoded_labels = encode_label(label_list)  
+        label_counts += np.array(encoded_labels, dtype=np.float32) 
+        
     total_rows = len(metadata_csv)
     weights = []
 

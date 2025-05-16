@@ -30,7 +30,7 @@ def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
     metadata_csv = pd.read_csv(DatasetConfig.metadata_paths['1'])
     class_weights = calculate_class_weights(metadata_csv)
 
-    # Initialize model
+    # Initialize model - Example with CustomWRNB0
     model = CustomWRNB0(
         class_weights=class_weights,
         num_classes=DatasetConfig.num_classes,

@@ -26,7 +26,6 @@ from config.config import ModelConfig, DatasetConfig, ModuleConfig
 from .Metrics.one_error import OneError
 from models.losses import *
 
-# Base model class for all models
 device = ModelConfig.device
 
 # Base model class for all models

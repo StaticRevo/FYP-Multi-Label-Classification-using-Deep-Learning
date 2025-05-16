@@ -1,4 +1,5 @@
 // Interactive map for displaying image patches and predictions
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialise the map
     var map = L.map('map').setView([35.9375, 14.3754], 11); // Malta
@@ -67,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Function to fetch the image and predictions
     function fetchImageAndPrediction(lat, lon) {
         var formData = new FormData();
         formData.append('lat', lat);

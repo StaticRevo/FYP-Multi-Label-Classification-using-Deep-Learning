@@ -1,4 +1,5 @@
 // Bubble Chart Function for F2 Score vs Training Time
+
 function renderBubbleChart(experimentsData) {
   // Extract arrays for the plot
   const xValues = experimentsData.map(d => d.training_time_min);
@@ -23,7 +24,7 @@ function renderBubbleChart(experimentsData) {
   const colorScale = Plotly.d3.scale.category20(); 
   const modelColors = {};
   uniqueModels.forEach((model, i) => {
-    modelColors[model] = colorScale(i % 20); // Assign a unique color to each model
+    modelColors[model] = colorScale(i % 20);
   });
 
   // Group data by individual model for separate traces
@@ -39,7 +40,7 @@ function renderBubbleChart(experimentsData) {
       text: indices.map(i => labels[i]),
       hovertext: indices.map(i => experimentNames[i]),
       hovertemplate: 'Model: %{text}<br>Experiment: %{hovertext}<br>Training Time: %{x} minutes<br>F2 Score: %{y}<extra></extra>',
-      mode: 'markers', // Labels on hover only
+      mode: 'markers', 
       name: model, 
       marker: {
         size: indices.map(i => sizeValues[i]),

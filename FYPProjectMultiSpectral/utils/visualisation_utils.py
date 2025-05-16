@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-import rasterio
 
 activations = {} # Dictionary to store activations from the model
 

@@ -10,7 +10,7 @@ def setup_logger(name=__name__, level=logging.INFO, log_dir="logs", file_name=No
     logger = logging.getLogger(name)
     logger.setLevel(level)
     
-    if logger.hasHandlers(): # Remove existing handlers if any, so that the logger gets reconfigured
+    if logger.hasHandlers(): # Remove existing handlers if any
         logger.handlers.clear()
     
     # Create file handler

@@ -1,6 +1,5 @@
 # Third-party imports
 import numpy as np
-import torch
 from torch.utils.data import WeightedRandomSampler
 
 # Compute the frequency of each label in the dataset

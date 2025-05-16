@@ -1,6 +1,6 @@
 var map = L.map('map').setView([35.9, 14.5], 11); // Default: Malta
 
-// Add Esri World Imagery (satellite view)
+// Add Esri World Imagery basemap
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'

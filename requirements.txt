@@ -22,3 +22,4 @@ fastparquet==2024.2.0
 torchcam==0.4.0
 flask==3.1.0
 sentinelhub==3.11.1
+sqikit-learn==1.6.0

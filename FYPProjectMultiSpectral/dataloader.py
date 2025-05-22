@@ -50,7 +50,7 @@ class BigEarthNetDataLoader(pl.LightningDataModule):
                                 num_workers=ModelConfig.num_workers, 
                                 prefetch_factor=2, 
                                 pin_memory=True, 
-                                shuffle=True,  # sampler=sampler,
+                                shuffle=True,  
                                 persistent_workers=True)
         return dataloader
 

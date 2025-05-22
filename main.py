@@ -72,7 +72,7 @@ class ModelSelectionGUI:
             '6': 'rgb_nir_swir_bands'
         }
         self.dataset_selection = {
-            '1': '0.5%_BigEarthNet ',
+            '1': '0.5%_BigEarthNet',
             '2': '1%_BigEarthNet',
             '3': '5%_BigEarthNet',
             '4': '10%_BigEarthNet',

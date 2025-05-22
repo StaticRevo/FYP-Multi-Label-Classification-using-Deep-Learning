@@ -24,7 +24,7 @@ class BestMetricsCallback(pl.Callback):
     
     # Save temporary metrics to a JSON file
     def save_temp_metrics(self):
-        # Create a temporary file name based on the final save path.
+        # Create a temporary file name based on the final save path
         temp_save_path = self.save_path.replace('best_metrics.json', 'best_metrics_temp.json')
         best_metrics_python = {metric: (value.item() if isinstance(value, torch.Tensor) else value)
                                for metric, value in self.best_metrics.items()}

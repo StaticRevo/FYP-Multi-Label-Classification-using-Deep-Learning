@@ -10,6 +10,7 @@ sys.path.insert(0, parent_dir)
 
 import json
 import uuid
+import ast
 
 # Third-party imports
 from flask import url_for, flash, render_template
@@ -40,7 +41,7 @@ CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)
 # --- Helper Functions ---
 # Load the model from the experiment folder
 def load_model_from_experiment(experiment_name):
-    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt") # Construct the checkpoint path from the experiment folder
+    checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt") 
     
     # Parse the experiment folder name to extract model details.
     parsed = parse_experiment_folder(experiment_name)
@@ -356,7 +357,7 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
 
     # Hard max across categories per pixel
     argmax_map = np.argmax(stacked_maps, axis=-1)  # shape: (H, W)
-    max_vals = np.max(stacked_maps, axis=-1)       # shape: (H, W)
+    max_vals = np.max(stacked_maps, axis=-1)       
 
     # Create overlay array
     overlay_array = np.zeros((target_height, target_width, 3), dtype=np.float32)
@@ -401,7 +402,6 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
 
 # Fetch the actual labels from the metadata CSV
 def fetch_actual_labels(patch_id):
-    import ast
     metadata_df = pd.read_csv(DatasetConfig.metadata_path)
     row = metadata_df.loc[metadata_df['patch_id'] == patch_id]
     if row.empty:

@@ -46,8 +46,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
 
     # Save predictions and labels
     save_path = os.path.join(result_path, f'test_predictions_{model_name}_{dataset_name}.npz')
-    np.savez(save_path, all_preds=all_preds, all_labels=all_labels)
-
+    np.savez(save_path, all_preds=all_preds, all_labels=all_labels) # Save predictions and labels to a .npz file
     logger.info(f"Predictions and labels saved to {save_path}")
 
     return all_preds, all_labels # Save the predictions and labels to a .npz file

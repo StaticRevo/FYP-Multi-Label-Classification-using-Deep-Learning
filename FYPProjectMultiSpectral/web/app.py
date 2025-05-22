@@ -108,7 +108,7 @@ def train_page():
 @app.route('/logs')
 def logs():
     global _cached_training_log, _last_training_log_time
-    main_path = session.get('main_path') # Retrieve the main experiment path from the session.
+    main_path = session.get('main_path') # Retrieve the main experiment path from the session
     if not main_path:
         return "No training run information found in session."
 
@@ -329,7 +329,7 @@ def select_bands():
     selected_experiment = request.form.get("experiment")
     selected_bands = request.form.getlist("selected_bands") 
     
-    # Validate that the number of selected bands is as expected.
+    # Validate that the number of selected bands is as expected
     experiment_details = parse_experiment_folder(selected_experiment)
     _, expected_bands = get_channels_and_bands(experiment_details["bands"])
     expected_count = len(expected_bands)
@@ -352,7 +352,7 @@ def select_bands():
     
     selected_bands = sorted([int(b) for b in selected_bands]) # Convert band selections to integers and sort them
     
-    return process_prediction(file_path, filename, selected_bands, selected_experiment) # Proceed with prediction using the user-selected bands.
+    return process_prediction(file_path, filename, selected_bands, selected_experiment) # Proceed with prediction using the user-selected bands
 
 # --- Batch GradCAM Page ---
 @app.route("/batch_gradcam")

@@ -41,11 +41,11 @@ class BigEarthNetDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        # 1. Get the patch_id and corresponding image path
+        # Get the patch_id and corresponding image path
         patch_id = self.patch_ids[idx]
         image_path = self.image_paths[idx]
 
-        # 2. Read the raster data
+        # Read the raster data
         try:
             with rasterio.open(image_path) as src:
                 image = src.read()  # Shape: (channels, height, width)
@@ -56,18 +56,18 @@ class BigEarthNetDataset(Dataset):
             label = torch.zeros(DatasetConfig.num_classes, dtype=torch.float32)
             return image, label
 
-        # 3. Convert image to a float32 tensor
+        # Convert image to a float32 tensor
         image = torch.tensor(image, dtype=torch.float32)
 
-        # 4. Apply transformations 
+        # Apply transformations 
         if self.transforms:
             image = self.transforms(image)
 
-        # 5. Apply normalisation
+        # Apply normalisation
         if self.normalisation:
             image = self.normalisation(image)
 
-        # 6. Retrieve the label using patch_id
+        # Retrieve the label using patch_id
         label = self.get_label(patch_id)
 
         return image, label

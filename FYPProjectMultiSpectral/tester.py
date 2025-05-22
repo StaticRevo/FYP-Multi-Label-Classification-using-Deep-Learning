@@ -54,7 +54,8 @@ def main():
     # Load the model from the checkpoint
     model_class, _ = get_model_class(model_name)
     model_weights = None if weights == 'None' else weights
-    model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, in_channels=in_channels, model_weights=model_weights, main_path=main_path)
+    model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, 
+                                             in_channels=in_channels, model_weights=model_weights, main_path=main_path)
     model.eval() # Set the model to evaluation mode
 
     register_hooks(model) # Register hooks for visualization of activations

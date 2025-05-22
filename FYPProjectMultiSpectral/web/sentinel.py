@@ -77,7 +77,7 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
             'count': data_tiff.shape[0],
             'dtype': 'uint16',
             'crs': 'EPSG:4326',
-            'transform': from_bounds(*bbox_coords, 120, 120)  # Enforce 120x120 transform
+            'transform': from_bounds(*bbox_coords, 120, 120)  
         }
 
         # Save directly as multispectral TIFF in WGS84

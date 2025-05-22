@@ -1,6 +1,5 @@
 # Standard library imports
 import os
-import random
 
 # Third-party imports
 import torch
@@ -9,7 +8,6 @@ import rasterio
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from tqdm import tqdm
-from PIL import Image
 import pandas as pd
 
 # Local application imports

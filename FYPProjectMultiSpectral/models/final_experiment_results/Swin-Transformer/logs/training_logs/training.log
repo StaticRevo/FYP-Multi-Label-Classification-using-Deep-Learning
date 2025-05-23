@@ -1,0 +1,88 @@
+2025-03-30 15:12:44,188 - INFO - Using 12 input channels based on 'all_bands'.
+2025-03-30 15:12:51,460 - INFO - Training Swin-Transformer model with None weights and 'all_bands' bands on 10%_BigEarthNet.
+2025-03-30 15:12:51,461 - INFO - Hyperparameters saved to K:\FYP\NEWexperiments\Swin-Transformer_None_all_bands_10%_BigEarthNet_50epochs\hyperparameters.txt
+2025-03-30 15:12:51,526 - INFO - Model architecture saved to K:\FYP\NEWexperiments\Swin-Transformer_None_all_bands_10%_BigEarthNet_50epochs\Swin-Transformer.txt
+2025-03-30 15:12:51,526 - INFO - Training on device: cuda
+2025-03-30 15:12:51,535 - INFO - No checkpoint provided, starting training from scratch.
+2025-03-30 15:12:51,535 - INFO - Starting model training...
+2025-03-30 15:13:57,776 - INFO - Starting validation epoch 0.
+2025-03-30 15:14:01,083 - INFO - Validation epoch 0 finished.
+2025-03-30 15:15:08,784 - INFO - Starting training epoch 0.
+2025-03-30 15:25:33,715 - INFO - Starting validation epoch 0.
+2025-03-30 15:26:30,672 - INFO - Validation epoch 0 finished.
+2025-03-30 15:26:30,697 - INFO - Training epoch 0 finished.
+2025-03-30 15:26:30,697 - INFO - Initial Learning Rate: 0.001
+2025-03-30 15:26:35,814 - INFO - Starting training epoch 1.
+2025-03-30 15:37:36,724 - INFO - Starting validation epoch 1.
+2025-03-30 15:38:33,522 - INFO - Validation epoch 1 finished.
+2025-03-30 15:38:33,550 - INFO - Training epoch 1 finished.
+2025-03-30 15:38:38,720 - INFO - Starting training epoch 2.
+2025-03-30 15:49:39,472 - INFO - Starting validation epoch 2.
+2025-03-30 15:50:36,112 - INFO - Validation epoch 2 finished.
+2025-03-30 15:50:36,138 - INFO - Training epoch 2 finished.
+2025-03-30 15:50:41,348 - INFO - Starting training epoch 3.
+2025-03-30 16:01:43,260 - INFO - Starting validation epoch 3.
+2025-03-30 16:02:39,900 - INFO - Validation epoch 3 finished.
+2025-03-30 16:02:39,926 - INFO - Training epoch 3 finished.
+2025-03-30 16:02:45,110 - INFO - Starting training epoch 4.
+2025-03-30 16:13:45,242 - INFO - Starting validation epoch 4.
+2025-03-30 16:14:42,846 - INFO - Validation epoch 4 finished.
+2025-03-30 16:14:42,871 - INFO - Training epoch 4 finished.
+2025-03-30 16:14:48,053 - INFO - Starting training epoch 5.
+2025-03-30 16:25:48,422 - INFO - Starting validation epoch 5.
+2025-03-30 16:26:45,244 - INFO - Validation epoch 5 finished.
+2025-03-30 16:26:45,269 - INFO - Training epoch 5 finished.
+2025-03-30 16:26:50,455 - INFO - Starting training epoch 6.
+2025-03-30 16:37:50,634 - INFO - Starting validation epoch 6.
+2025-03-30 16:38:45,007 - INFO - Validation epoch 6 finished.
+2025-03-30 16:38:45,030 - INFO - Training epoch 6 finished.
+2025-03-30 16:38:50,194 - INFO - Starting training epoch 7.
+2025-03-30 16:49:51,315 - INFO - Starting validation epoch 7.
+2025-03-30 16:50:47,786 - INFO - Validation epoch 7 finished.
+2025-03-30 16:50:47,811 - INFO - Training epoch 7 finished.
+2025-03-30 16:50:52,996 - INFO - Starting training epoch 8.
+2025-03-30 17:01:53,845 - INFO - Starting validation epoch 8.
+2025-03-30 17:02:50,570 - INFO - Validation epoch 8 finished.
+2025-03-30 17:02:50,594 - INFO - Training epoch 8 finished.
+2025-03-30 17:02:55,723 - INFO - Starting training epoch 9.
+2025-03-30 17:13:56,336 - INFO - Starting validation epoch 9.
+2025-03-30 17:14:53,199 - INFO - Validation epoch 9 finished.
+2025-03-30 17:14:53,224 - INFO - Training epoch 9 finished.
+2025-03-30 17:14:58,453 - INFO - Starting training epoch 10.
+2025-03-30 17:25:59,922 - INFO - Starting validation epoch 10.
+2025-03-30 17:26:57,221 - INFO - Validation epoch 10 finished.
+2025-03-30 17:26:57,248 - INFO - Training epoch 10 finished.
+2025-03-30 17:26:57,248 - INFO - Epoch 10: Learning Rate changed to: 0.0005
+2025-03-30 17:27:02,482 - INFO - Starting training epoch 11.
+2025-03-30 17:38:05,707 - INFO - Starting validation epoch 11.
+2025-03-30 17:39:02,818 - INFO - Validation epoch 11 finished.
+2025-03-30 17:39:02,843 - INFO - Training epoch 11 finished.
+2025-03-30 17:39:08,115 - INFO - Starting training epoch 12.
+2025-03-30 17:50:11,648 - INFO - Starting validation epoch 12.
+2025-03-30 17:51:09,083 - INFO - Validation epoch 12 finished.
+2025-03-30 17:51:09,107 - INFO - Training epoch 12 finished.
+2025-03-30 17:51:14,420 - INFO - Starting training epoch 13.
+2025-03-30 18:02:17,532 - INFO - Starting validation epoch 13.
+2025-03-30 18:03:14,867 - INFO - Validation epoch 13 finished.
+2025-03-30 18:03:14,893 - INFO - Training epoch 13 finished.
+2025-03-30 18:03:20,148 - INFO - Starting training epoch 14.
+2025-03-30 18:14:22,524 - INFO - Starting validation epoch 14.
+2025-03-30 18:15:20,308 - INFO - Validation epoch 14 finished.
+2025-03-30 18:15:20,337 - INFO - Training epoch 14 finished.
+2025-03-30 18:16:50,912 - INFO - Model training completed.
+2025-03-30 18:16:50,912 - INFO - Saving TensorBoard graphs as images...
+2025-03-30 18:16:56,432 - INFO - TensorBoard graphs saved to K:\FYP\NEWexperiments\Swin-Transformer_None_all_bands_10%_BigEarthNet_50epochs\results\tensorboard_graphs.
+2025-03-30 18:16:56,441 - INFO - Best Validation Metrics:
+2025-03-30 18:16:56,441 - INFO -   val_acc: 0.8132280707359314 (Epoch 10)
+2025-03-30 18:16:56,441 - INFO -   val_loss: 0.04182814434170723 (Epoch 4)
+2025-03-30 18:16:56,441 - INFO -   val_f1: 0.2654125392436981 (Epoch 3)
+2025-03-30 18:16:56,441 - INFO -   val_f2: 0.320074200630188 (Epoch 3)
+2025-03-30 18:16:56,441 - INFO -   val_precision: 0.23348554968833923 (Epoch 1)
+2025-03-30 18:16:56,441 - INFO -   val_recall: 0.40883418917655945 (Epoch 3)
+2025-03-30 18:16:56,441 - INFO -   val_one_error: 0.3911290466785431 (Epoch 3)
+2025-03-30 18:16:56,441 - INFO -   val_hamming_loss: 0.00983009859919548 (Epoch 10)
+2025-03-30 18:16:56,442 - INFO -   val_avg_precision: 0.6266498565673828 (Epoch 1)
+2025-03-30 18:16:56,442 - INFO - Training Time: 10953.94 seconds
+2025-03-30 18:16:56,442 - INFO - Model Size: 331.01 MB
+2025-03-30 18:16:56,442 - INFO - Inference Rate: 141.12 images/second
+2025-03-30 18:16:56,442 - INFO - Training completed successfully

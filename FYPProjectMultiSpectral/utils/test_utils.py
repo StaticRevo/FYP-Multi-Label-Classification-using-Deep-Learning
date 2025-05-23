@@ -115,6 +115,8 @@ def get_target_layer(model, model_name):
         target_layer = model.model.layers[-1].attention
     elif model_name == 'DenseNet121':
         target_layer = model.model.features.norm5
+    elif 'CustomWRNB4ECA' in model_name:
+        target_layer = model.layer3[1].conv2
     else:
         print(f"Grad-CAM not implemented for model {model_name}. Skipping visualization.")
     
@@ -126,7 +128,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
     # Get the target layer for Grad-CAM
-    target_layer = get_target_layer(model, model_name, logger)
+    target_layer = get_target_layer(model, model_name)
     if target_layer is None:
         return
 
@@ -213,7 +215,7 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     os.makedirs(gradcam_save_dir, exist_ok=True)
 
     # Get the target layer for Grad-CAM
-    target_layer = get_target_layer(model, model_name, logger)
+    target_layer = get_target_layer(model, model_name)
     if target_layer is None:
         return
 

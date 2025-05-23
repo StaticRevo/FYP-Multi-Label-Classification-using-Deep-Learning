@@ -23,8 +23,8 @@ def convert_onnx_to_tf(onnx_model_path, tf_model_path):
 def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
     os.makedirs(save_dir, exist_ok=True)
 
-    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu")) # Load checkpoint
-    print("Checkpoint keys:", checkpoint.keys()) # Check available keys in the checkpoint
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu")) 
+    print("Checkpoint keys:", checkpoint.keys()) 
 
     # Load dataset metadata for class weights
     metadata_csv = pd.read_csv(DatasetConfig.metadata_paths['1'])
@@ -38,7 +38,7 @@ def convert_ckpt_to_pth_and_onnx(checkpoint_path, save_dir):
         model_weights=None,
         main_path=os.path.dirname(checkpoint_path)
     )
-    model.load_state_dict(checkpoint["state_dict"], strict=False) # Load model weights, ignoring extra keys
+    model.load_state_dict(checkpoint["state_dict"], strict=False) # Load model weights
     model.eval() # Set to evaluation mode
 
     # Save a cleaned `.pth` model

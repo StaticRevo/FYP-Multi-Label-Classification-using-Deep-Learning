@@ -1,0 +1,49 @@
+2025-04-08 09:14:11,557 - INFO - Testing the model...
+2025-04-08 09:16:48,708 - INFO - Testing complete.
+2025-04-08 09:16:48,709 - INFO - Calculating metrics and saving results...
+2025-04-08 09:16:48,709 - INFO - Starting batch processing for metrics calculation.
+2025-04-08 09:30:10,858 - INFO - Predictions and labels saved to C:\Users\isaac\Desktop\experiments\VGG16_None_all_bands_10%_BigEarthNet_50epochs_2\results\test_predictions_VGG16_10%_BigEarthNet.npz
+2025-04-08 09:30:12,365 - INFO - Metrics and results saved.
+2025-04-08 09:30:12,365 - INFO - Visualizing predictions and heatmaps...
+2025-04-08 09:30:12,366 - INFO - Saving batch predictions...
+2025-04-08 09:43:32,001 - INFO - Image 5238
+True Labels: [6, 17]
+Predicted Labels: []
+2025-04-08 09:43:32,092 - INFO - Image 912
+True Labels: [0, 1, 15]
+Predicted Labels: []
+2025-04-08 09:43:32,186 - INFO - Image 204
+True Labels: [1, 15]
+Predicted Labels: []
+2025-04-08 09:43:32,292 - INFO - Image 6074
+True Labels: [3]
+Predicted Labels: []
+2025-04-08 09:43:32,383 - INFO - Image 2253
+True Labels: [15]
+Predicted Labels: []
+2025-04-08 09:43:32,484 - INFO - Image 2006
+True Labels: [3, 10, 14, 17]
+Predicted Labels: []
+2025-04-08 09:43:32,574 - INFO - Image 1828
+True Labels: [1, 3, 17]
+Predicted Labels: []
+2025-04-08 09:43:32,677 - INFO - Image 1143
+True Labels: [6, 8, 10, 12]
+Predicted Labels: []
+2025-04-08 09:43:32,761 - INFO - Image 6033
+True Labels: [3, 17]
+Predicted Labels: []
+2025-04-08 09:43:32,864 - INFO - Image 839
+True Labels: [0, 1, 15]
+Predicted Labels: []
+2025-04-08 09:43:34,531 - INFO - Plotting and Saving per-label confusion matrices...
+2025-04-08 09:43:38,834 - INFO - Per-label confusion matrices saved to C:\Users\isaac\Desktop\experiments\VGG16_None_all_bands_10%_BigEarthNet_50epochs_2\results\visualizations
+2025-04-08 09:43:38,834 - INFO - Computing aggregated metrics...
+2025-04-08 09:43:38,918 - WARNING - Probability outputs (all_probs) not provided. Skipping avg_precision and one_error.
+2025-04-08 09:43:38,920 - INFO - Computing per-category metrics...
+2025-04-08 09:43:39,099 - INFO - Per-category metrics saved to C:\Users\isaac\Desktop\experiments\VGG16_None_all_bands_10%_BigEarthNet_50epochs_2\results\visualizations\per_category_metrics.txt
+2025-04-08 09:43:39,105 - INFO - Plotting and saving co-occurrence matrix...
+2025-04-08 09:43:39,822 - INFO - Co-occurrence matrix saved to C:\Users\isaac\Desktop\experiments\VGG16_None_all_bands_10%_BigEarthNet_50epochs_2\results\visualizations
+2025-04-08 09:43:39,822 - WARNING - Continuous probability outputs not provided. Skipping ROC-AUC plotting.
+2025-04-08 09:43:39,823 - INFO - Predictions and heatmaps saved.
+2025-04-08 09:43:39,823 - INFO - Testing completed successfully

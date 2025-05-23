@@ -1,0 +1,47 @@
+2025-04-01 12:58:34,170 - INFO - Testing the model...
+2025-04-01 13:02:30,141 - INFO - Testing complete.
+2025-04-01 13:02:30,141 - INFO - Calculating metrics and saving results...
+2025-04-01 13:02:30,141 - INFO - Starting batch processing for metrics calculation.
+2025-04-01 13:07:13,265 - INFO - Predictions and labels saved to C:/Users/isaac/Desktop/experiments/ResNet18_None_all_bands_10%_BigEarthNet_50epochs\results\test_predictions_ResNet18_10%_BigEarthNet.npz
+2025-04-01 13:07:14,786 - INFO - Metrics and results saved.
+2025-04-01 13:07:14,786 - INFO - Visualizing predictions and heatmaps...
+2025-04-01 13:07:14,793 - INFO - Saving batch predictions...
+2025-04-01 13:11:58,084 - INFO - Image 5238
+True Labels: [6, 17]
+Predicted Labels: [6, 12]
+2025-04-01 13:11:58,278 - INFO - Image 912
+True Labels: [0, 1, 15]
+Predicted Labels: [0, 1]
+2025-04-01 13:11:58,454 - INFO - Image 204
+True Labels: [1, 15]
+Predicted Labels: [15]
+2025-04-01 13:11:58,618 - INFO - Image 6074
+True Labels: [3]
+Predicted Labels: [3]
+2025-04-01 13:11:58,792 - INFO - Image 2253
+True Labels: [15]
+Predicted Labels: [15]
+2025-04-01 13:11:58,946 - INFO - Image 2006
+True Labels: [3, 10, 14, 17]
+Predicted Labels: [3, 10]
+2025-04-01 13:11:59,132 - INFO - Image 1828
+True Labels: [1, 3, 17]
+Predicted Labels: [3, 17]
+2025-04-01 13:11:59,306 - INFO - Image 1143
+True Labels: [6, 8, 10, 12]
+Predicted Labels: [1, 6, 8, 10, 12]
+2025-04-01 13:11:59,473 - INFO - Image 6033
+True Labels: [3, 17]
+Predicted Labels: [3]
+2025-04-01 13:11:59,646 - INFO - Image 839
+True Labels: [0, 1, 15]
+Predicted Labels: [0, 1]
+2025-04-01 13:12:01,153 - INFO - Plotting and Saving per-label confusion matrices...
+2025-04-01 13:12:05,077 - INFO - Per-label confusion matrices saved to C:/Users/isaac/Desktop/experiments/ResNet18_None_all_bands_10%_BigEarthNet_50epochs\results\visualizations
+2025-04-01 13:12:05,077 - INFO - Computing aggregated metrics...
+2025-04-01 13:12:05,176 - WARNING - Probability outputs (all_probs) not provided. Skipping avg_precision and one_error.
+2025-04-01 13:12:05,176 - INFO - Plotting and saving co-occurrence matrix...
+2025-04-01 13:12:05,905 - INFO - Co-occurrence matrix saved to C:/Users/isaac/Desktop/experiments/ResNet18_None_all_bands_10%_BigEarthNet_50epochs\results\visualizations
+2025-04-01 13:12:05,905 - WARNING - Continuous probability outputs not provided. Skipping ROC-AUC plotting.
+2025-04-01 13:12:05,905 - INFO - Predictions and heatmaps saved.
+2025-04-01 13:12:05,905 - INFO - Testing completed successfully

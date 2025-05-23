@@ -56,9 +56,43 @@ Due to hardware limitations, all models were trained sequentially and subject to
 ## Folder Contents
 
 Each subfolder includes:
-- The final trained model checkpoint (regulated by **early stopping** and **ReduceLROnPlateau**)
+- The final trained model checkpoint (regulated by **early stopping** and **ReduceLROnPlateau**) - only for models below 100MB
 - Aggregated evaluation metrics
 - Per-class performance metrics
 - A `.txt` file describing the model architecture
+- Sample Image Visualisations, Confusion Matrices
+- Training/Testing/PyTorch-Lightning Logs
+- Tensorboard Graphs for Training/Validation Metrics
 
-These results were used in the evaluation and comparative analysis chapter of the dissertation.
+- `checkpoints/` - Final model checkpoint(s) (only if < 100MB)
+- `metrics/`: 
+  - `aggregated_metrics.txt` – Micro/macro scores and overall stats  
+  - `per_class_metrics.txt` – Per-class precision, recall, F1, F2, accuracy
+- `logs/`:
+  - `training/` – Training loop outputs  
+  - `testing/` – Test time logs 
+  - `lightning_logs/` – PyTorch Lightning formatted logs
+- `visualizations/`:
+  - `tensorboard_graphs/` – Training & validation metrics over epochs
+  - `confusion_matrices_grid.png`
+  - `cooccurrence_matrix.png`
+- `architecture.txt` - Model layer-by-layer summary
+- `predictions.npz` – Saved binary predictions and ground truth labels
+
+## Notes on Metrics
+
+- **Training and Validation Metrics**:  
+  During training and validation, metrics such as F1, F2, Precision, Recall, Accuracy, Hamming Loss, and One Error were computed using **TorchMetrics** (logged via PyTorch Lightning). These were used primarily to monitor model learning trends and overfitting. They are visualised via TensorBoard graphs and shown in the `visualizations/tensorboard_graphs/` folder.
+
+- **Testing Metrics**:  
+  Final performance metrics, used for formal evaluation and comparison in the dissertation, were calculated using **scikit-learn**. These metrics include:
+  - Aggregated metrics (micro/macro F1, F2, precision, recall)
+  - Per-class precision, recall, F1, F2, accuracy
+  - Hamming Loss, Subset Accuracy, One Error
+  - Average Precision Score
+
+- **Important Distinction**:  
+  The metrics shown during training (TensorBoard curves) **do not reflect** the final evaluation results presented in the report. All reported results in the evaluation chapter are derived from the **sklearn-calculated testing metrics**.
+
+## Disclaimer
+Only selected model checkpoints are included to reduce file size. All logs and metrics have been retained to ensure reproducibility and to support comparative analysis.

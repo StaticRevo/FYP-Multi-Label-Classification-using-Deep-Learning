@@ -56,14 +56,6 @@ Due to hardware limitations, all models were trained sequentially and subject to
 ## Folder Contents
 
 Each subfolder includes:
-- The final trained model checkpoint (regulated by **early stopping** and **ReduceLROnPlateau**) - only for models below 100MB
-- Aggregated evaluation metrics
-- Per-class performance metrics
-- A `.txt` file describing the model architecture
-- Sample Image Visualisations, Confusion Matrices
-- Training/Testing/PyTorch-Lightning Logs
-- Tensorboard Graphs for Training/Validation Metrics
-
 - `checkpoints/` - Final model checkpoint(s) (only if < 100MB)
 - `metrics/`: 
   - `aggregated_metrics.txt` – Micro/macro scores and overall stats  
@@ -80,7 +72,6 @@ Each subfolder includes:
 - `predictions.npz` – Saved binary predictions and ground truth labels
 
 ## Notes on Metrics
-
 - **Training and Validation Metrics**:  
   During training and validation, metrics such as F1, F2, Precision, Recall, Accuracy, Hamming Loss, and One Error were computed using **TorchMetrics** (logged via PyTorch Lightning). These were used primarily to monitor model learning trends and overfitting. They are visualised via TensorBoard graphs and shown in the `visualizations/tensorboard_graphs/` folder.
 

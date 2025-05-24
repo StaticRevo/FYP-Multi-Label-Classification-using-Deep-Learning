@@ -1,0 +1,55 @@
+2025-04-01 16:14:55,981 - INFO - Testing the model...
+2025-04-01 16:18:53,138 - INFO - Testing complete.
+2025-04-01 16:18:53,138 - INFO - Calculating metrics and saving results...
+2025-04-01 16:18:53,138 - INFO - Starting batch processing for metrics calculation.
+2025-04-01 16:23:02,550 - INFO - Predictions and labels saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\test_predictions_EfficientNetB0_10%_BigEarthNet.npz
+2025-04-01 16:23:04,063 - INFO - Metrics and results saved.
+2025-04-01 16:23:04,063 - INFO - Visualizing predictions and heatmaps...
+2025-04-01 16:23:04,064 - INFO - Saving batch predictions...
+2025-04-01 16:27:27,341 - INFO - Image 5238
+True Labels: [6, 17]
+Predicted Labels: [6]
+2025-04-01 16:27:27,514 - INFO - Image 912
+True Labels: [0, 1, 15]
+Predicted Labels: [0]
+2025-04-01 16:27:27,704 - INFO - Image 204
+True Labels: [1, 15]
+Predicted Labels: [15]
+2025-04-01 16:27:27,883 - INFO - Image 6074
+True Labels: [3]
+Predicted Labels: [3]
+2025-04-01 16:27:28,046 - INFO - Image 2253
+True Labels: [15]
+Predicted Labels: [15]
+2025-04-01 16:27:28,213 - INFO - Image 2006
+True Labels: [3, 10, 14, 17]
+Predicted Labels: [3, 10, 14]
+2025-04-01 16:27:28,386 - INFO - Image 1828
+True Labels: [1, 3, 17]
+Predicted Labels: [0, 1, 3]
+2025-04-01 16:27:28,548 - INFO - Image 1143
+True Labels: [6, 8, 10, 12]
+Predicted Labels: [6, 8, 10, 12]
+2025-04-01 16:27:28,744 - INFO - Image 6033
+True Labels: [3, 17]
+Predicted Labels: [3]
+2025-04-01 16:27:28,921 - INFO - Image 839
+True Labels: [0, 1, 15]
+Predicted Labels: [0, 1]
+2025-04-01 16:27:30,396 - INFO - Plotting and Saving per-label confusion matrices...
+2025-04-01 16:27:34,264 - INFO - Per-label confusion matrices saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\visualizations
+2025-04-01 16:27:34,264 - INFO - Computing aggregated metrics...
+2025-04-01 16:27:34,353 - INFO - Plotting and saving co-occurrence matrix...
+2025-04-01 16:27:35,033 - INFO - Co-occurrence matrix saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\visualizations
+2025-04-01 16:27:35,033 - WARNING - Continuous probability outputs not provided. Skipping ROC-AUC plotting.
+2025-04-01 16:27:35,033 - INFO - Predictions and heatmaps saved.
+2025-04-01 16:27:35,033 - INFO - Testing completed successfully
+2025-05-23 21:24:56,417 - INFO - Generating Grad-CAM visualizations...
+2025-05-23 21:24:57,312 - INFO - Grad-CAM visualizations saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\gradcam_visualizations
+2025-05-23 21:24:57,723 - INFO - Grad-CAM visualizations saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\gradcam_visualizations
+2025-05-23 21:24:58,084 - INFO - Grad-CAM visualizations saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\gradcam_visualizations
+2025-05-23 21:24:58,460 - INFO - Grad-CAM visualizations saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\gradcam_visualizations
+2025-05-23 21:24:58,809 - INFO - Grad-CAM visualizations saved to C:/Users/isaac/Desktop/experiments/EfficientNetB0_None_all_bands_10%_BigEarthNet_50epochs\results\gradcam_visualizations
+2025-05-23 21:24:58,809 - INFO - Grad-CAM visualizations generated.
+2025-05-23 21:24:58,810 - INFO - Testing completed successfully
+

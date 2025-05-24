@@ -1,22 +1,22 @@
 Per Category Metrics
 =====================
 Category                                                                                  Precision    Recall     F1     F2    Accuracy
-Agro-forestry areas                                                                           0.255     0.331  0.287  0.312       0.963
-Arable land                                                                                   0.779     0.866  0.818  0.845       0.861
-Beaches, dunes, sands                                                                         0.161     0.287  0.184  0.227       0.992
-Broad-leaved forest                                                                           0.595     0.749  0.657  0.707       0.836
-Coastal wetlands                                                                              0.132     0.170  0.140  0.153       0.994
-Complex cultivation patterns                                                                  0.517     0.694  0.589  0.647       0.839
-Coniferous forest                                                                             0.776     0.831  0.800  0.818       0.900
-Industrial or commercial units                                                                0.454     0.491  0.437  0.457       0.976
-Inland waters                                                                                 0.521     0.768  0.582  0.656       0.875
-Inland wetlands                                                                               0.445     0.590  0.471  0.526       0.947
-Land principally occupied by agriculture, with significant areas of natural vegetation        0.569     0.722  0.633  0.682       0.789
-Marine waters                                                                                 0.658     0.407  0.453  0.420       0.930
-Mixed forest                                                                                  0.703     0.815  0.752  0.787       0.856
-Moors, heathland and sclerophyllous vegetation                                                0.237     0.320  0.261  0.290       0.971
-Natural grassland and sparsely vegetated areas                                                0.219     0.339  0.245  0.284       0.972
-Pastures                                                                                      0.529     0.655  0.577  0.618       0.883
-Permanent crops                                                                               0.338     0.402  0.341  0.371       0.929
-Transitional woodland, shrub                                                                  0.549     0.775  0.640  0.714       0.754
-Urban fabric                                                                                  0.607     0.805  0.681  0.747       0.895
+Agro-forestry areas                                                                           0.656     0.885  0.754  0.827       0.952
+Arable land                                                                                   0.814     0.887  0.849  0.871       0.866
+Beaches, dunes, sands                                                                         0.333     0.800  0.471  0.625       0.998
+Broad-leaved forest                                                                           0.679     0.861  0.759  0.817       0.836
+Coastal wetlands                                                                              0.174     0.667  0.276  0.426       0.997
+Complex cultivation patterns                                                                  0.529     0.768  0.627  0.705       0.837
+Coniferous forest                                                                             0.837     0.908  0.871  0.893       0.911
+Industrial or commercial units                                                                0.364     0.347  0.355  0.350       0.978
+Inland waters                                                                                 0.500     0.843  0.628  0.741       0.862
+Inland wetlands                                                                               0.384     0.667  0.487  0.581       0.950
+Land principally occupied by agriculture, with significant areas of natural vegetation        0.552     0.748  0.635  0.699       0.792
+Marine waters                                                                                 0.892     0.270  0.415  0.314       0.926
+Mixed forest                                                                                  0.775     0.884  0.826  0.860       0.860
+Moors, heathland and sclerophyllous vegetation                                                0.490     0.772  0.599  0.692       0.969
+Natural grassland and sparsely vegetated areas                                                0.364     0.399  0.381  0.391       0.973
+Pastures                                                                                      0.699     0.776  0.736  0.760       0.875
+Permanent crops                                                                               0.388     0.664  0.490  0.581       0.937
+Transitional woodland, shrub                                                                  0.587     0.839  0.691  0.773       0.754
+Urban fabric                                                                                  0.537     0.784  0.637  0.718       0.905

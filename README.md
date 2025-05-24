@@ -97,21 +97,26 @@ The project follows automated experiment logging in a structured directory forma
 
       experiments/
       ├── results/                         # Stores evaluation metrics, logs, and visualizations
-      │   ├── best_metrics.json            # Stores best validation metrics
-      │   ├── best_test_metrics.json       # Stores best test metrics
-      │   ├── train_per_class_metrics.json # Stores the per-class metrics for training
-      │   ├── val_per_class_metrics.json   # Stores the per-class metrics for validation
-      │   ├── test_per_class_metrics.json  # Stores the per-class metrics for testing
-      │   ├── tensorboard_graphs/          # TensorBoard visualizations saved as images
-      │   ├── predictions.npz              # Model predictions for analysis
+      │   ├── tensorboard_graphs/          # TensorBoard visualizations saved as images    
       │   ├── visualizations/              # Confusion matrices and Label Co-occurrence images
       │   ├── gradcam_visualizations/      # Grad-CAM heatmaps
-      │   ├── activations.pdf/             # Activations of the model
+      │   ├── aggregated_metrics.txt       # Stores testing aggregated metrics  
+      │   ├── per_category_metrics.txt     # Stores testing per-class metrics   
+      │   ├── best_metrics.json            # Stores best validation metrics
+      │   ├── train_per_class_metrics.json # Stores the per-class metrics for training
+      │   ├── val_per_class_metrics.json   # Stores the per-class metrics for validation
+      │   ├── predictions.npz              # Model predictions for analysis
+      │   ├── activations.pdf              # Activations of the model
       ├── checkpoints/                     # Stores trained models
-      │   ├── best_acc.pth                 # Best model based on validation accuracy
-      │   ├── best_loss.pth                # Best model based on validation loss
       │   ├── final.pth                    # Final model after all epochs
-      ├── logs/                            # Lightning Logs 
+      ├── logs/                            # Logs related to model testing and evaluation
+          ├── lightning_logs/              # Log file managed by PyTorch Lightning
+          ├── testing_logs/                # Logs related to model testing and evaluation
+              ├── testing.txt              # Main log file for test runs
+          ├── training_logs/               # Logs related to model training
+              ├── training.txt             # Main log file for training runs
+      ├── architecture.txt                 # Description of the model architecture used in the experiment
+      ├── hyperparameters.txt              # Text file listing major hyperparameters for reproducibility
 
 Such a structured format ensures that evaluation can be performed efficiently. Besides that to ensure conistent results the project implements **Fixed Random Seeds**, **Logged Model HyperParameters** and also **Command-line Arguments for Custom Runs**
 

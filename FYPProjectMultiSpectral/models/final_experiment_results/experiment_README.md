@@ -87,3 +87,5 @@ Each subfolder includes:
 
 ## Disclaimer
 Only selected model checkpoints are included to reduce file size. All logs and metrics have been retained to ensure reproducibility and to support comparative analysis.
+
+For clarity and readability, the results presented here have been deliberately organized and summarized to avoid excessive clutter and emphasize key evaluation outcomes. The complete raw experimental outputs are preserved locally and are available upon request.

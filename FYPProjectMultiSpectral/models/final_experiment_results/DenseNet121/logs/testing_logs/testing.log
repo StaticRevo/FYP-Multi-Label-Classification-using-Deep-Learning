@@ -1,0 +1,47 @@
+2025-04-01 15:57:32,690 - INFO - Testing the model...
+2025-04-01 16:01:38,977 - INFO - Testing complete.
+2025-04-01 16:01:38,977 - INFO - Calculating metrics and saving results...
+2025-04-01 16:01:38,977 - INFO - Starting batch processing for metrics calculation.
+2025-04-01 16:07:57,639 - INFO - Predictions and labels saved to C:/Users/isaac/Desktop/experiments/DenseNet121_None_all_bands_10%_BigEarthNet_50epochs\results\test_predictions_DenseNet121_10%_BigEarthNet.npz
+2025-04-01 16:07:59,250 - INFO - Metrics and results saved.
+2025-04-01 16:07:59,250 - INFO - Visualizing predictions and heatmaps...
+2025-04-01 16:07:59,251 - INFO - Saving batch predictions...
+2025-04-01 16:14:09,365 - INFO - Image 5238
+True Labels: [6, 17]
+Predicted Labels: [6, 12]
+2025-04-01 16:14:09,528 - INFO - Image 912
+True Labels: [0, 1, 15]
+Predicted Labels: [0, 1]
+2025-04-01 16:14:09,700 - INFO - Image 204
+True Labels: [1, 15]
+Predicted Labels: [15]
+2025-04-01 16:14:09,887 - INFO - Image 6074
+True Labels: [3]
+Predicted Labels: [3, 17]
+2025-04-01 16:14:10,056 - INFO - Image 2253
+True Labels: [15]
+Predicted Labels: [15]
+2025-04-01 16:14:10,249 - INFO - Image 2006
+True Labels: [3, 10, 14, 17]
+Predicted Labels: [3, 10, 15, 17]
+2025-04-01 16:14:10,441 - INFO - Image 1828
+True Labels: [1, 3, 17]
+Predicted Labels: [3, 17]
+2025-04-01 16:14:10,636 - INFO - Image 1143
+True Labels: [6, 8, 10, 12]
+Predicted Labels: [8, 10, 12]
+2025-04-01 16:14:10,806 - INFO - Image 6033
+True Labels: [3, 17]
+Predicted Labels: [3]
+2025-04-01 16:14:10,987 - INFO - Image 839
+True Labels: [0, 1, 15]
+Predicted Labels: [0, 1, 16]
+2025-04-01 16:14:12,506 - INFO - Plotting and Saving per-label confusion matrices...
+2025-04-01 16:14:16,769 - INFO - Per-label confusion matrices saved to C:/Users/isaac/Desktop/experiments/DenseNet121_None_all_bands_10%_BigEarthNet_50epochs\results\visualizations
+2025-04-01 16:14:16,769 - INFO - Computing aggregated metrics...
+2025-04-01 16:14:16,866 - INFO - Plotting and saving co-occurrence matrix...
+2025-04-01 16:14:17,548 - INFO - Co-occurrence matrix saved to C:/Users/isaac/Desktop/experiments/DenseNet121_None_all_bands_10%_BigEarthNet_50epochs\results\visualizations
+2025-04-01 16:14:17,548 - WARNING - Continuous probability outputs not provided. Skipping ROC-AUC plotting.
+2025-04-01 16:14:17,549 - INFO - Predictions and heatmaps saved.
+2025-04-01 16:14:17,549 - INFO - Testing completed successfully
+2025-05-23 21:24:08,570 - INFO - Generating Grad-CAM visualizations...

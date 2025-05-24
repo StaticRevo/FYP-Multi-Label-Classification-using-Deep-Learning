@@ -6,6 +6,9 @@ from sentinelhub import SHConfig, SentinelHubRequest, MimeType, CRS, BBox, DataC
 import numpy as np
 import rasterio
 from rasterio.transform import from_bounds
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
 
 # Load configuration
 config = SHConfig()

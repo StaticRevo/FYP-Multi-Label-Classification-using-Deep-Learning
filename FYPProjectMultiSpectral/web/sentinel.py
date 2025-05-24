@@ -1,5 +1,6 @@
 # Standard library imports
 import random
+import os
 
 # Third-party imports
 from sentinelhub import SHConfig, SentinelHubRequest, MimeType, CRS, BBox, DataCollection
@@ -12,8 +13,8 @@ load_dotenv() # Load environment variables from .env file
 
 # Load configuration
 config = SHConfig()
-config.sh_client_id = "0edf8a3f-2452-4feb-8d85-b33d6b7e23b6"
-config.sh_client_secret = "VwSaP8ynk2KzGfcSKgWXa1xk5eyGH2Op"
+config.sh_client_id = os.getenv("SH_CLLIENT_ID")
+config.sh_client_secret = os.getenv("SH_CLIENT_SECRET")
 config.save()
 
 if not config.sh_client_id or not config.sh_client_secret:

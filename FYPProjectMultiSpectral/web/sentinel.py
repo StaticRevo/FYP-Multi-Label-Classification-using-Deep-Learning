@@ -1,6 +1,7 @@
 # Standard library imports
 import random
 import os
+from pathlib import Path
 
 # Third-party imports
 from sentinelhub import SHConfig, SentinelHubRequest, MimeType, CRS, BBox, DataCollection
@@ -9,13 +10,13 @@ import rasterio
 from rasterio.transform import from_bounds
 from dotenv import load_dotenv
 
-load_dotenv() # Load environment variables from .env file
+# Load environment variables from .env file
+load_dotenv()  
 
 # Load configuration
 config = SHConfig()
-config.sh_client_id = os.getenv("SH_CLLIENT_ID")
+config.sh_client_id = os.getenv("SH_CLIENT_ID")
 config.sh_client_secret = os.getenv("SH_CLIENT_SECRET")
-config.save()
 
 if not config.sh_client_id or not config.sh_client_secret:
     raise ValueError("Sentinel Hub credentials not set!")

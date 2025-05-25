@@ -104,7 +104,7 @@ def main():
 
     dataset_dir = DatasetConfig.dataset_paths[num]
 
-    # Initialise and run the GUI to select a single checkpoint file.
+    # Initialise and run the GUI to select a single checkpoint file
     root = tk.Tk()
     gui = CheckpointSelectorGUI(root)
     root.mainloop()

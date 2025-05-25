@@ -237,10 +237,10 @@ class ECA(nn.Module):
         nn.init.kaiming_normal_(self.conv.weight, mode='fan_out', nonlinearity='sigmoid')
 
     def forward(self, x):
-        y = self.avg_pool(x) # Global Average Pooling: [B, C, H, W] -> [B, C, 1, 1]
-        y = y.view(y.size(0), y.size(1)).unsqueeze(1) # Reshape for 1D convolution: [B, C, 1, 1] -> [B, 1, C]
-        y = self.conv(y) # 1D Convolution: [B, 1, C] -> [B, 1, C]
-        y = y.squeeze(1).unsqueeze(-1).unsqueeze(-1)  # Reshape back: [B, 1, C] -> [B, C, 1, 1]
+        y = self.avg_pool(x) # Global Average Pooling
+        y = y.view(y.size(0), y.size(1)).unsqueeze(1) # Reshape for 1D convolution
+        y = self.conv(y) # 1D Convolution
+        y = y.squeeze(1).unsqueeze(-1).unsqueeze(-1)  # Reshape back
         y = self.sigmoid(y) # Sigmoid activation to generate attention weights
         
         return x * y # Scale the input with attention weights
@@ -413,12 +413,13 @@ class CBAM(nn.Module):
     def forward(self, x):
         # Channel attention
         channel_out = x * self.channel_att(x)
+
         # Spatial attention
         avg_out = torch.mean(channel_out, dim=1, keepdim=True) # Average Pooling
         max_out, _ = torch.max(channel_out, dim=1, keepdim=True) # Max Pooling
         spatial_in = torch.cat([avg_out, max_out], dim=1) # Concatenate avg_out and max_out
         spatial_out = self.spatial_att(spatial_in)
-        # Combine
-        out = channel_out * spatial_out
+
+        out = channel_out * spatial_out # Combine
         return out + x # Residual Connection
     

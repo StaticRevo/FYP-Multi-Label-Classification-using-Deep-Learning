@@ -62,14 +62,14 @@ def load_model_from_experiment(experiment_name):
     elif bands_str.lower() == "rgb_nir_swir_bands":
         in_channels = len(DatasetConfig.rgb_nir_swir_bands)
     else:
-        in_channels = 3  # Fallback to 3 channels
+        in_channels = 3  
 
     main_path = os.path.dirname(checkpoint_path)
     model_class, _ = get_model_class(model_name)
     if model_class is None:
         raise ValueError(f"Model class for {model_name} not found!")
     
-    # Load the model using the checkpoint from the experiment.
+    # Load the model using the checkpoint from the experiment
     model = model_class.load_from_checkpoint(
         checkpoint_path,
         class_weights=CLASS_WEIGHTS,
@@ -122,7 +122,7 @@ def preprocess_tiff_image(file_path, selected_bands=DatasetConfig.all_bands):
     
     try:
         with rasterio.open(file_path) as src:
-            image = src.read()  # Shape (channels, height, width)
+            image = src.read() 
             image = image[selected_band_indices, :, :]  # Select only the desired bands
     except Exception as e:
         print(f"Error reading {file_path}: {e}. Returning a zero tensor.")
@@ -335,8 +335,6 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
 
         # Resize to match the overlay size
         cam_resized = zoom(cam, (target_height / cam.shape[0], target_width / cam.shape[1]), order=3)
-
-        # Use lower sigma for crisper boundaries
         cam_resized = gaussian_filter(cam_resized, sigma=1)
         cam_resized = (cam_resized - cam_resized.min()) / (cam_resized.max() - cam_resized.min() + 1e-8)
 
@@ -500,13 +498,13 @@ def get_channels_and_bands(selected_bands: str):
     elif selected_bands_lower == "rgb_nir_swir_bands":
         return len(DatasetConfig.rgb_nir_swir_bands), DatasetConfig.rgb_nir_swir_bands
     else:
-        return 3, DatasetConfig.rgb_bands  # Default fallback
+        return 3, DatasetConfig.rgb_bands  
     
 # Validate the number of channels in an image
 def validate_image_channels(file_path: str, expected_channels: int) -> int:
     try:
         with rasterio.open(file_path) as src:
-            actual_channels = src.count  # number of bands in the image
+            actual_channels = src.count  
     except Exception as e:
         raise ValueError(f"Error reading image: {e}")
 

@@ -80,6 +80,7 @@ class EnsembleModel(nn.Module):
         outputs = [model(x.to(self.device)) for model in self.models]  # List of [batch_size, num_classes]
         all_outputs = torch.stack(outputs, dim=0)  # [num_models, batch_size, num_classes]
         weighted_output = torch.einsum('m,mbs->bs', self.weights, all_outputs)  # Weighted sum: [batch_size, num_classes]
+        
         return weighted_output
 
     def get_configs(self):

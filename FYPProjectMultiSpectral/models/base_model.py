@@ -116,6 +116,7 @@ class BaseModel(pl.LightningModule):
                 'accuracy': []
             }
         }
+
     def forward(self, x):
         return self.model(x)
 
@@ -167,7 +168,7 @@ class BaseModel(pl.LightningModule):
         precision = getattr(self, f'{phase}_precision')(preds, y)
         one_error = getattr(self, f'{phase}_one_error')(probs, y)
         hamming_distance = self.hamming_loss(preds, y)
-        hamming_loss_val = hamming_distance #/ y.size(1)
+        hamming_loss_val = hamming_distance
 
         # Log aggregate metrics
         self.log(f'{phase}_loss', loss, on_epoch=True, prog_bar=True, batch_size=len(x))
@@ -250,7 +251,7 @@ class BaseModel(pl.LightningModule):
         avg_f2 = np.mean(self.per_class_metrics[phase]['f2'], axis=0)
         avg_acc = np.mean(self.per_class_metrics[phase]['accuracy'], axis=0)
 
-        table = PrettyTable() # Create a PrettyTable for displaying per-class metrics with labels
+        table = PrettyTable() 
         table.field_names = ["Class Index", "Class Name", "Precision", "Recall", "F1 Score", "F2 Score", "Accuracy"]
 
         for i in range(self.num_classes):
@@ -311,10 +312,11 @@ class BaseModel(pl.LightningModule):
         current_directory = os.getcwd()
         save_path = os.path.join(current_directory, 'FYPProjectMultiSpectral', 'models', 'Architecture', model_name)
         os.makedirs(save_path, exist_ok=True)  
-        self.model.to(device) # Move model to the correct device
+        self.model.to(device) 
 
-        x = torch.randn(1, *input_size).to(device) # Create a random tensor input based on the input size
-        y = self.model(x) # Pass the tensor through the model
+        # Create a random tensor input based on the input size and pass it to the model
+        x = torch.randn(1, *input_size).to(device) 
+        y = self.model(x) 
 
         # Create the visualization and save it at the specified path
         file_path = os.path.join(save_path, f'{model_name}')

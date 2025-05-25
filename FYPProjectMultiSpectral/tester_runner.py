@@ -20,7 +20,6 @@ class CheckpointSelectorGUI:
         self.master = master
         master.title("Checkpoint Selector")
 
-        # Label for the checkpoint file
         self.label_text = "Select Checkpoint File:"
         self.label = tk.Label(master, text=self.label_text)
         self.label.grid(row=0, column=0, padx=10, pady=5, sticky='e')

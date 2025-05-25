@@ -43,7 +43,7 @@ def main():
     result_path = os.path.join(main_path, "results")
     print(f"Result Path: {result_path}")
     
-    dataset_num = extract_number(selected_dataset) # Extract the dataset number from the dataset name
+    dataset_num = extract_number(selected_dataset) 
     cache_file = f"{dataset_num}%_sample_weights.npy" 
     cache_path = os.path.join(main_path, cache_file)
 

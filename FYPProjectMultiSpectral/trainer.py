@@ -35,7 +35,7 @@ def main():
     test_variable = sys.argv[5]
 
     # Create main path for experiment
-    if len(sys.argv) > 6: # Check if a main path is provided
+    if len(sys.argv) > 6: 
         main_path = sys.argv[6]
     else:
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
@@ -48,7 +48,8 @@ def main():
 
     resume_checkpoint = None 
     resumed_epoch = 0 
-    if len(sys.argv) > 7 and os.path.exists(sys.argv[7]): # Check if a resume checkpoint is provided
+    
+    if len(sys.argv) > 7 and os.path.exists(sys.argv[7]): 
         resume_checkpoint = sys.argv[7]
         checkpoint = torch.load(resume_checkpoint, map_location=lambda storage, loc: storage)
         resumed_epoch = checkpoint.get("epoch", 0)

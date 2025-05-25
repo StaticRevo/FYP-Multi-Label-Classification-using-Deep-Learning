@@ -196,14 +196,13 @@ def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_pat
     val_to_train_indices = set()
     remaining_to_move = move_from_val_to_train
     
-    # First, ensure each label has some representation
     for label in all_labels:
         if remaining_to_move <= 0:
             break
             
         images = val_images_by_label[label]
         if images:
-            move_index = random.choice(images) # Move just one image per label 
+            move_index = random.choice(images) 
             val_to_train_indices.add(move_index)
             remaining_to_move -= 1
     
@@ -287,11 +286,10 @@ def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_pat
     if output_path:
         with open(output_path, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(metadata.columns) # Write header
+            writer.writerow(metadata.columns) 
             # Write rows, formatting the labels column appropriately
             for _, row in metadata.iterrows():
                 if isinstance(row['labels'], list):
-                    # Convert the list to the desired string format
                     formatted_labels = "[" + " ".join(f"'{label}'" for label in row['labels']) + "]"
                 else:
                     formatted_labels = row['labels']
@@ -330,7 +328,7 @@ def copy_subset_images(original_images_dir, original_metadata_path, subset_metad
         else:
             missing_files.append(patch_id)
 
-    if missing_files: # Report missing files (if any)
+    if missing_files: # Report missing files
         print(f"Warning: {len(missing_files)} files missing in original dataset")
         print("Missing patch_ids:", missing_files)
 
@@ -415,8 +413,7 @@ def combineTiffs(base_path, output_path):
     with rasterio.open(output_path, 'w', **meta) as dst:
         for idx, path in enumerate(band_paths, start=1):
             with rasterio.open(path) as src:
-                # Read each band and write it to the new file
-                dst.write(src.read(1), idx)
+                dst.write(src.read(1), idx)  # Read each band and write it to the new file
 
 # Move all images from subfolders to a single folder
 def move_images_to_single_folder(source_root_dir, target_dir):
@@ -484,7 +481,7 @@ def move_images_based_on_split(csv_file_path, source_root_dir, target_root_dir):
             os.makedirs(split_dir)
     
     metadata_csv = pd.read_csv(csv_file_path)
-    print(metadata_csv.columns)  # Print the columns to debug
+    print(metadata_csv.columns) 
     total_files = len(metadata_csv)
     
     with tqdm(total=total_files, desc="Moving images based on split", unit="file") as pbar:
@@ -505,14 +502,14 @@ def precompute_sample_weights(metadata_csv, num_classes, label_column="labels", 
         cached_weights = np.load(cache_path)
         return cached_weights
 
-    # Clean and parse the labels for each row.
+    # Clean and parse the labels for each row
     metadata_csv.loc[:, label_column] = metadata_csv[label_column].apply(clean_and_parse_labels)
     print(metadata_csv[label_column].head())
 
-    # Initialize an array to count the occurrences of each class.
+    # Initialize an array to count the occurrences of each class
     label_counts = np.zeros(num_classes, dtype=np.float32)
 
-    # Count occurrences of each class across all samples.
+    # Count occurrences of each class across all samples
     for idx, row in metadata_csv.iterrows():
         label_list = row[label_column]
         encoded_labels = encode_label(label_list)  
@@ -562,7 +559,7 @@ def compute_band_statistics(image_dir):
     for fname in tqdm(image_files, desc="Processing images"):
         fpath = os.path.join(image_dir, fname)
         with rasterio.open(fpath) as src:
-            img = src.read().astype(np.float32)  # Read image data as a NumPy array (shape: 12 bands, H, W)
+            img = src.read().astype(np.float32)  # Read image data as a NumPy array 
 
             # Initialize sums on the first iteration
             if band_sums is None:

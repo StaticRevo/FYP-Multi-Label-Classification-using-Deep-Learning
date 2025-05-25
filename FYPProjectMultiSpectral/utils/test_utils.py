@@ -159,7 +159,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             heatmaps[class_labels[target_class]] = cam
 
         # Convert the input tensor to a PIL image for visualization
-        img = input_image.squeeze()  # Remove batch dimension
+        img = input_image.squeeze()  
         if in_channels == 12:
             rgb_channels = [3, 2, 1]  
         else:
@@ -171,8 +171,10 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
         green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
         blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
-        rgb_image = np.stack([red, green, blue], axis=-1) # Stack into an RGB image
-        img = Image.fromarray((rgb_image * 255).astype(np.uint8)) # Convert to PIL Image
+
+        # Stack the normalized channels into an RGB image and convert to PIL Image
+        rgb_image = np.stack([red, green, blue], axis=-1) 
+        img = Image.fromarray((rgb_image * 255).astype(np.uint8)) 
 
         # Save Grad-CAM visualizations for each class
         for class_name, heatmap in heatmaps.items(): # Display and save heatmaps for each class
@@ -194,7 +196,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             plt.imshow(overlay)
             plt.axis('off')
 
-            plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16) # Save and display the visualization
+            plt.suptitle(f'Image Index: {idx} | Class: {class_name}', fontsize=16) 
             plt.tight_layout()
             plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_{idx}_{class_name}.png'))
 
@@ -231,7 +233,7 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     input_tensor = img_tensor.unsqueeze(0).to(model.device)
     output = model(input_tensor)  # Forward pass to get predictions
     threshold = 0.5
-    target_classes = torch.where(output[0] > threshold)[0].tolist()  # Get relevant classes
+    target_classes = torch.where(output[0] > threshold)[0].tolist() # Get relevant classes
     predicted_labels = [class_labels[i] for i in target_classes]
 
     heatmaps = {}  # Generate heatmaps for each relevant class
@@ -275,7 +277,7 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
         plt.imshow(overlay)
         plt.axis('off')
 
-        plt.suptitle(f'Class: {class_name}', fontsize=16)  # Save and display the visualization
+        plt.suptitle(f'Class: {class_name}', fontsize=16)  
         plt.tight_layout()
         plt.savefig(os.path.join(gradcam_save_dir, f'gradcam_single_{class_name}.png'))
 
@@ -360,9 +362,9 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.5, band
     # Randomly select unique indices
     random_indices = random.sample(range(dataset_size), num_images)
     
-    if in_channels == 12: # RGB bands are B04, B03, B02
+    if in_channels == 12: 
         rgb_channels = [3, 2, 1]
-    else: # RGB bands are B03, B02, B01
+    else: 
         rgb_channels  = [2, 1, 0]
 
     for i in random_indices:
@@ -383,9 +385,8 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.5, band
         green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
         blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
 
-        
-        rgb_image = np.stack([red, green, blue], axis=-1) # Stack into an RGB image
-        image_rgb = Image.fromarray((rgb_image * 255).astype(np.uint8)) # Convert to PIL Image
+        rgb_image = np.stack([red, green, blue], axis=-1) 
+        image_rgb = Image.fromarray((rgb_image * 255).astype(np.uint8)) 
     
         # Display the image, true labels, and predicted labels
         plt.figure(figsize=(10, 10))
@@ -419,11 +420,8 @@ def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rg
     for image_file in tqdm(test_metadata['patch_id'].apply(lambda x: f"{x}.tif").tolist(), desc="Processing Images"):
         image_path = os.path.join(dataset_dir, image_file)
         with rasterio.open(image_path) as src:
-            # Read all bands
             all_bands = src.read().astype(np.float32)
-        
-            # Normalize each band to the range 0-1
-            all_bands /= np.max(all_bands, axis=(1, 2), keepdims=True)
+            all_bands /= np.max(all_bands, axis=(1, 2), keepdims=True) # Normalize each band to the range 0-1
         
         # Read the specified bands for model input
         input_bands = np.stack([all_bands[band_indices[band]] for band in bands], axis=0)
@@ -508,6 +506,7 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
         top_pred_labels = np.argmax(all_probs, axis=1)  # Index of highest probability per sample
         true_positives = np.any(all_labels > 0, axis=1)  # Samples with at least one true positive label
         top_correct = np.array([all_labels[i, top_pred_labels[i]] for i in range(len(top_pred_labels))])
+        
         if true_positives.sum() > 0:  # Avoid division by zero
             metrics_dict['one_error'] = 1 - (top_correct.sum() / true_positives.sum())
         else:

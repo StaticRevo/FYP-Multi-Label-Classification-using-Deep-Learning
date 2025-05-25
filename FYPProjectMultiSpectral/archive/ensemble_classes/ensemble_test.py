@@ -26,7 +26,6 @@ def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')
 
-    # Parse command-line arguments
     checkpoint_path = sys.argv[1]    
     
     # Create the main path for the experiment

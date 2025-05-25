@@ -73,6 +73,7 @@ class WideBottleneck(nn.Module):
             mask = torch.bernoulli(torch.ones(x.size(0), 1, 1, 1, device=x.device) * keep_prob)
             x.div_(keep_prob)
             x.mul_(mask)
+            
         return x
 
     def forward(self, x):

@@ -6,7 +6,7 @@ from torch.utils.data import WeightedRandomSampler
 def compute_label_frequencies(dataset, num_classes):
     label_counts = np.zeros(num_classes)
     for _, label in dataset:
-        label_counts += label.numpy()  # multi-hot vector
+        label_counts += label.numpy()  
     return label_counts
 
 # Compute a weight for each sample based on inverse frequency of its positive labels

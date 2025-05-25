@@ -59,7 +59,7 @@ class CustomModelV9(BaseModel):
             nn.Dropout(p=ModuleConfig.dropout_rt * 1.5)
         )
 
-        # -- Improved Skip Connection Adapters --
+        # -- Skip Connection Adapters --
         # Skip from Block 1 to Fusion 1
         self.skip_adapter = nn.Sequential( 
             nn.Conv2d(in_channels=52, out_channels=172, kernel_size=1, stride=1, padding=0, bias=False),
@@ -120,7 +120,7 @@ class CustomModelV9(BaseModel):
             nn.Linear(in_features=128, out_features=num_classes)
         )
     
-    # Improved forward pass with enhanced integration strategy
+    # Override forward function 
     def forward(self, x):
         x = self.spectral_mixer(x)  # (36, 60, 60)
         features_low = self.block1(x)  # (52, 60, 60)
@@ -149,7 +149,7 @@ class CustomModelV9(BaseModel):
         w_high, w_mid, w_deep, w_early = weights2[:, 0:1, :, :], weights2[:, 1:2, :, :], weights2[:, 2:3, :, :], weights2[:, 3:4, :, :]
         
         # Dynamic weighted fusion with rescaling to maintain signal strength
-        fusion_weights_sum = w_high + w_mid + w_deep + w_early + 1e-5  # Avoid division by zero
+        fusion_weights_sum = w_high + w_mid + w_deep + w_early + 1e-5  
         normalized_w_high = w_high / fusion_weights_sum
         normalized_w_mid = w_mid / fusion_weights_sum
         normalized_w_deep = w_deep / fusion_weights_sum
@@ -161,8 +161,7 @@ class CustomModelV9(BaseModel):
                             (normalized_w_deep * adapted_features_deep) + \
                             (normalized_w_early * adapted_features_spectral)  # (236, 15, 15)
 
-        # Classification
-        out = self.classifier(fused_features_high)  # (num_classes)
+        out = self.classifier(fused_features_high) # Final classification (19)
         return out
     
     def configure_optimizers(self):

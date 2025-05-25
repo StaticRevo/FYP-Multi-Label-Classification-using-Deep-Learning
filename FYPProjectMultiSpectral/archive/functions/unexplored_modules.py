@@ -57,11 +57,11 @@ class PositionalEncoding(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
 
         # Add batch dimension
-        pe = pe.unsqueeze(0)  # Shape: (1, max_len, d_model)
+        pe = pe.unsqueeze(0)  
         self.register_buffer('pe', pe)
  
     def forward(self, x):   
-        seq_len = x.size(1) # x: (B, seq_len, d_model)
+        seq_len = x.size(1) 
 
         return x + self.pe[:, :seq_len, :] # Add positional encoding
      

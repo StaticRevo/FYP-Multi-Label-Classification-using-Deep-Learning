@@ -48,7 +48,7 @@ class BigEarthNetDataset(Dataset):
         # Read the raster data
         try:
             with rasterio.open(image_path) as src:
-                image = src.read()  # Shape: (channels, height, width)
+                image = src.read()  
                 image = image[self.selected_band_indices, :, :] # Select only the desired bands
         except Exception as e:
             print(f"Error reading {image_path}: {e}. Returning a zero tensor and zero label.")

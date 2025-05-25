@@ -24,7 +24,6 @@ class BestMetricsCallback(pl.Callback):
     
     # Save temporary metrics to a JSON file
     def save_temp_metrics(self):
-        # Create a temporary file name based on the final save path
         temp_save_path = self.save_path.replace('best_metrics.json', 'best_metrics_temp.json')
         best_metrics_python = {metric: (value.item() if isinstance(value, torch.Tensor) else value)
                                for metric, value in self.best_metrics.items()}
@@ -153,7 +152,7 @@ class BestMetricsCallback(pl.Callback):
         }
 
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True) # Ensure the directory exists
-        with open(self.save_path, 'w') as f: # Save to JSON
+        with open(self.save_path, 'w') as f: 
             json.dump(data_to_save, f, indent=4)
 
         # Print the saved metrics
@@ -202,8 +201,10 @@ class BestMetricsCallback(pl.Callback):
             # Time the inference
             start_time = time.time()
             pl_module(x)
+
             if 'cuda' in device.type: # Synchronize to ensure the forward pass completes
                 torch.cuda.synchronize()
+
             end_time = time.time()
 
         inference_time = end_time - start_time
@@ -261,7 +262,7 @@ class GradientLoggingCallback(pl.Callback):
         print(f"Gradient Norm after clipping (raw): {total_norm:.4f}")
 
         # Log effective norm after learning rate scaling
-        lr = optimizer.param_groups[0]['lr']  # Get current learning rate
+        lr = optimizer.param_groups[0]['lr']  
         effective_norm = total_norm * lr
         pl_module.log("gradient_norm_effective", effective_norm, on_step=True, on_epoch=False)
         print(f"Gradient Norm after clipping (effective, LR={lr}): {effective_norm:.4f}")

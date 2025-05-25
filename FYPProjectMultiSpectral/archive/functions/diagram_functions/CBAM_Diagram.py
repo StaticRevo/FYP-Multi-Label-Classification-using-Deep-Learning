@@ -32,6 +32,7 @@ dot = Digraph(
 
 # CBAM structure
 dot.node('CBAM_Input', 'Input\n[B, C, H, W]', fillcolor='#ccffdd')
+
 # Channel Attention
 dot.node('CBAM_CA_Pool', 'AdaptiveAvgPool2d\n[B, C, 1, 1]', fillcolor='#ccffdd')
 dot.node('CBAM_CA_Conv1', 'Conv2d\nC -> max(16, C//8)\nkernel_size=1, bias=False', fillcolor='#ccffdd')
@@ -40,6 +41,7 @@ dot.node('CBAM_CA_Conv2', 'Conv2d\nmax(16, C//8) -> C\nkernel_size=1, bias=False
 dot.node('CBAM_CA_Sigmoid', 'Sigmoid\n[B, C, 1, 1]', fillcolor='#ccffdd')
 dot.node('CBAM_CA_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  # Dummy for channel attention skip
 dot.node('CBAM_CA_Mul', '×\nChannel Attention\n[B, C, H, W]', shape='circle', fillcolor='#ffcccc', width='0.5') 
+
 # Spatial Attention
 dot.node('CBAM_SA_Avg', 'AvgPool\nmean over channels\n[B, 1, H, W]', fillcolor='#ccffdd')
 dot.node('CBAM_SA_Max', 'MaxPool\nmax over channels\n[B, 1, H, W]', fillcolor='#ccffdd')
@@ -47,6 +49,7 @@ dot.node('CBAM_SA_Concat', 'Concat\n[B, 2, H, W]', fillcolor='#ccffdd')
 dot.node('CBAM_SA_Conv', 'Conv2d\nin_channels=2, out_channels=1\nkernel_size=7, padding=3, bias=False\nBatchNorm2d\nSigmoid\n[B, 1, H, W]', fillcolor='#ccffdd')
 dot.node('CBAM_SA_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  # Dummy for spatial attention skip
 dot.node('CBAM_SA_Mul', '×\nSpatial Attention\n[B, C, H, W]', shape='circle', fillcolor='#ffcccc', width='0.5') 
+
 # Residual Connection
 dot.node('CBAM_Res_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  # Dummy for residual skip
 dot.node('CBAM_Add', '+\nAttention\n[B, C, H, W]', shape='circle', fillcolor='#ffcccc', width='0.5')  

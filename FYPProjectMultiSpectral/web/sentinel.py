@@ -71,8 +71,8 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
     data = request.get_data()[0] # (120, 120, 12) in uint16, scaled to 0-10000
 
     if output_tiff:
-        # Transpose data to (bands, height, width) for rasterio
-        data_tiff = np.transpose(data, (2, 0, 1)).astype(np.uint16)  # (12, 120, 120)
+        # Transpose data to (12, 120, 120) for rasterio
+        data_tiff = np.transpose(data, (2, 0, 1)).astype(np.uint16)  
 
         # Define metadata in WGS84 (no reprojection)
         meta = {

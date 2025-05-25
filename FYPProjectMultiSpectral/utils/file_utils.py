@@ -62,7 +62,7 @@ def save_model_architecture(model, input_size, hyperparams_file_path, filename="
     device = ModelConfig.device
     model.to(device)
     
-    with open(save_path, 'w', encoding='utf-8') as f: # Redirect stdout to write the summary to a file
+    with open(save_path, 'w', encoding='utf-8') as f: 
         with redirect_stdout(f):
             torchinfo_summary(model, input_size=(1, *input_size))
             

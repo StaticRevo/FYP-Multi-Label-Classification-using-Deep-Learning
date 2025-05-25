@@ -351,7 +351,7 @@ def select_bands():
     
     selected_bands = sorted([int(b) for b in selected_bands]) # Convert band selections to integers and sort them
     
-    return process_prediction(file_path, filename, selected_bands, selected_experiment) # Proceed with prediction using the user-selected bands
+    return process_prediction(file_path, filename, selected_bands, selected_experiment) 
 
 # --- Batch GradCAM Page ---
 @app.route("/batch_gradcam")
@@ -977,7 +977,7 @@ def bubble_chart():
                         "model_size_MB" in metrics):
                         f2_score = metrics["best_metrics"]["val_f2"] # Default to val_f2 from best_metrics.json
                     else:
-                        continue  # Skip if required keys are missing
+                        continue  
 
                     # Override f2_score with f2_micro if aggregated_metrics.txt exists
                     if os.path.exists(aggregated_metrics_path):
@@ -1048,7 +1048,7 @@ def architectures():
 
 @app.route("/architecture_file/<architecture>/<filename>")
 def architecture_file(architecture, filename):
-    folder_path = os.path.join(ARCHITECTURES_DIR, architecture) # Build the full path to the file
+    folder_path = os.path.join(ARCHITECTURES_DIR, architecture) 
     if not os.path.exists(os.path.join(folder_path, filename)):
         return f"File {filename} not found in {architecture} folder.", 404
     return send_from_directory(folder_path, filename)
@@ -1097,9 +1097,9 @@ def get_image():
     data = data / 10000.0
 
     # Extract RGB bands (B04, B03, B02)
-    red = data[:, :, 3]   # B04
-    green = data[:, :, 2] # B03
-    blue = data[:, :, 1]  # B02
+    red = data[:, :, 3]   
+    green = data[:, :, 2] 
+    blue = data[:, :, 1]  
 
     # Ensure float32 for processing
     red = red.astype(np.float32)
@@ -1123,7 +1123,7 @@ def get_image():
     else:
         rgb = np.zeros_like(rgb)  # Fallback if image is uniform 
 
-    image_path = os.path.join('static', 'images', f'rgb_patch_{timestamp}.png') # Save RGB as PNG
+    image_path = os.path.join('static', 'images', f'rgb_patch_{timestamp}.png') 
     plt.imsave(image_path, rgb)
 
     # Return image URL, bounds, and TIFF filename for the map
@@ -1210,9 +1210,9 @@ def predict_from_map():
                 return float(obj)
             if isinstance(obj, np.ndarray):  # Handle NumPy arrays
                 return obj.tolist()
-            if isinstance(obj, dict):  # Recursively process dictionaries
+            if isinstance(obj, dict):  # Handle dictionaries
                 return {k: convert_to_serializable(v) for k, v in obj.items()}
-            if isinstance(obj, list):  # Recursively process lists
+            if isinstance(obj, list):  # Handle lists
                 return [convert_to_serializable(item) for item in obj]
             return obj
 
@@ -1227,9 +1227,7 @@ def predict_from_map():
             'experiment_details': experiment_details,
             'selected_experiment': selected_experiment
         }
-
-        # Convert all non-serializable types
-        serializable_response = convert_to_serializable(response_data)
+        serializable_response = convert_to_serializable(response_data) # Convert all non-serializable types
 
         return jsonify(serializable_response)
     

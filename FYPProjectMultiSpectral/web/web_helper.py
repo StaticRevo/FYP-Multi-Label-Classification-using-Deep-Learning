@@ -43,7 +43,7 @@ CLASS_WEIGHTS = calculate_class_weights(pd.read_csv(DatasetConfig.metadata_path)
 def load_model_from_experiment(experiment_name):
     checkpoint_path = os.path.join(EXPERIMENTS_DIR, experiment_name, "checkpoints", "last.ckpt") 
     
-    # Parse the experiment folder name to extract model details.
+    # Parse the experiment folder name to extract model details
     parsed = parse_experiment_folder(experiment_name)
     model_name = parsed["model"]
     bands_str = parsed["bands"]
@@ -80,6 +80,7 @@ def load_model_from_experiment(experiment_name):
     )
     model.eval()
     print(f"Model from experiment {experiment_name} loaded successfully.")
+
     return model
 
 # Load the experiment metrics from the results folder
@@ -121,20 +122,22 @@ def preprocess_tiff_image(file_path, selected_bands=DatasetConfig.all_bands):
     selected_band_indices = get_band_indices_web(selected_bands, DatasetConfig.all_bands)
     
     try:
+        # Read the TIFF image using rasterio
         with rasterio.open(file_path) as src:
             image = src.read() 
-            image = image[selected_band_indices, :, :]  # Select only the desired bands
+            image = image[selected_band_indices, :, :]  
     except Exception as e:
         print(f"Error reading {file_path}: {e}. Returning a zero tensor.")
         image = torch.zeros((len(selected_band_indices), DatasetConfig.image_height, DatasetConfig.image_width), dtype=torch.float32)
         return image.unsqueeze(0)
     
-    image = torch.tensor(image, dtype=torch.float32)
+    image = torch.tensor(image, dtype=torch.float32) # Convert image to a float32 tensor
     
     # Apply the transforms and normalisation 
     image = transforms_pipeline(image)
     image = normalisation(image)
     
+    # Ensure the image is 3D or 4D
     if image.dim() == 3:
         image = image.unsqueeze(0)
         
@@ -172,20 +175,25 @@ def create_rgb_visualization(file_path, selected_bands=None):
 def predict_image_for_model(model, image_tensor):
     device = next(model.parameters()).device
     image_tensor = image_tensor.to(device)
+
     with torch.no_grad():
         output = model(image_tensor)
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
+
     predictions = []
+
     for idx, prob in enumerate(probs):
         if prob > 0.5:
             label = DatasetConfig.reversed_class_labels_dict.get(idx, f"Class_{idx}")
             predictions.append({"label": label, "probability": prob})
+
     return predictions
 
 # Generate a Grad-CAM visualization for a single image
 def generate_gradcam_for_single_image(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
     gradcam_results = {}
 
+    # Get the target layer
     target_layer = get_target_layer(model, model_name)
     if target_layer is None:
         return gradcam_results
@@ -273,6 +281,7 @@ CATEGORY_GROUPS = {
 def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in_channels, predicted_indices=None):
     gradcam_results = {}
 
+    # Get the target layer
     target_layer = get_target_layer(model, model_name)
     if target_layer is None:
         return gradcam_results
@@ -304,7 +313,7 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
     blue  = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
     rgb_image = np.stack([red, green, blue], axis=-1)
 
-    # Slight gamma correction to brighten the RGB image
+    # Gamma correction to brighten the RGB image
     rgb_image = np.power(rgb_image, 0.8)
     rgb_image = np.clip(rgb_image, 0, 1)
 
@@ -316,6 +325,7 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
         cat_name: np.zeros((target_height, target_width), dtype=np.float32)
         for cat_name in CATEGORY_GROUPS
     }
+
     # Generate and accumulate Grad-CAM for every predicted class 
     for idx in predicted_indices:
         class_name = class_labels[idx]
@@ -350,19 +360,18 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
         (r, g, b) = CATEGORY_GROUPS[cat_name]["colour"]
         cat_colours.append((r / 255.0, g / 255.0, b / 255.0))
 
-    stacked_maps = np.stack(stacked_maps, axis=-1)  # shape: (H, W, #categories)
-    cat_colours = np.array(cat_colours)  # shape: (#categories, 3)
+    stacked_maps = np.stack(stacked_maps, axis=-1) # shape: (H, W, #categories)
+    cat_colours = np.array(cat_colours) # shape: (#categories, 3)
 
     # Hard max across categories per pixel
-    argmax_map = np.argmax(stacked_maps, axis=-1)  # shape: (H, W)
+    argmax_map = np.argmax(stacked_maps, axis=-1) # shape: (H, W)
     max_vals = np.max(stacked_maps, axis=-1)       
 
-    # Create overlay array
-    overlay_array = np.zeros((target_height, target_width, 3), dtype=np.float32)
+    overlay_array = np.zeros((target_height, target_width, 3), dtype=np.float32) # Create overlay array
 
-    # Threshold for ignoring low-activation pixels
-    activation_threshold = 0.2
+    activation_threshold = 0.2 # Threshold for ignoring low-activation pixels
 
+    # Overlay the Grad-CAM results onto the RGB image
     for i in range(target_height):
         for j in range(target_width):
             best_cat_idx = argmax_map[i, j]
@@ -379,7 +388,7 @@ def generate_colourcoded_gradcam(model, img_tensor, class_labels, model_name, in
     enhancer = ImageEnhance.Color(final_img)
     final_img = enhancer.enhance(1.2)  
 
-    # Save
+    # Save final image
     unique_hash = uuid.uuid4().hex
     filename = f"gradcam_colourcoded_{model.__class__.__name__}_{unique_hash}.png"
     out_path = os.path.join(STATIC_FOLDER, filename)
@@ -404,10 +413,11 @@ def fetch_actual_labels(patch_id):
     row = metadata_df.loc[metadata_df['patch_id'] == patch_id]
     if row.empty:
         return []
+    
     labels_str = row.iloc[0]['labels']
+    # Clean the string in the same way as in the dataset loader
     if isinstance(labels_str, str):
         try:
-            # Clean the string similar to the dataset class logic
             cleaned_labels = labels_str.replace(" '", ", '").replace("[", "[").replace("]", "]")
             labels = ast.literal_eval(cleaned_labels)
         except (ValueError, SyntaxError) as e:
@@ -415,11 +425,13 @@ def fetch_actual_labels(patch_id):
             labels = []
     else:
         labels = labels_str
+
     return labels
 
 # Parse the experiment folder name to extract details
 def parse_experiment_folder(folder_name):
     parts = folder_name.split('_')
+
     if len(parts) == 7:
         model = parts[0]
         weights = parts[1]
@@ -437,7 +449,7 @@ def parse_experiment_folder(folder_name):
                 dataset = parts[-3] + "_" + parts[-2]
                 remaining = parts[:-3]
         else:
-            # Fallback if last part doesn't contain digits.
+            # Fallback if last part doesn't contain digits
             epochs = parts[-1]
             dataset = parts[-3] + "_" + parts[-2]
             remaining = parts[:-3]
@@ -448,18 +460,20 @@ def parse_experiment_folder(folder_name):
             model = "_".join(remaining[:w_index])  
             bands = "_".join(remaining[w_index+1:])  
         else:
-            # If no "None" found, fallback to defaults:
+            # If no "None" found, fallback to defaults
             model = remaining[0]
             weights = ""
             bands = "_".join(remaining[1:])
+
     return {"model": model, "weights": weights, "bands": bands, "dataset": dataset, "epochs": epochs}
 
-# Save a tensor as an image and return the URL
+# Save tensor as an image and return the URL
 def save_tensor_as_image(tensor, in_channels=12):
-    if tensor.dim() == 4: # If the tensor has a batch dimension, remove it
+    # If the tensor has a batch dimension, remove it
+    if tensor.dim() == 4: 
         tensor = tensor.squeeze(0)
 
-    # Choose channels
+    # Choose channels depending on the number of input channels
     if in_channels == 12:
         rgb_channels = [3, 2, 1]
     else:
@@ -479,6 +493,7 @@ def save_tensor_as_image(tensor, in_channels=12):
     filename = f"original_img_{uuid.uuid4().hex}.png"
     out_path = os.path.join(STATIC_FOLDER, filename)
     pil_img.save(out_path)
+
     return url_for('static', filename=filename)
 
 # Get the number of channels and the band names based on the selected bands
@@ -512,6 +527,7 @@ def validate_image_channels(file_path: str, expected_channels: int) -> int:
         raise ValueError(
             f"Invalid image: Expected at least {expected_channels} channels, but found {actual_channels}."
         )
+    
     return actual_channels
 
 # Get the list of experiments from the experiments directory
@@ -533,17 +549,19 @@ def process_prediction(file_path, filename, bands, selected_experiment):
         experiments = get_experiments_list()
         return render_template('upload.html', experiments=experiments)
     
+    # Preprocess the TIFF image and load the model
     input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
     model_instance = load_model_from_experiment(selected_experiment)
     input_tensor = input_tensor.to(next(model_instance.parameters()).device)
     
+    # Predict the image using the model
     preds = predict_image_for_model(model_instance, input_tensor)
     with torch.no_grad():
         output = model_instance(input_tensor)
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
 
-    class_probs = {DatasetConfig.class_labels[i]: float(prob) for i, prob in enumerate(probs)}
+    class_probs = {DatasetConfig.class_labels[i]: float(prob) for i, prob in enumerate(probs)} # Get class probabilities
 
     experiment_details = parse_experiment_folder(selected_experiment)
     model_name = experiment_details["model"]
@@ -565,10 +583,9 @@ def process_prediction(file_path, filename, bands, selected_experiment):
         predicted_indices=predicted_indices
     )
 
-    patch_id = os.path.splitext(filename)[0]  # Fetch actual labels from metadata 
+    # Fetch actual labels from metadata 
+    patch_id = os.path.splitext(filename)[0]  
     actual_labels = fetch_actual_labels(patch_id)
-    
-    experiment_details = parse_experiment_folder(selected_experiment)
     
     return render_template('result.html',
                            filename=filename,
@@ -581,20 +598,22 @@ def process_prediction(file_path, filename, bands, selected_experiment):
                            multiple_models=False,
                            experiment_details=experiment_details)
 
-# Convert an image to a TIFF file
+# Convert a JPG/JPEG/PNG image to a TIFF file
 def convert_image_to_tiff(file_path):
     ext = os.path.splitext(file_path)[1].lower()
     if ext in [".png", ".jpeg", ".jpg"]:
         try:
             img = Image.open(file_path).convert("RGB")
-            # Append a random UUID so each file is unique
-            unique_suffix = uuid.uuid4().hex
+            unique_suffix = uuid.uuid4().hex # Append a random UUID so each file is unique
             base = file_path.rsplit('.', 1)[0]
             new_file_path = f"{base}_{unique_suffix}.tif"
             img.save(new_file_path, format="TIFF")
+
             return new_file_path
+        
         except Exception as e:
             raise ValueError(f"Error converting image to TIFF: {e}")
+        
     return file_path
 
 # Crop an image based on geographical coordinates

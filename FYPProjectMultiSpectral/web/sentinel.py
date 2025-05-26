@@ -10,8 +10,7 @@ import rasterio
 from rasterio.transform import from_bounds
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()  
+load_dotenv() # Load environment variables from .env file
 
 # Load configuration
 config = SHConfig()
@@ -38,6 +37,7 @@ function evaluatePixel(sample) {
 }
 """
 
+# Fetch Sentinel-2 patch given latitude and longitude
 def fetch_sentinel_patch(lat, lon, output_tiff=None):
     """
     Fetch a 120x120 Sentinel-2 patch at given coordinates in WGS84, matching BigEarthNet’s size and scaling.
@@ -66,15 +66,12 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
         size=[120, 120], 
         config=config
     )
-
-    # Fetch data
-    data = request.get_data()[0] # (120, 120, 12) in uint16, scaled to 0-10000
+    data = request.get_data()[0] # Fetch data
 
     if output_tiff:
-        # Transpose data to (12, 120, 120) for rasterio
         data_tiff = np.transpose(data, (2, 0, 1)).astype(np.uint16)  
 
-        # Define metadata in WGS84 (no reprojection)
+        # Define metadata in WGS84 
         meta = {
             'driver': 'GTiff',
             'height': 120, 
@@ -93,8 +90,10 @@ def fetch_sentinel_patch(lat, lon, output_tiff=None):
     return data, bbox_coords
 
 if __name__ == "__main__":
-    min_lat, max_lat = 35.8, 36.0  # Malta
+    min_lat, max_lat = 35.8, 36.0  # Malta coordinates
     min_lon, max_lon = 14.4, 14.6
+
+    # Generate 10 random patches within the specified bounding box
     for i in range(10):
         lat = random.uniform(min_lat, max_lat)
         lon = random.uniform(min_lon, max_lon)

@@ -20,7 +20,7 @@ from utils.visualisation_utils import register_hooks, show_rgb_from_batch, clear
 from utils.logging_utils import setup_logger
 from models.models import *
 
-# Test the model
+# Testing script
 def main():
     set_random_seeds() # Set random seeds for reproducibility
     torch.set_float32_matmul_precision('high')
@@ -56,7 +56,8 @@ def main():
     model_weights = None if weights == 'None' else weights
     model = model_class.load_from_checkpoint(checkpoint_path, class_weights=class_weights, num_classes=DatasetConfig.num_classes, 
                                              in_channels=in_channels, model_weights=model_weights, main_path=main_path)
-    model.eval() # Set the model to evaluation mode
+    
+    model.eval() # Set model to evaluation mode
 
     register_hooks(model) # Register hooks for visualization of activations
 
@@ -65,7 +66,7 @@ def main():
     data_module.setup(stage='test')
     class_labels = DatasetConfig.class_labels
 
-    # Initialize the BestMetricsCallback
+    # Initialize the BestMetricsCallback for tracking best metrics
     metrics_to_track = ['test_acc', 'test_loss', 'test_f1', 'test_f2', 'test_precision', 'test_recall','test_one_error', 'test_hamming_loss', 'test_avg_precision']
     best_test_metrics_path = os.path.join(main_path, 'results', 'best_test_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_test_metrics_path)
@@ -80,9 +81,9 @@ def main():
         logger = False
     )
 
-    # Run the testing phase
+    # Test the model
     logger.info("Testing the model...")
-    trainer.test(model, datamodule=data_module) # Test the model using the test data module
+    trainer.test(model, datamodule=data_module) 
     logger.info("Testing complete.")
     
     # Calculate metrics and save results
@@ -98,6 +99,7 @@ def main():
     )
     logger.info("Metrics and results saved.")
 
+    # Compute continuous probability outputs for ROC AUC
     print("Computing continuous probability outputs for ROC AUC...")
     all_probs = get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=bands) # Get the continuous probability outputs for ROC AUC
 

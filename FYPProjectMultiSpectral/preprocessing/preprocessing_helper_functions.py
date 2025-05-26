@@ -96,6 +96,7 @@ def createSubsets(dataset_dir, subset_dir, metadata_df, percentage):
 
             metadata_subset = pd.concat([metadata_subset, metadata_df[metadata_df['patch_id'].isin(selected_subfolders)]])
 
+            # Copy selected subfolders to the destination path, skipping if the directory already exists
             for selected in selected_subfolders:
                 dest_path = os.path.join(subset_path, folder, selected)
                 if not os.path.exists(dest_path): 
@@ -125,7 +126,7 @@ def create_stratified_subset(metadata_df, subset_percentage, random_state=42):
     
     return subset_df
 
-# Function to extract labels from the original string format for processing
+# Extract labels from the original string format for processing
 def extract_labels(label_input):
     if isinstance(label_input, str):
         if label_input.startswith('[') and label_input.endswith(']'):
@@ -138,11 +139,11 @@ def extract_labels(label_input):
     else:
         raise TypeError(f"Expected label_input to be a string or list, got {type(label_input)}")
 
-# Function to rebalance the dataset split
+# Rrebalance the dataset split
 def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_path=None):
     metadata = metadata.copy()
     
-    # Calculate how many samples we need to move
+    # Calculate how many samples needed to move
     total_samples = len(metadata)
     target_train = int(total_samples * target_split[0])
     target_val = int(total_samples * target_split[1])
@@ -222,19 +223,17 @@ def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_pat
     test_to_train_indices = set()
     remaining_to_move = move_from_test_to_train
     
-    # First, ensure each label has some representation
+    # Ensure each label has some representation
     for label in all_labels:
         if remaining_to_move <= 0:
             break
             
         images = test_images_by_label[label]
         if images:
-            # Move just one image per label initially
             move_index = random.choice(images)
             test_to_train_indices.add(move_index)
             remaining_to_move -= 1
     
-    # Then fill in the rest randomly
     all_test_indices = test_df.index.tolist()
     random.shuffle(all_test_indices)
     
@@ -287,12 +286,14 @@ def rebalance_dataset_split(metadata, target_split=(0.7, 0.15, 0.15), output_pat
         with open(output_path, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(metadata.columns) 
+
             # Write rows, formatting the labels column appropriately
             for _, row in metadata.iterrows():
                 if isinstance(row['labels'], list):
                     formatted_labels = "[" + " ".join(f"'{label}'" for label in row['labels']) + "]"
                 else:
                     formatted_labels = row['labels']
+
                 # Create row values, replacing the labels with the formatted string
                 row_values = [formatted_labels if col == 'labels' else row[col] for col in metadata.columns]
                 writer.writerow(row_values)
@@ -310,7 +311,6 @@ def copy_subset_images(original_images_dir, original_metadata_path, subset_metad
     subset_images_dir = Path(subset_images_dir)
     subset_images_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load subset metadata
     subset_metadata = pd.read_csv(subset_metadata_path)
 
     # Get unique patch_ids from subset metadata
@@ -518,7 +518,7 @@ def precompute_sample_weights(metadata_csv, num_classes, label_column="labels", 
     total_rows = len(metadata_csv)
     weights = []
 
-    # Compute a weight for each sample based on the inverse frequency of its labels.
+    # Compute a weight for each sample based on the inverse frequency of its labels
     for idx, row in metadata_csv.iterrows():
         label_list = row[label_column]
         encoded_labels = encode_label(label_list)  # Convert to multi-hot encoding

@@ -11,7 +11,7 @@ def clean_and_parse_labels(label_string):
         return ast.literal_eval(cleaned_labels)
     return label_string  
 
-# Normalize class weights
+# Normalize class weights (not utilised currently)
 def normalize_class_weights(class_weights):
     total_weight = sum(class_weights)
     return [weight / total_weight for weight in class_weights]
@@ -27,7 +27,6 @@ def calculate_class_weights(metadata_csv):
     class_weights = {label: total_counts / count for label, count in label_counts.items()}
     class_weights_array = np.array([class_weights[label] for label in class_labels])
 
-    # normalized_class_weights = normalize_class_weights(class_weights_array) # Normalize class weights 
     log_weights = np.log1p(class_weights_array)
 
     boost_factor = 3.0

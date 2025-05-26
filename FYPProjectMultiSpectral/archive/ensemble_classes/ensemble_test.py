@@ -21,7 +21,7 @@ from utils.logging_utils import setup_logger
 from models.models import *
 from archive.ensemble_classes.ensemble import EnsembleLightningModule
 
-# Test ensemble model
+# Test ensemble script model
 def main():
     set_random_seeds()
     torch.set_float32_matmul_precision('high')

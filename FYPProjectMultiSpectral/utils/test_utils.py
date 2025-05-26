@@ -27,11 +27,13 @@ from utils.logging_utils import setup_logger
 
 # Calculate metrics and save results
 def calculate_metrics_and_save_results(model, data_module, model_name, dataset_name, class_labels, result_path, logger=None):
-    all_preds, all_labels = [], [] # Initialize lists to store predictions and labels
+    all_preds, all_labels = [], [] 
     test_loader = data_module.test_dataloader()
 
     logger.info("Starting batch processing for metrics calculation.")
-    for batch in tqdm(test_loader, desc="Processing Batches"): # Iterate through batches
+
+    # Iterate through batches to generate predictions
+    for batch in tqdm(test_loader, desc="Processing Batches"): 
         inputs, labels = batch
         inputs, labels = inputs.to(model.device), labels.to(model.device)
 
@@ -39,7 +41,7 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
             logits = model(inputs)
             preds = torch.sigmoid(logits) > 0.5
 
-        all_preds.extend(preds.cpu().numpy().astype(int)) #
+        all_preds.extend(preds.cpu().numpy().astype(int)) 
         all_labels.extend(labels.cpu().numpy().astype(int))
 
     all_preds, all_labels = np.array(all_preds), np.array(all_labels) # Convert lists to numpy arrays
@@ -49,20 +51,25 @@ def calculate_metrics_and_save_results(model, data_module, model_name, dataset_n
     np.savez(save_path, all_preds=all_preds, all_labels=all_labels) # Save predictions and labels to a .npz file
     logger.info(f"Predictions and labels saved to {save_path}")
 
-    return all_preds, all_labels # Save the predictions and labels to a .npz file
+    return all_preds, all_labels 
 
 # Visualize predictions and heatmaps
 def visualize_predictions_and_heatmaps(model, data_module, in_channels, predictions, true_labels, class_labels, model_name, result_path, probs=None, logger=None):
     save_dir = os.path.join(result_path, 'visualizations')
     os.makedirs(save_dir, exist_ok=True)
-
-    saving_batch_predictions( # Display batch predictions
-         model, data_module.test_dataloader(), in_channels, threshold=0.6, bands=DatasetConfig.all_bands, num_images=10, save_dir=save_dir, logger=logger
+    
+    # Save batch predictions
+    saving_batch_predictions( 
+         model, data_module.test_dataloader(), in_channels, threshold=0.5, bands=DatasetConfig.all_bands, num_images=10, save_dir=save_dir, logger=logger
     )
-    plot_per_label_confusion_matrices_grid( # Plot per-label confusion matrices
+
+    # Plot per-label confusion matrices
+    plot_per_label_confusion_matrices_grid( 
         true_labels, predictions, class_names=class_labels, cols=4, save_dir=save_dir, logger=logger
     )
-    scores = compute_aggregated_metrics(true_labels, predictions, probs, logger) # Compute and print aggregated metrics
+
+    # Compute and print aggregated metrics
+    scores = compute_aggregated_metrics(true_labels, predictions, probs, logger) 
     print(f"Aggregated Metrics:\n{scores}")
 
     # Save the aggregated metrics to a text file within save_dir
@@ -73,13 +80,15 @@ def visualize_predictions_and_heatmaps(model, data_module, in_channels, predicti
              f.write(f"{metric}: {value}\n")
     print(f"Aggregated metrics saved to {aggregated_metrics_path}")
 
-    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=result_path, logger=logger) # Compute per-category metrics
+    # Compute per-category metrics
+    per_cat_scores = compute_per_category_metrics(true_labels, predictions, save_dir=result_path, logger=logger) 
 
-    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) # Plot co-occurrence matrix
+    # Plot co-occurrence matrix
+    plot_cooccurrence_matrix(true_labels, predictions, class_names=class_labels, save_dir=save_dir, logger=logger) 
 
     # Plot ROC-AUC curve if continuous probability outputs are provided
     if probs is not None:
-        plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir, logger=logger) # Plot ROC-AUC curve
+        plot_roc_auc(true_labels, probs, class_labels,  save_dir=save_dir, logger=logger) 
     else:
         logger.warning("Continuous probability outputs not provided. Skipping ROC-AUC plotting.")
 
@@ -139,8 +148,9 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
     target_indices = [random.randint(0, num_images - 1) for _ in range(5)]  # Select 5 random images
 
     for idx in target_indices:
+        # Retrieve the image and label from the Dataset
         try:
-            img_tensor, label = test_dataset[idx] # Retrieve the image and label from the Dataset
+            img_tensor, label = test_dataset[idx] 
         except IndexError:
             logger.warning(f"Index {idx} is out of bounds for the test dataset.")
             continue
@@ -153,7 +163,8 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
         predicted_labels = [class_labels[i] for i in target_classes]
         actual_labels = [class_labels[i] for i, val in enumerate(label) if val == 1 or val > 0.5]
 
-        heatmaps = {} # Generate heatmaps for each relevant class
+        # Generate heatmaps for each relevant class
+        heatmaps = {} 
         for target_class in target_classes:
             cam, _ = grad_cam.generate_heatmap(input_image, target_class=target_class)
             heatmaps[class_labels[target_class]] = cam
@@ -164,6 +175,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             rgb_channels = [3, 2, 1]  
         else:
             rgb_channels = [2, 1, 0]
+            
         img = img[rgb_channels, :, :] 
         
         # Normalize each channel for visualization
@@ -181,6 +193,7 @@ def generate_gradcam_visualizations(model, data_module, class_labels, model_name
             overlay = overlay_heatmap(img, heatmap, alpha=0.5) # Overlay heatmap on image
 
             plt.figure(figsize=(15, 5)) # Plot the results
+
             plt.subplot(1, 3, 1) # Original Image
             plt.title('Original Image')
             plt.imshow(img)
@@ -236,7 +249,8 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     target_classes = torch.where(output[0] > threshold)[0].tolist() # Get relevant classes
     predicted_labels = [class_labels[i] for i in target_classes]
 
-    heatmaps = {}  # Generate heatmaps for each relevant class
+     # Generate heatmaps for each relevant class
+    heatmaps = {} 
     for target_class in target_classes:
         cam, _ = grad_cam.generate_heatmap(input_tensor, target_class=target_class)
         heatmaps[class_labels[target_class]] = cam
@@ -254,14 +268,17 @@ def generate_gradcam_for_single_image(model, tiff_file_path, class_labels, model
     red = (img_cpu[0] - img_cpu[0].min()) / (img_cpu[0].max() - img_cpu[0].min() + 1e-8)
     green = (img_cpu[1] - img_cpu[1].min()) / (img_cpu[1].max() - img_cpu[1].min() + 1e-8)
     blue = (img_cpu[2] - img_cpu[2].min()) / (img_cpu[2].max() - img_cpu[2].min() + 1e-8)
-    rgb_image = np.stack([red, green, blue], axis=-1)  # Stack into an RGB image
-    img = Image.fromarray((rgb_image * 255).astype(np.uint8))  # Convert to PIL Image
+
+     # Stack into an RGB image and convert to PIL Image
+    rgb_image = np.stack([red, green, blue], axis=-1) 
+    img = Image.fromarray((rgb_image * 255).astype(np.uint8))  
 
     # Save Grad-CAM visualizations for each class
-    for class_name, heatmap in heatmaps.items():  # Display and save heatmaps for each class
+    for class_name, heatmap in heatmaps.items():  
         overlay = overlay_heatmap(img, heatmap, alpha=0.5)  # Overlay heatmap on image
 
         plt.figure(figsize=(15, 5))  # Plot the results
+
         plt.subplot(1, 3, 1)  # Original Image
         plt.title('Original Image')
         plt.imshow(img)
@@ -297,8 +314,9 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None
     logger.info("Plotting ROC-AUC curve...")
     num_classes = all_labels.shape[1]
     fpr, tpr, roc_auc = dict(), dict(), dict()
-
-    for i in range(num_classes): # Compute the ROC for each class
+    
+    # Compute the ROC for each class
+    for i in range(num_classes): 
         fpr[i], tpr[i], _ = roc_curve(all_labels[:, i], all_probs[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
 
@@ -306,7 +324,8 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None
     fpr["micro"], tpr["micro"], _ = roc_curve(all_labels.ravel(), all_probs.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
-    plt.figure(figsize=(12, 8)) # Plot for each class
+    # Plot for each class
+    plt.figure(figsize=(12, 8)) 
     for i in range(num_classes):
         plt.plot(
             fpr[i], tpr[i],
@@ -314,7 +333,8 @@ def plot_roc_auc(all_labels, all_probs, class_labels, save_dir=None, logger=None
             label=f'Class {class_labels[i]} (area = {roc_auc[i]:0.2f})'
         )
 
-    plt.plot( # Plot micro-average
+    # Plot micro-average
+    plt.plot( 
         fpr["micro"], tpr["micro"],
         color='deeppink', linestyle=':', linewidth=4,
         label=f'Micro-average (area = {roc_auc["micro"]:0.2f})'
@@ -406,7 +426,7 @@ def saving_batch_predictions(model, dataloader, in_channels, threshold=0.5, band
 
 # Get sigmoid outputs
 def get_sigmoid_outputs(model, dataset_dir, metadata_csv, bands=DatasetConfig.rgb_bands):
-    test_metadata = metadata_csv[metadata_csv['split'] == 'test'] # Create dictionaries for mapping between labels and indices
+    test_metadata = metadata_csv[metadata_csv['split'] == 'test']
     
     # Map band names to indices
     band_indices = {
@@ -446,7 +466,7 @@ def plot_per_label_confusion_matrices_grid(all_labels, all_preds, class_names=No
     mcm = multilabel_confusion_matrix(all_labels, all_preds)
     n_labels = len(mcm)
 
-    # Determine how many rows we need
+    # Determine how many rows are needed
     rows = math.ceil(n_labels / cols)
 
     # Create a figure with (rows x cols) subplots
@@ -495,6 +515,7 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
 
     # Hamming loss: fraction of labels incorrectly predicted
     metrics_dict['hamming_loss'] = hamming_loss(all_labels, all_preds)
+
     # Subset accuracy: only 1 if all labels match exactly
     metrics_dict['subset_accuracy'] = accuracy_score(all_labels, all_preds)
 
@@ -507,7 +528,7 @@ def compute_aggregated_metrics(all_labels, all_preds, all_probs=None, logger=Non
         true_positives = np.any(all_labels > 0, axis=1)  # Samples with at least one true positive label
         top_correct = np.array([all_labels[i, top_pred_labels[i]] for i in range(len(top_pred_labels))])
         
-        if true_positives.sum() > 0:  # Avoid division by zero
+        if true_positives.sum() > 0:  
             metrics_dict['one_error'] = 1 - (top_correct.sum() / true_positives.sum())
         else:
             metrics_dict['one_error'] = 0.0

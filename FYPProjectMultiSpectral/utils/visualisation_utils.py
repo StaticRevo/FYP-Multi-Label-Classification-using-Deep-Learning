@@ -15,6 +15,7 @@ activations = {} # Dictionary to store activations from the model
 def forward_hook(module, input, output):
     activations[module] = output
 
+# Register hooks for all Conv2d layers in the model
 def register_hooks(model):
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
@@ -38,8 +39,9 @@ def visualize_activations(result_path, num_filters=8):
                 grid_size, 
                 figsize=(grid_size * 3, grid_size * 3)
             )
-            
-            if grid_size == 1: # Ensure axes is always iterable
+
+            # Ensure axes is always iterable
+            if grid_size == 1: 
                 axes = np.array([axes])
             else:
                 axes = axes.flatten()
@@ -84,7 +86,6 @@ def show_rgb_from_batch(image_tensor, in_channels, save_path=None):
     plt.axis('off')
 
     if save_path:
-        # Ensure the save directory exists
         os.makedirs(save_path, exist_ok=True)
         save_file = os.path.join(save_path, "activations_image.png")
         plt.savefig(save_file, bbox_inches='tight')

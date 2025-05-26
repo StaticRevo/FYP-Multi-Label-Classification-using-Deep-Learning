@@ -78,18 +78,19 @@ def train_page():
         selected_dataset = request.form.get("selected_dataset")
         test_variable = request.form.get("test_variable", "False")
         
-        # Compute the main experiment path 
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
         
+        # Store main path and training parameters in session
         session['main_path'] = main_path
-        session['train_params'] = { # Store training parameters in session
+        session['train_params'] = { 
             'model_name': model_name,
             'weights': weights,
             'selected_bands': selected_bands,
             'selected_dataset': selected_dataset
         }
-        
-        trainer_script = os.path.join(parent_dir, "trainer.py") # Build command to launch trainer.py using parent_dir
+
+        # Build command to launch trainer.py using parent_dir
+        trainer_script = os.path.join(parent_dir, "trainer.py")
         cmd = ["python", trainer_script, model_name, weights, selected_bands, selected_dataset, test_variable, main_path]
         subprocess.Popen(cmd, cwd=parent_dir)
 
@@ -107,7 +108,9 @@ def train_page():
 @app.route('/logs')
 def logs():
     global _cached_training_log, _last_training_log_time
-    main_path = session.get('main_path') # Retrieve the main experiment path from the session
+
+    # Retrieve the main experiment path from the session
+    main_path = session.get('main_path')
     if not main_path:
         return "No training run information found in session."
 
@@ -116,7 +119,8 @@ def logs():
     training_log_path = os.path.join(log_dir, 'training_logs')
     log_file = os.path.join(training_log_path, 'training.log')
     
-    current_time = time.time() # Check if need to re-read the file
+    # Check if there is a need to re-read the file
+    current_time = time.time() 
     if _cached_training_log is None or (current_time - _last_training_log_time) > CACHE_DURATION:
         try:
             with open(log_file, 'r') as f:
@@ -131,7 +135,8 @@ def logs():
 @app.route("/test", methods=['GET', 'POST'])
 def test_page():
     if request.method == 'POST':
-        experiment = request.form.get("experiment") # Extract form parameters
+        # Extract form parameters
+        experiment = request.form.get("experiment") 
         checkpoint_type = request.form.get("checkpoint_type")
         
         # Build the main experiment path and determine checkpoint file based on type
@@ -146,6 +151,7 @@ def test_page():
         else:
             cp_file = "last.ckpt"  # default fallback
         checkpoint_path = os.path.join(checkpoint_dir, cp_file)
+
         session['main_path'] = main_experiment_path # Save the experiment path in session 
 
         # Parse the experiment folder name to extract details
@@ -155,7 +161,6 @@ def test_page():
         selected_bands = experiment_details["bands"]
         selected_dataset = experiment_details["dataset"]
 
-        # Set in_channels and bands based on the band combination string
         in_channels, bands = get_channels_and_bands(selected_bands)
 
         # Get dataset-related parameters using the dataset percentage from the experiment name
@@ -192,6 +197,7 @@ def test_page():
                     vis_path = os.path.join(results_path, "visualizations")
                     if not os.path.exists(vis_path):
                         untested_experiments.append(d)
+
         return render_template("test.html", 
                                untested_experiments=untested_experiments,
                                weights_options=["None", "DEFAULT"],  
@@ -202,7 +208,9 @@ def test_page():
 @app.route('/logs_test')
 def logs_test():
     global _cached_testing_log, _last_testing_log_time
-    main_path = session.get('main_path')  # Retrieve the main experiment path from the session
+
+    # Retrieve the main experiment path from the session
+    main_path = session.get('main_path')  
     if not main_path:
         return "No testing run information found in session."
 
@@ -211,8 +219,8 @@ def logs_test():
     testing_log_path = os.path.join(log_dir, 'testing_logs')
     log_file = os.path.join(testing_log_path, 'testing.log')
     
+    # Check if there is a need to re-read the file 
     current_time = time.time()
-    # Check if we need to re-read the file (once every CACHE_DURATION seconds)
     if _cached_testing_log is None or (current_time - _last_testing_log_time) > CACHE_DURATION:
         try:
             with open(log_file, 'r') as f:
@@ -227,8 +235,9 @@ def logs_test():
 @app.route("/predict", methods=['GET', 'POST'])
 def predict_page():
     if request.method == 'POST':
-        files = request.files.getlist('file')  # Get the list of uploaded files 
-        selected_experiment = request.form.get("experiment")  # Get the selected experiment from the form
+        # Get the list of uploaded files and the selected experiment
+        files = request.files.getlist('file')  
+        selected_experiment = request.form.get("experiment")  
         if not files or files[0].filename == '':
             flash("No file selected.", "error")
             return redirect(request.url)
@@ -238,7 +247,6 @@ def predict_page():
         model_name = experiment_details["model"]
         selected_bands_str = experiment_details["bands"]
         
-        # Determine in_channels and the default bands list based on the experiment
         in_channels, default_bands = get_channels_and_bands(selected_bands_str)
         
         # Single image prediction branch
@@ -252,11 +260,14 @@ def predict_page():
             if ext not in [".tif", ".tiff"]:
                 file_path = convert_image_to_tiff(file_path)
 
-            try: # Validate image channels.
+            # Validate image channels
+            try: 
                 actual_channels = validate_image_channels(file_path, in_channels)
             except ValueError as ve:
                 flash(str(ve), "error")
-                experiments = get_experiments_list()  # Reload experiments list for the upload page
+
+                # Reload experiments list for the upload page
+                experiments = get_experiments_list()  
                 return render_template('upload.html', experiments=experiments)
             
             # If the image has extra bands, prompt the user to select bands
@@ -271,8 +282,9 @@ def predict_page():
             # Otherwise, proceed with prediction using the default band selection
             bands = default_bands
             return process_prediction(file_path, filename, bands, selected_experiment)
-            
-        else: # Batch prediction branch
+        
+        # Batch prediction branch
+        else: 
             results_list = []
             model_instance = load_model_from_experiment(selected_experiment)
             
@@ -285,17 +297,20 @@ def predict_page():
                     ext = os.path.splitext(filename)[1].lower()
                     if ext not in [".tif", ".tiff"]:
                         file_path = convert_image_to_tiff(file_path)
-                        
+
+                    # Validate image channels
                     try:
                         actual_channels = validate_image_channels(file_path, in_channels)
                     except ValueError as ve:
                         flash(f"Skipping {filename}: {ve}", "error")
                         continue
                     
+                    # If the image has extra bands, skip it
                     if actual_channels > in_channels:
                         flash(f"Skipping {filename}: Has extra bands. Please upload files with the expected number of bands for batch processing.", "error")
                         continue
                     
+                    # Create RGB visualization. preprocess the image, predict and fetch actual labels
                     rgb_url = create_rgb_visualization(file_path)
                     input_tensor = preprocess_tiff_image(file_path, selected_bands=default_bands)
                     predictions = predict_image_for_model(model_instance, input_tensor)
@@ -310,6 +325,7 @@ def predict_page():
                         
                     })
 
+            # If no valid files were processed, show an error message
             if not results_list:
                 flash("No valid files were uploaded with the required channel count.", "error")
                 experiments = get_experiments_list()
@@ -333,7 +349,8 @@ def select_bands():
     _, expected_bands = get_channels_and_bands(experiment_details["bands"])
     expected_count = len(expected_bands)
     
-    if len(selected_bands) != expected_count: # Check if the number of selected bands matches the expected count
+    # Check if the number of selected bands matches the expected count
+    if len(selected_bands) != expected_count: 
         flash(f"Please select exactly {expected_count} band(s).", "error")
         try:
             with rasterio.open(file_path) as src:
@@ -366,11 +383,13 @@ def batch_gradcam():
     if not os.path.exists(file_path):
         return f"File {filename} not found in uploads folder.", 404
 
+    # Load the model from the experiment and prepare the input tensor
     model_instance = load_model_from_experiment(experiment)
     input_tensor = preprocess_tiff_image(file_path)
     input_tensor = input_tensor.to(next(model_instance.parameters()).device)
 
-    with torch.no_grad(): # Perform inference
+     # Perform inference on the input tensor
+    with torch.no_grad():
         output = model_instance(input_tensor)
         probs = torch.sigmoid(output).squeeze().cpu().numpy()
     predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
@@ -426,7 +445,7 @@ def experiments_overview():
             full_path = os.path.join(EXPERIMENTS_DIR, d)
             if os.path.isdir(full_path):
                 parsed = parse_experiment_folder(d)
-                parsed['folder_name'] = d  # store the full folder name 
+                parsed['folder_name'] = d  
 
                 # Get creation time and store both timestamp and formatted date
                 creation_time = os.path.getctime(full_path)
@@ -442,6 +461,7 @@ def experiments_overview():
     filter_dataset = request.args.get('dataset', '').lower()
     filter_epochs = request.args.get('epochs', '').lower()
     
+    # Check if any filter is set
     def matches_filter(exp):
         if filter_model and filter_model not in exp['model'].lower():
             return False
@@ -455,7 +475,7 @@ def experiments_overview():
             return False
         return True
     
-    # Apply filtering if any filter is set
+    # Apply filtering
     if any([filter_model, filter_weights, filter_bands, filter_dataset, filter_epochs]):
         experiments = [exp for exp in experiments if matches_filter(exp)]
     
@@ -503,7 +523,7 @@ def experiment_detail(experiment_name):
         if standalone_files:
             results["files"] = standalone_files
 
-    # Metrics
+    # Metric files
     metrics = {}
     metric_files = [
         "best_metrics.json",
@@ -542,6 +562,7 @@ def experiment_detail(experiment_name):
                     if line.startswith("Category:"):
                         category = line.replace("Category:", "").strip()
                         per_category_metrics["class_labels"].append(category)
+
                         # Parse the next 5 lines for metrics
                         metrics_lines = lines[i+1:i+6]
                         metrics_dict = {}
@@ -557,6 +578,7 @@ def experiment_detail(experiment_name):
                         i += 6
                     else:
                         i += 1
+
             # Override per-class metrics with per_category_metrics
             metrics["test_per_class_metrics.json"] = per_category_metrics
             metrics["train_per_class_metrics.json"] = per_category_metrics
@@ -625,8 +647,7 @@ def detailed_inference():
         
         # Loop through each selected experiment
         for exp in selected_experiments:
-            # Load validation metrics from best_metrics.json
-            metrics = load_experiment_metrics(exp)
+            metrics = load_experiment_metrics(exp) 
             if 'best_metrics' in metrics:
                 for metric, value in metrics['best_metrics'].items():
                     comparison_data.setdefault(metric, {})[exp] = value
@@ -775,7 +796,6 @@ def detailed_inference():
         
         # Define metrics that should be minimized 
         min_metrics = {"val_loss", "val_hamming_loss", "val_one_error", "training_time_sec"}
-
         agg_min_metrics = {"hamming_loss", "one_error", "avg_hamming_loss", "subset_loss", 
                   "ranking_loss", "one_error_macro", "one_error_micro", 
                   "hamming_loss_macro", "hamming_loss_micro"}
@@ -943,7 +963,8 @@ def detailed_inference():
 # -- Bubble Chart Page --
 @app.route("/bubble_chart")
 def bubble_chart():
-    include_models = request.args.getlist("models")  # Get the selected models from query parameters as a list 
+    # Get the selected models from query parameters as a list 
+    include_models = request.args.getlist("models")  
     if include_models:
         include_models = [m.strip().lower() for m in include_models]
     else:
@@ -959,7 +980,7 @@ def bubble_chart():
                 metrics_path = os.path.join(results_dir, "best_metrics.json")
                 aggregated_metrics_path = os.path.join(results_dir, "aggregated_metrics.txt")
 
-                f2_score = None # Initialize F2 score
+                f2_score = None 
 
                 # Check for best_metrics.json first 
                 if os.path.exists(metrics_path):
@@ -1026,6 +1047,8 @@ def architectures():
                     file_path = os.path.join(folder_path, file)
                     content = None
                     is_text = False
+
+                    # Check if the file is a text file
                     if file.endswith('.txt'):
                         is_text = True
                         try:
@@ -1044,6 +1067,7 @@ def architectures():
                 })
     else:
         flash("Architectures directory not found.", "error")
+
     return render_template("architectures.html", architectures=architectures_list)
 
 @app.route("/architecture_file/<architecture>/<filename>")
@@ -1051,6 +1075,7 @@ def architecture_file(architecture, filename):
     folder_path = os.path.join(ARCHITECTURES_DIR, architecture) 
     if not os.path.exists(os.path.join(folder_path, filename)):
         return f"File {filename} not found in {architecture} folder.", 404
+    
     return send_from_directory(folder_path, filename)
 
 # -- Visualize Model Page --
@@ -1078,23 +1103,22 @@ def data_exploration():
 def map_page():
     print("Map page accessed")
     experiments = get_experiments_list()  # Fetch the list of experiments 
+
     return render_template('map_page.html', experiments=experiments)
 
 # -- Get Image from Map Page ---
 @app.route('/get_image', methods=['POST'])
 def get_image():
-    lat = float(request.form['lat'])  # Get coordinates from the map click
+    # Get coordinates from the map click
+    lat = float(request.form['lat'])  
     lon = float(request.form['lon'])
 
     # Generate unique filename with timestamp
     timestamp = int(time.time())
     tiff_path = os.path.join('static', 'images', f'multispectral_patch_{timestamp}.tif')
 
-    # Fetch Sentinel-2 patch and save as TIFF
-    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path)
-
-    # Scale reflectance values to [0, 1] 
-    data = data / 10000.0
+    data, bbox_coords = fetch_sentinel_patch(lat, lon, output_tiff=tiff_path) # Fetch Sentinel-2 patch and save as TIFF
+    data = data / 10000.0 # Scale reflectance values to [0, 1] 
 
     # Extract RGB bands (B04, B03, B02)
     red = data[:, :, 3]   
@@ -1118,7 +1142,8 @@ def get_image():
     # Normalize to [0, 1] after clipping, preserving relative colour balance
     rgb = np.dstack((red, green, blue))
     rgb_min, rgb_max = rgb.min(), rgb.max()
-    if rgb_max > rgb_min:  # Avoid division by zero
+
+    if rgb_max > rgb_min: 
         rgb = (rgb - rgb_min) / (rgb_max - rgb_min)
     else:
         rgb = np.zeros_like(rgb)  # Fallback if image is uniform 
@@ -1161,19 +1186,22 @@ def predict_from_map():
 
         actual_channels = validate_image_channels(file_path, in_channels) # Validate the number of channels in the image
 
-        if actual_channels < in_channels: # Check if the image has fewer channels than expected
+        # Check if the image has fewer channels than expected
+        if actual_channels < in_channels:
             raise ValueError(f"Image has only {actual_channels} bands, but model requires {in_channels}.")
-        elif actual_channels > in_channels: # Check if the image has more channels than expected
+        # Check if the image has more channels than expected
+        elif actual_channels > in_channels:
             print(f"Warning: Image has {actual_channels} bands, model expects {in_channels}. Using first {in_channels} bands from default list: {default_bands[:in_channels]}")
             bands = default_bands[:in_channels]
         else:
             bands = default_bands
 
+        # Create RGB visualization, preprocess the image, and load the model
         rgb_url = create_rgb_visualization(file_path)
         input_tensor = preprocess_tiff_image(file_path, selected_bands=bands)
         model_instance = load_model_from_experiment(selected_experiment)
 
-        input_tensor = input_tensor.to(next(model_instance.parameters()).device)
+        input_tensor = input_tensor.to(next(model_instance.parameters()).device) 
 
         # Get Predictions 
         preds = predict_image_for_model(model_instance, input_tensor)
@@ -1182,8 +1210,7 @@ def predict_from_map():
             probs = torch.sigmoid(output).squeeze().cpu().numpy()
         predicted_indices = [idx for idx, prob in enumerate(probs) if prob > 0.5]
 
-        preds_list = preds  # preds is a list of dicts with float32 probabilities
-
+        preds_list = preds  
         print(f"preds type: {type(preds)}, value: {preds}")
 
         # Generate Grad-CAM visualizations

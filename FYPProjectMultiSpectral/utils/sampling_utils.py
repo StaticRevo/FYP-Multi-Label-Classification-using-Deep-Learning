@@ -23,7 +23,7 @@ def compute_sample_weights(dataset, label_counts):
         sample_weights.append(weight)
     return sample_weights
 
-# Create a weighted sampler for the dataset
+# Create a weighted sampler for the dataloader
 def create_weighted_sampler(dataset, num_classes):
     label_counts = compute_label_frequencies(dataset, num_classes)
     sample_weights = compute_sample_weights(dataset, label_counts)
@@ -33,4 +33,4 @@ def create_weighted_sampler(dataset, num_classes):
         replacement=True
     )
 
-    return sampler # return the sampler for use in DataLoader
+    return sampler 

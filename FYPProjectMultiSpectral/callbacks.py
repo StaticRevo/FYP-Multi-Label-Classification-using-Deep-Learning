@@ -33,14 +33,18 @@ class BestMetricsCallback(pl.Callback):
             'best_metrics': best_metrics_python,
             'best_epochs': best_epochs_python,
         }
+
+        # Ensure the directory exists
         os.makedirs(os.path.dirname(temp_save_path), exist_ok=True)
         with open(temp_save_path, 'w') as f:
             json.dump(data_to_save, f, indent=4)
     
+    # Record training start time and compute model size
     def on_fit_start(self, trainer, pl_module):
         self.train_start_time = time.time()
-        self.model_size = self.compute_model_size(pl_module) # Compute model size
+        self.model_size = self.compute_model_size(pl_module) 
 
+    # Update best metrics and save them at the end of each validation epoch
     def on_validation_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         current_epoch = trainer.current_epoch
@@ -59,7 +63,7 @@ class BestMetricsCallback(pl.Callback):
 
         self.save_temp_metrics()
 
-    # Callback to save the best metrics at the end of the test phase
+    # Update best metrics at the end of the test phase
     def on_test_epoch_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         current_epoch = trainer.current_epoch
@@ -79,7 +83,7 @@ class BestMetricsCallback(pl.Callback):
                 self.best_metrics[metric] = current
                 self.best_epochs[metric] = current_epoch
 
-    # Callback to save the best metrics at the end of the train phase
+    # Save the best metrics and training details at the end of training
     def on_train_end(self, trainer, pl_module):
         self.train_end_time = time.time()
         self.training_time = self.train_end_time - self.train_start_time  
@@ -133,8 +137,11 @@ class BestMetricsCallback(pl.Callback):
         print(f"  Model Size: {self.model_size:.2f} MB")
         print(f"  Inference Rate: {self.inference_rate:.2f} images/second")
 
+    # Save the best metrics at the end of the test phase
     def on_test_end(self, trainer, pl_module):
-        best_metrics_python = {} # Convert tensors to Python scalars for JSON serialization
+        best_metrics_python = {} 
+
+        # Convert tensors to Python scalars for JSON serialization
         for metric, value in self.best_metrics.items():
             if isinstance(value, torch.Tensor):
                 best_metrics_python[metric] = value.item()
@@ -151,7 +158,7 @@ class BestMetricsCallback(pl.Callback):
             'best_epochs': best_epochs_python,
         }
 
-        os.makedirs(os.path.dirname(self.save_path), exist_ok=True) # Ensure the directory exists
+        os.makedirs(os.path.dirname(self.save_path), exist_ok=True) 
         with open(self.save_path, 'w') as f: 
             json.dump(data_to_save, f, indent=4)
 
@@ -161,7 +168,8 @@ class BestMetricsCallback(pl.Callback):
             value = best_metrics_python.get(metric, 'N/A')
             epoch = best_epochs_python.get(metric, 'N/A')
             print(f"  {metric}: {value} (Epoch {epoch})")
-        
+    
+    # Check if the current metric is better than the best recorded metric
     def is_metric_better(self, metric, current, best):
         metrics_to_maximize = ['val_acc', 'val_f1', 'val_precision', 'val_recall', 'val_f2', 'val_avg_precision', 
                                'test_acc', 'test_f1', 'test_precision', 'test_recall', 'test_f2', 'test_avg_precision']
@@ -175,11 +183,13 @@ class BestMetricsCallback(pl.Callback):
             # Default to maximize if not specified
             return current > best
 
+    # Compute the model size in MB
     def compute_model_size(self, pl_module):
         total_params = sum(p.numel() for p in pl_module.parameters() if p.requires_grad)
         model_size_mb = total_params * 4 / (1024 ** 2)  
         return model_size_mb
 
+    # Compute the inference rate in images per second
     def compute_inference_rate(self, pl_module, trainer, device):
         test_dataloader = trainer.datamodule.test_dataloader()
         try:
@@ -193,7 +203,8 @@ class BestMetricsCallback(pl.Callback):
 
         pl_module.eval()
         with torch.no_grad():
-            for _ in range(5): # Warm-up iterations
+            # Warm-up iterations
+            for _ in range(5): 
                 pl_module(x)
             if 'cuda' in device.type:
                 torch.cuda.synchronize()
@@ -202,7 +213,8 @@ class BestMetricsCallback(pl.Callback):
             start_time = time.time()
             pl_module(x)
 
-            if 'cuda' in device.type: # Synchronize to ensure the forward pass completes
+            # Synchronize to ensure the forward pass completes
+            if 'cuda' in device.type: 
                 torch.cuda.synchronize()
 
             end_time = time.time()
@@ -241,7 +253,8 @@ class LogEpochEndCallback(pl.Callback):
 # Callback to log the gradient norm after each backward pass
 class GradientLoggingCallback(pl.Callback):
     def on_after_backward(self, trainer, pl_module):
-        # Log gradient norm BEFORE clipping
+
+        # Log gradient norm before clipping
         total_norm = 0.0
         for p in pl_module.parameters():
             if p.grad is not None:
@@ -251,6 +264,7 @@ class GradientLoggingCallback(pl.Callback):
         pl_module.log("gradient_norm_before_clipping", total_norm, on_step=True, on_epoch=False)
         print(f"Gradient Norm before clipping: {total_norm:.4f}")
 
+    # Log gradient norm after clipping and before optimizer step
     def on_before_optimizer_step(self, trainer, pl_module, optimizer):
         total_norm = 0.0 # Log gradient norm after clipping but before optimizer scaling
         for p in pl_module.parameters():
@@ -273,6 +287,7 @@ class OnChangeLrLoggerCallback(pl.Callback):
         self.custom_logger = custom_logger
         self.prev_lr = None
 
+    # Log the learning rate when it changes
     def on_train_epoch_end(self, trainer, pl_module):
         optimizer = trainer.optimizers[0] 
         current_lr = optimizer.param_groups[0]['lr']
@@ -292,8 +307,8 @@ class EarlyStoppingLoggerCallback(pl.Callback):
         self.logger = logger
         self.stopped_epoch = 0
 
+    # Log when early stopping is triggered
     def on_validation_end(self, trainer, pl_module):
-        # Access the EarlyStopping callback from the trainer
         for callback in trainer.callbacks:
             if isinstance(callback, pl.callbacks.EarlyStopping) and callback.stopped_epoch > 0:
                 if self.stopped_epoch == 0:  # Log only once

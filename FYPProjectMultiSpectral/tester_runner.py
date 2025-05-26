@@ -62,8 +62,10 @@ class CheckpointSelectorGUI:
     def get_checkpoint(self):
         return self.checkpoint_path
 
+# Tester runner script
 def main():
-    if len(sys.argv) < 5: # Check if the required arguments are provided
+    # Check if the required arguments are provided
+    if len(sys.argv) < 5: 
         print("Usage: python main.py <model_name> <weights> <selected_bands> <selected_dataset>")
         sys.exit(1)
 
@@ -77,7 +79,7 @@ def main():
     metadata_path = DatasetConfig.metadata_paths[num]
     metadata_csv = pd.read_csv(metadata_path)
 
-    class_weights = calculate_class_weights(metadata_csv) # Calculate class weights from the metadata CSV
+    class_weights = calculate_class_weights(metadata_csv) # Calculate class weights 
 
     # Determine the number of channels and the bands based on the selected_bands option
     if selected_bands == 'all_bands':

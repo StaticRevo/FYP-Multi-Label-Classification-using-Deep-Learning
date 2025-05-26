@@ -6,7 +6,7 @@ This project is my Final Year Project for the course of Software Development. It
 
 Satellite imagery can help us find solutions to the growing number of environmental problems that humans face today. It allows us to not only get a bird’s eye view of what’s around us, but also uncovers parts of the world that are rarely seen. Tapping into the potential of categorizing land cover and land use around the world means that humans can more efficiently make use of natural resources, hopefully lowering cases of waste and deprivation. However, despite its potential to be incredibly useful, satellite data is massive and complex, requiring sophisticated analysis to make sense of it.
 
-This project aims to address this issue by developing a CNN model capable of classifying land cover types in satellite imagery. This capability can benefit a variety of stakeholders, including conservationists, urban planners, and environmental scientists, by helping them survey and identify patterns in land use. This allows for the detection of natural areas under threat or the identification of regions suitable for urban development.
+This project aims to address this issue by developing a CNN model capable of classifying land cover types in satellite imagery. This capability can benefit a variety of stakeholders, including conservationists, urban planners, and environmental scientists, by helping them **survey and identify patterns in land use**. This allows for the detection of natural areas under threat or the identification of regions suitable for urban development.
 
 ## Project Goals
 - Develop a Custom CNN that is capable of accurately classify multiple land types based on Sentinel-2 multispectral satellite imagery.
@@ -29,7 +29,7 @@ Follow these steps to set up and run the project locally.
    git clone https://github.com/StaticRevo/Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery.git
    cd Deep-Learning-Based-Land-Use-Classification-Using-Sentinel-2-Imagery
    
-2. **Create and activate conda environment from [requirements.txt](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/blob/main/requirements.txt)**
+2. **Create and activate conda environment from [environment.yml](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/tree/main/environment.yml)**
    ```bash
    conda env create -f environment.yml
 
@@ -37,28 +37,35 @@ Follow these steps to set up and run the project locally.
    ```bash
    conda activate Fyp311
 
+4. **Install any additional or missing dependencies from [requirements.txt](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/tree/main/requirements.txt)**
+   ```bash
+   pip install -r requirements.txt
+
+
+## Configuration Setup
+Before running either the command-line interface (`main.py`) or the web application (`app.py`), you must update the configuration file: [`config.py`](https://github.com/StaticRevo/FYP-Multi-Label-Classification-using-Deep-Learning/tree/main/FYPProjectMultiSpectral/config/config.py).
+
+This file contains critical settings such as:
+- **Experiment paths:** Where model outputs and logs will be stored.
+- **Dataset paths:** Locations of the BigEarthNet dataset.
+- **Metadata paths:** Locations of metadata files for the dataset.
+Update these paths to match your local environment to ensure the project runs correctly.
+
 ## Dataset Setup
 ![Image](https://github.com/user-attachments/assets/b60ae138-de33-40fd-8720-722f39fe80df)
 
-The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of: **590,326 patches**, **19 land cover types** and **12 spectral bands at 10m,20m and 60m per pixel resolution**
-
-Official Source: [BigEarthNet](https://bigearth.net/)
+The dataset used within the project is **BigEarthNet-S2** which is a large-scale multi-label remote sensing dataset consisting of: **590,326 patches**, **19 land cover types** and **12 spectral bands at 10m,20m and 60m per pixel resolution** Official Source: [BigEarthNet](https://bigearth.net/)
 
 To automatically download and pre-process the dataset run:
 
       python FYPProjectMultiSpectral/preprocessing/data_preprocessing.py
 
-The Script will:
-- **Download** the Dataset
-- **Extract** All Necessary Files
-- **Clean and Organise** the Dataset
+The script will:
+- **Download** the dataset from the official website.
+- **Extract** all necessary files.
+- **Clean and organise** the dataset by removing noisy samples, ensuring consistent resolution, and converting it into a suitable deep learning format.
+- **Set up stratified subsets** at 0.5%, 1%, 5%, 10%, and 50%.
 
-## Configuration Setup
-Before running either the command-line interface (main.py) or the web application (app.py), you must update the configuration paths in FYPProjectMultiSpectral/config/config.py. This file contains critical settings such as:
-- **Experiment paths:** Where model outputs and logs will be stored.
-- **Dataset paths:** Locations of the BigEarthNet dataset.
-- **Metadata paths:** Locations of metadata files for the dataset.
-Update these paths to match your local environment to ensure the project runs correctly.
 
 ## Running the Project - Command Line (Training and Testing Models)
 To run the project, simply run:
@@ -110,11 +117,11 @@ The project follows automated experiment logging in a structured directory forma
       ├── checkpoints/                     # Stores trained models
       │   ├── final.pth                    # Final model after all epochs
       ├── logs/                            # Logs related to model testing and evaluation
-          ├── lightning_logs/              # Log file managed by PyTorch Lightning
-          ├── testing_logs/                # Logs related to model testing and evaluation
-              ├── testing.txt              # Main log file for test runs
-          ├── training_logs/               # Logs related to model training
-              ├── training.txt             # Main log file for training runs
+      │   ├── lightning_logs/              # Log file managed by PyTorch Lightning
+      │   ├── testing_logs/                # Logs related to model testing and evaluation
+      │       ├── testing.txt              # Main log file for test runs
+      │   ├── training_logs/               # Logs related to model training
+      │       ├── training.txt             # Main log file for training runs
       ├── architecture.txt                 # Description of the model architecture used in the experiment
       ├── hyperparameters.txt              # Text file listing major hyperparameters for reproducibility
 
@@ -122,7 +129,7 @@ Such a structured format ensures that evaluation can be performed efficiently. B
 
 To reproduce an experiment run:
 
-    python train_runner.py <model_name> <weights> <band_combination> <dataset> <enable_test>
+    python trainer.py <model_name> <weights> <selected_bands> <selected_dataset> <enable_test>
 
 ## Evaluation and Performance Metrics
 The models are evaluated using a combination of aggregated and per-class metrics to ensure a detailed performance assessment. The following are the metrics that were computed during training, validation and testing:
@@ -140,24 +147,28 @@ Beyond the above standard metrics, the project also makes use of additional Eval
 - **ROC and AUC Curves**
 - **Label Co-occurrence Analysis**
 - **Grad-CAM and Activation Maps**
+
 The results are stored within experiment/results folder.
 
-Note: While torchmetrics was used during training for internal monitoring, only sklearn was used for final evaluation and is reflected in the metrics shared and reported.
+Note: While *torchmetrics* was used during training for internal monitoring, *sklearn* was used for final evaluation and is reflected in the shared metrics and report.
 
 ## Final Experiment Results (10% BigEarthNet Subset)
 
 The directory `FYPProjectMultiSpectral/models/final_experiment_results/` contains the results of experiments conducted on the **10% subset** of the BigEarthNet dataset. Each model (e.g., `ResNet50`, `CustomModelV6`, etc.) has its own folder with the following structure:
 
       model_name/
+      ├── logs/                  # Contains Logs related to model testing and evaluation
       ├── checkpoints/           # Contains the final trained model (`last.ckpt`)
-      ├── results/               # Includes aggregated and per-class evaluation metrics (JSON, PNG, NPZ)
+      ├── metrics/               # Includes aggregated and per-class evaluation metrics 
+      ├── visualizations/        # Includes sample batch predictions, confusion matrices and tensorboard graphs
       ├── architecture.txt       # Describes the model's architecture and configuration
+      ├── test_predictions.npz   # Contains predicted and actual labels for the test set
 
 
-This layout supports consistent tracking of model performance and interpretability.
+This layout ensures consistent tracking of model performance and interpretability. It is important to note that the results in this repository are not **raw outputs** directly produced by the code. Instead, they have been organised to enhance readability and reduce confusion during analysis.
 
 > **Note:**  
-> Due to GitHub's [file size restrictions](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github) and issues encountered with Git LFS, the following model result folders have **not been included** in this repository:
+> Due to GitHub's [file size restrictions](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github) and issues encountered with Git LFS, the following model checkpoints have **not been included** in this repository:
 
 - **ResNet18**
 - **ResNet50**
@@ -170,12 +181,16 @@ This layout supports consistent tracking of model performance and interpretabili
 
 These models exceeded GitHub’s 100MB file size limit or caused LFS bandwidth issues. Their results can be provided externally upon request.
 
+## Code Quality and Readability
+
+Utmost care was taken to follow clean coding practices throughout the project. The codebase is structured in a **modular way**, with each component responsible for a specific task. Comments follow an **imperative tone** and are **concise and descriptive**, aiming to enhance readability and make the code easier to understand and maintain. This consistent style should support any future development, debugging, and collaboration.
+
 ## Contact
 
 For questions, feedback, or access to full experiment results and model checkpoints not included in this repository due to GitHub size limitations, feel free to reach out:
 
 **Name:** Isaac Attard  
-**Email:** isaacattard@hotmail.com
+**Email:** isaacattard@hotmail.com / isaac.attard.22@um.edu.mt
 **GitHub:** [StaticRevo](https://github.com/StaticRevo)
 
 Alternatively, open an issue on the repository if it's project-related.

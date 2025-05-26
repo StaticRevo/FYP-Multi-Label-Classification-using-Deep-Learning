@@ -21,7 +21,6 @@ def get_model_class(model_name):
         'EfficientNet_v2': (EfficientNetV2, 'efficientnet_v2'),
         'Vit-Transformer': (VitTransformer, 'vit_transformer'),
         'Swin-Transformer': (SwinTransformer, 'swin_transformer'),
-        #'CustomWRNB0': (CustomWRNB0, 'custom_wrn_b0'),
         'CustomWRNB4ECA': (CustomWRNB4ECA, 'custom_wrn_b4_eca'),
         'CustomModelV6': (CustomModelV6, 'custom_model_v6'),
         'CustomModelV9': (CustomModelV9, 'custom_model_v9'),

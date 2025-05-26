@@ -32,10 +32,8 @@ class BigEarthNetDataset(Dataset):
         else:
             raise ValueError("metadata_csv must be provided and contain 'patch_id' and 'labels' columns.")
 
-        self.patch_ids = self.df['patch_id'].tolist() # Extract the list of patch_ids for this subset
-
-        # Construct image paths based on patch_ids
-        self.image_paths = [self.root_dir / f"{pid}.tif" for pid in self.patch_ids]
+        self.patch_ids = self.df['patch_id'].tolist() # Extract the list of patch_ids for this subset        
+        self.image_paths = [self.root_dir / f"{pid}.tif" for pid in self.patch_ids] # Construct image paths based on patch_ids
 
     def __len__(self):
         return len(self.df)
@@ -54,10 +52,10 @@ class BigEarthNetDataset(Dataset):
             print(f"Error reading {image_path}: {e}. Returning a zero tensor and zero label.")
             image = torch.zeros((len(self.selected_band_indices), DatasetConfig.image_height, DatasetConfig.image_width), dtype=torch.float32)
             label = torch.zeros(DatasetConfig.num_classes, dtype=torch.float32)
+
             return image, label
 
-        # Convert image to a float32 tensor
-        image = torch.tensor(image, dtype=torch.float32)
+        image = torch.tensor(image, dtype=torch.float32) # Convert image to a float32 tensor
 
         # Apply transformations 
         if self.transforms:
@@ -73,13 +71,15 @@ class BigEarthNetDataset(Dataset):
         return image, label
 
     def get_label(self, patch_id):
-        labels = self.patch_to_labels.get(patch_id, None)
+        labels = self.patch_to_labels.get(patch_id, None) # Retrieve labels for the given patch_id
 
-        if labels is None: # If no labels found, return a zero vector
+        # If no labels are found, return a zero vector
+        if labels is None: 
             print(f"No labels found for patch_id: {patch_id}. Returning zero vector.")
             return torch.zeros(DatasetConfig.num_classes, dtype=torch.float32)
 
-        if isinstance(labels, str): # If labels are stored as a string, parse them
+        # If labels are stored as a string, parse them
+        if isinstance(labels, str): 
             try:
                 cleaned_labels = labels.replace(" '", ", '").replace("[", "[").replace("]", "]")
                 labels =  ast.literal_eval(cleaned_labels)
@@ -89,4 +89,5 @@ class BigEarthNetDataset(Dataset):
 
         # Encode the list of labels into a multi-hot vector
         encoded = encode_label(labels)
+        
         return encoded

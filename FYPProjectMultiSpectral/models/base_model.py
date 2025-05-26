@@ -38,6 +38,7 @@ class BaseModel(pl.LightningModule):
         self.class_labels = DatasetConfig.class_labels  
         self.metrics_save_dir = metrics_save_dir
 
+        # Loss function
         self.criterion = CombinedFocalLossWithPosWeight(alpha=ModuleConfig.focal_alpha, gamma=ModuleConfig.focal_gamma, pos_weight=self.class_weights)
         
         # Aggregate Metrics

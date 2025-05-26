@@ -22,12 +22,12 @@ from utils.logging_utils import setup_logger
 from models.models import *
 from callbacks import BestMetricsCallback, LogEpochEndCallback, GradientLoggingCallback, OnChangeLrLoggerCallback, EarlyStoppingLoggerCallback
 
-# Train the model
+# Training script
 def main():
     set_random_seeds() # Set random seeds for reproducibility
     torch.set_float32_matmul_precision('high') 
 
-    # Initialise the variables from the command line arguments
+    # Parse command-line arguments
     model_name = sys.argv[1]
     weights = sys.argv[2]
     selected_bands = sys.argv[3]
@@ -40,12 +40,13 @@ def main():
     else:
         main_path = initialize_paths(model_name, weights, selected_bands, selected_dataset, ModelConfig.num_epochs)
 
-    # Initialise the log directories
+    # Initialise log directories
     log_dir = os.path.join(main_path, 'logs')
     training_log_path = os.path.join(log_dir, 'training_logs')
     tb_logger = TensorBoardLogger(save_dir=log_dir, name='lightning_logs', version='version_0')
     logger = setup_logger(log_dir=training_log_path, file_name='training.log')
 
+    # Check for checkpoint to resume training
     resume_checkpoint = None 
     resumed_epoch = 0 
     
@@ -87,8 +88,8 @@ def main():
     model = model_class(class_weights, DatasetConfig.num_classes, in_channels, model_weights, main_path)
     model.print_summary((in_channels, 120, 120), filename) 
     model.visualize_model((in_channels, 120, 120), filename)
-
     logger.info(f"Training {model_name} model with {weights} weights and '{selected_bands}' bands on {selected_dataset}.")
+
     epoch_end_logger_callback = LogEpochEndCallback(logger) # Custom callback to log metrics at the end of each epoch
 
     # Save hyperparameters
@@ -101,7 +102,7 @@ def main():
 
     # Initialize callbacks
     checkpoint_dir = os.path.join(main_path, 'checkpoints')
-    final_checkpoint = ModelCheckpoint( # Checkpoint callback for final model
+    final_checkpoint = ModelCheckpoint( # Checkpoint callback for final epoch
         dirpath=checkpoint_dir,
         filename='final',
         save_last=True
@@ -113,7 +114,7 @@ def main():
         mode='min'
     )
 
-    # Initialize the BestMetricsCallback
+    # Initialize the BestMetricsCallback for tracking best metrics
     metrics_to_track = ['val_acc', 'val_loss', 'val_f1', 'val_f2', 'val_precision', 'val_recall','val_one_error', 'val_hamming_loss', 'val_avg_precision']
     best_metrics_path = os.path.join(main_path, 'results', 'best_metrics.json')
     best_metrics_callback = BestMetricsCallback(metrics_to_track=metrics_to_track, save_path=best_metrics_path)
@@ -131,7 +132,7 @@ def main():
         precision='32',
         gradient_clip_val=10.0,
         log_every_n_steps=1,
-        accumulate_grad_batches=1,
+        accumulate_grad_batches=2,
         callbacks=[
                     best_metrics_callback,
                     final_checkpoint, 
@@ -143,11 +144,12 @@ def main():
                 ],
     )
 
-    if resume_checkpoint: # If a checkpoint is provided, resume training from that checkpoint
+    if resume_checkpoint: 
         logger.info(f"Resuming training from checkpoint: {resume_checkpoint}")
     else:
         logger.info("No checkpoint provided, starting training from scratch.")
 
+    # Train the model
     logger.info("Starting model training...")
     trainer.fit(model, data_module, ckpt_path=resume_checkpoint)
     logger.info("Model training completed.")
@@ -183,7 +185,8 @@ def main():
     logger.info(f"Inference Rate: {best_metrics.get('inference_rate_images_per_sec', 'N/A'):.2f} images/second")
     logger.info("Training completed successfully")
     
-    if test_variable == 'True': # If test_variable is True, run the tester script
+    # Check if the test_variable is set to 'True'
+    if test_variable == 'True': 
         subprocess.run(['python', '../FYPProjectMultiSpectral/tester_runner.py', model_name, weights, selected_bands, selected_dataset])
 
 if __name__ == "__main__":

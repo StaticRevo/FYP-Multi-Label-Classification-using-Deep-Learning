@@ -363,8 +363,10 @@ class DepthwiseSeparableConv(nn.Module):
     def forward(self, x):
         out = self.depthwise(x) # Depthwise Convolution
         out = self.pointwise(out) # Pointwise Convolution
+
         if self.downsample is not None: # If downsample is not None, apply downsample
             x = self.downsample(x)
+
         if x.shape == out.shape: # If input and output shapes match, add a residual connection
             return x + out
 
@@ -384,6 +386,7 @@ class MultiScaleBlock(nn.Module):
         dil1 = self.conv_dil1(x)  # Local features (3x3 receptive field)
         dil2 = self.conv_dil2(x)  # Mid-range features (5x5 receptive field)
         dil3 = self.conv_dil3(x)  # Global features (7x7 receptive field)
+        
         out = torch.cat([dil1, dil2, dil3], dim=1)  # Concatenate along channels
         out = self.relu(self.fuse(out))  # Fuse to out_channels
         

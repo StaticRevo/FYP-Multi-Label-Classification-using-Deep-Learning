@@ -440,17 +440,17 @@ class CustomWRNB4ECA(BaseModel):
     
     # Override forward function
     def forward(self, x):
-        x = self.conv1(x)  # [12, 176, 176] -> [38, 176, 176]
+        x = self.conv1(x)  # (12, 176, 176) -> (38, 176, 176)
         x = self.bn1(x)
         x = self.relu(x)
 
-        x = self.layer1(x)  # [38, 176, 176] -> [38, 176, 176]
-        x = self.layer2(x)  # [38, 176, 176] -> [76, 88, 88]
-        x = self.layer3(x)  # [76, 88, 88] -> [153, 44, 44]
+        x = self.layer1(x)  # (38, 176, 176) -> (38, 176, 176)
+        x = self.layer2(x)  # (38, 176, 176) -> (76, 88, 88)
+        x = self.layer3(x)  # (76, 88, 88) -> (153, 44, 44)
         
-        x = self.avgpool(x)  # [153, 44, 44] -> [153, 1, 1]
-        x = torch.flatten(x, 1)  # [153]
-        x = self.fc(x)  # [153] -> [19]
+        x = self.avgpool(x)  # (153, 44, 44) -> (153, 1, 1)
+        x = torch.flatten(x, 1)  
+        x = self.fc(x)  # (153) -> (19)
 
         return x
 

@@ -39,7 +39,7 @@ dot.node('CA_Conv1', 'Conv2d\nC -> mid_channels\nkernel_size=1, bias=False\nBatc
 dot.node('CA_Split', 'Split\nH: [B, mid_channels, H, 1]\nW: [B, mid_channels, W, 1]', fillcolor='#cce6ff')
 dot.node('CA_ConvH', 'Conv2d\nmid_channels -> C\nkernel_size=1, bias=False\nSigmoid\n[B, C, H, 1]', fillcolor='#cce6ff')
 dot.node('CA_ConvW', 'Conv2d\nmid_channels -> C\nkernel_size=1, bias=False\nSigmoid\nPermute\n[B, C, 1, W]', fillcolor='#cce6ff')
-dot.node('CA_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  # Dummy for skip connection
+dot.node('CA_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  
 dot.node('CA_Mul', '×\nAttention\n[B, C, H, W]', shape='circle', fillcolor='#ffcccc', width='0.5')
 
 # Edges for main paths

@@ -162,6 +162,7 @@ class CustomModelV9(BaseModel):
                             (normalized_w_early * adapted_features_spectral)  # (236, 15, 15)
 
         out = self.classifier(fused_features_high) # Final classification (19)
+        
         return out
     
     def configure_optimizers(self):

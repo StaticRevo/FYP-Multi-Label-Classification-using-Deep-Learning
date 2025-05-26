@@ -74,14 +74,14 @@ This document outlines the high-level development timeline and key stages involv
   *September 2024 – May 2025* (300 hrs)  
   The report writing phase was carried out in parallel with system development. Each major chapter was aligned with progress in the pipeline:
 
-  - **Introduction:** Drafted early to frame the motivation, goals, and scope of the project.
+  - **Introduction:** Drafted early to outline the motivation, goals, and scope of the project.
   - **Background & Literature Review:** Developed during and after deep paper analysis, covering key methodologies and existing research in multi-label classification and remote sensing.
   - **Specification & Design:** Initiated alongside the data preparation and model planning phases. Included system requirements, data flow diagrams, and architecture overviews.
   - **Implementation:** Written during hands-on development of the training, evaluation, and model pipelines. This chapter described the design decisions and integration efforts across all modules.
   - **Evaluation:** Added once testing pipelines and performance results were finalised. Included analysis of metrics, visualisations, and comparison with SOTA models.
   - **Future Work & Conclusion:** Drafted near the final stages, summarising achievements and proposing follow-up improvements.
 
-  Throughout the process, emphasis was placed on clarity and consistency. Diagrams were refined across iterations, and figures such as confusion matrices, Grad-CAM overlays, and performance charts were generated directly from experimental logs. Regular proof-reading and restructuring ensured alignment between system functionality and report content.
+  Throughout the process, emphasis was placed on clarity and consistency. Numerous diagrams were created and refined across iterations. Figures such as confusion matrices, Grad-CAM overlays, and performance charts were generated directly from experimental logs. Regular proof-reading and restructuring ensured alignment between system functionality and report content.
 
   Additionally, appendices were used to document architectural iterations of the custom models, detailed design and visual breakdowns of attention mechanisms, training hyperparameters, web application interfaces, system execution workflows, dataset characteristics and distribution statistics, as well as extended evaluation outputs.
 

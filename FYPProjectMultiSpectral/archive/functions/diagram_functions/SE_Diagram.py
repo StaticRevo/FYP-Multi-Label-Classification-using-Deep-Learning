@@ -35,10 +35,10 @@ dot.node('SE_Input', 'Input\n[B, C, H, W]', fillcolor='#ffccdd')
 dot.node('SE_Pool', 'AdaptiveAvgPool2d\n[B, C, 1, 1]', fillcolor='#ffccdd')
 dot.node('SE_FC1', 'Conv2d\nC -> C//r\nkernel_size=1', fillcolor='#ffccdd')
 dot.node('SE_Act', 'Activation\n(typically ReLU)', fillcolor='#ffccdd')
-dot.node('SE_Dropout', 'Dropout\n(optional)', fillcolor='#ffccdd', style='filled,dashed')  # Dashed to indicate optional
+dot.node('SE_Dropout', 'Dropout\n(optional)', fillcolor='#ffccdd', style='filled,dashed') 
 dot.node('SE_FC2', 'Conv2d\nC//r -> C\nkernel_size=1', fillcolor='#ffccdd')
 dot.node('SE_Sigmoid', 'Sigmoid', fillcolor='#ffccdd')
-dot.node('SE_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  # Dummy for skip connection
+dot.node('SE_Skip_Dummy', '', shape='point', width='0.01', style='invisible')  
 dot.node('SE_Mul', '×\n[B, C, H, W]', shape='circle', fillcolor='#ffffff', width='0.5')
 
 # Edges for main path

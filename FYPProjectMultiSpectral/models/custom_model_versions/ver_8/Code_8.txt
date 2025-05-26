@@ -145,7 +145,7 @@ class CustomModelV8(BaseModel):
         out = self.classifier(fused_features_high)  # Classifier (19)
         return out
     
-    # Override optimizer configuration for CustomModel
+    # Override optimizer configuration 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=ModelConfig.learning_rate, weight_decay=ModelConfig.weight_decay)                
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=ModelConfig.lr_factor, patience=ModelConfig.lr_patience)                                                  

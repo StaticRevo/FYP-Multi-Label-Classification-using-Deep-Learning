@@ -6,29 +6,29 @@ class CustomModelV1(BaseModel):
             nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=32, out_channels=32, stride=1), # Residual Block (32->32)  
-            SpectralAttention(in_channels=32), # SpectralAttention Module
+            ResidualBlock(in_channels=32, out_channels=32, stride=1), 
+            SpectralAttention(in_channels=32), 
 
             # -- Block 2 --
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=64, out_channels=64, stride=1), # Residual Block (64->64) 
-            ECA(in_channels=64), # ECA Module
+            ResidualBlock(in_channels=64, out_channels=64, stride=1), 
+            ECA(in_channels=64), 
 
             # -- BLock 3 -- 
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=128, out_channels=128, stride=1), # Residual Block (128->128) 
-            SE(in_channels=128, kernel_size=1), # Squeeze and Excitation Module
+            ResidualBlock(in_channels=128, out_channels=128, stride=1), 
+            SE(in_channels=128, kernel_size=1),
 
             # -- Block 4 -- 
             nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            ResidualBlock(in_channels=256, out_channels=256, stride=1), # Residual Block (256->256)
-            DualAttention(in_channels=256, kernel_size=3, stride=1), # DualAttention Module
+            ResidualBlock(in_channels=256, out_channels=256, stride=1), 
+            DualAttention(in_channels=256, kernel_size=3, stride=1), 
 
             # Global Pool and Classifier
             nn.AdaptiveAvgPool2d(1),

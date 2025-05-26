@@ -77,9 +77,9 @@ class EnsembleModel(nn.Module):
 
     @torch.no_grad()
     def forward(self, x):
-        outputs = [model(x.to(self.device)) for model in self.models]  # List of [batch_size, num_classes]
-        all_outputs = torch.stack(outputs, dim=0)  # [num_models, batch_size, num_classes]
-        weighted_output = torch.einsum('m,mbs->bs', self.weights, all_outputs)  # Weighted sum: [batch_size, num_classes]
+        outputs = [model(x.to(self.device)) for model in self.models]  
+        all_outputs = torch.stack(outputs, dim=0) 
+        weighted_output = torch.einsum('m,mbs->bs', self.weights, all_outputs) 
         
         return weighted_output
 
